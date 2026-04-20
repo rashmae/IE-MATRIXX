@@ -1,11 +1,26 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const ai = new GoogleGenAI({ apiKey: (process.env as any).GEMINI_API_KEY });
+let genAI: GoogleGenerativeAI | null = null;
+
+export const getGenAI = () => {
+  if (!genAI) {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_FIREBASE_API_KEY;
+    if (!apiKey) {
+      console.error('Gemini API key not set. Please set VITE_GEMINI_API_KEY or VITE_FIREBASE_API_KEY.');
+      return null;
+    }
+    genAI = new GoogleGenerativeAI(apiKey);
+  }
+  return genAI;
+};
 
 const DEFAULT_MODEL = "gemini-3-flash-preview";
 
 export async function generateStudyPlan(currentProgress: any, subjects: any[]) {
+  const ai = getGenAI();
+  if (!ai) return [];
+
   const prompt = `
     You are an expert Industrial Engineering Academic Advisor.
     Given the current progress of a student and the IE curriculum, generate a personalized study roadmap.
@@ -23,15 +38,15 @@ export async function generateStudyPlan(currentProgress: any, subjects: any[]) {
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: prompt,
-      config: {
+    const model = ai.getGenerativeModel({ model: DEFAULT_MODEL });
+    const response = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
         responseMimeType: "application/json"
       }
     });
 
-    const text = response.text || "[]";
+    const text = response.response.text() || "[]";
     return JSON.parse(text);
   } catch (error) {
     console.error("Gemini Error:", error);
@@ -40,6 +55,9 @@ export async function generateStudyPlan(currentProgress: any, subjects: any[]) {
 }
 
 export async function askQuestion(question: string, context: string) {
+  const ai = getGenAI();
+  if (!ai) return "AI Assistant is currently unavailable.";
+
   const prompt = `
     You are an IE Matrix AI Tutor. 
     Question: ${question}
@@ -49,11 +67,11 @@ export async function askQuestion(question: string, context: string) {
   `;
   
   try {
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: prompt
+    const model = ai.getGenerativeModel({ model: DEFAULT_MODEL });
+    const response = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }]
     });
-    return response.text || "Sorry, I couldn't process your request.";
+    return response.response.text() || "Sorry, I couldn't process your request.";
   } catch (error) {
     console.error("Gemini Error:", error);
     return "Sorry, I couldn't process your request.";
@@ -61,6 +79,9 @@ export async function askQuestion(question: string, context: string) {
 }
 
 export async function generateQuiz(subjectName: string) {
+  const ai = getGenAI();
+  if (!ai) return [];
+
   const prompt = `
     Create a 5-question multiple choice quiz for the subject: ${subjectName}.
     The questions should be relevant to Industrial Engineering.
@@ -73,14 +94,14 @@ export async function generateQuiz(subjectName: string) {
   `;
   
   try {
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: prompt,
-      config: {
+    const model = ai.getGenerativeModel({ model: DEFAULT_MODEL });
+    const response = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
         responseMimeType: "application/json"
       }
     });
-    const text = response.text || "[]";
+    const text = response.response.text() || "[]";
     return JSON.parse(text);
   } catch (error) {
     console.error("Gemini Quiz Error:", error);
@@ -89,6 +110,9 @@ export async function generateQuiz(subjectName: string) {
 }
 
 export async function getCurriculumAdvice(userProgress: any, subjects: any[]) {
+  const ai = getGenAI();
+  if (!ai) return "I'm sorry, I couldn't generate advice at the moment.";
+
   const prompt = `
     You are an academic advisor for Industrial Engineering students at Cebu Technological University (CTU).
     
@@ -104,11 +128,11 @@ export async function getCurriculumAdvice(userProgress: any, subjects: any[]) {
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: prompt
+    const model = ai.getGenerativeModel({ model: DEFAULT_MODEL });
+    const response = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }]
     });
-    return response.text || "I'm sorry, I couldn't generate advice at the moment.";
+    return response.response.text() || "I'm sorry, I couldn't generate advice at the moment.";
   } catch (error) {
     console.error("Gemini Advice Error:", error);
     return "I'm sorry, I couldn't generate advice at the moment. Please try again later.";

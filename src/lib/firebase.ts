@@ -52,18 +52,30 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+let app: any;
+let auth: any;
+let db: any;
+let storage: any;
 
-// Initialize Firestore with explicit database ID and robust connection settings
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-}, databaseId);
+try {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  
+  // Initialize Firestore with explicit database ID and robust connection settings
+  db = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+  }, databaseId);
+  
+  storage = getStorage(app);
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+}
 
-export const storage = getStorage(app);
+export { app, auth, db, storage };
 export const googleProvider = new GoogleAuthProvider();
 
 export const testFirebaseConnection = async () => {
+  if (!db) return false;
   try {
     const testQuery = query(collection(db, 'users'), limit(1));
     await getDocs(testQuery);
