@@ -146,8 +146,6 @@ export default function StudyTools() {
 
   const handleGenerateRoadmap = async () => {
     setIsGenerating(true);
-    const progress = localStorage.getItem('ctu_hub_progress_v2');
-    const progressMap = progress ? JSON.parse(progress) : {};
     
     try {
       const plan = await generateStudyPlan(progressMap, IE_SUBJECTS);
@@ -573,73 +571,134 @@ export default function StudyTools() {
 
                     <div className="space-y-0 relative">
                       {roadmap.length > 0 ? (
-                        <div className="mt-8">
+                        <div className="mt-8 space-y-16">
                           {roadmap.map((step, idx) => (
                             <motion.div 
                               key={idx} 
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: idx * 0.1 }}
-                              className="flex gap-8 relative pb-10 last:pb-0"
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: idx * 0.15 }}
+                              className="relative"
                             >
-                              {/* Vertical Line Connector */}
+                              {/* Connector Line to Next Phase */}
                               {idx < roadmap.length - 1 && (
-                                <div className="absolute left-[20px] top-10 bottom-0 w-0.5 bg-gradient-to-b from-ctu-gold via-ctu-maroon/20 to-transparent" />
+                                <div className="absolute left-1/2 -bottom-16 w-0.5 h-16 bg-gradient-to-b from-ctu-gold via-ctu-gold/20 to-transparent -translate-x-1/2 hidden md:block" />
                               )}
                               
-                              {/* Connector Node */}
-                              <div className="relative group/node">
-                                <div className={cn(
-                                  "w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 transition-all duration-300 z-10 relative overflow-hidden",
-                                  step.difficulty === 'hard' 
-                                    ? "bg-ctu-maroon text-white shadow-[0_0_20px_rgba(154,1,1,0.3)]" 
-                                    : "bg-ctu-gold text-white shadow-[0_0_20px_rgba(197,160,89,0.3)]"
-                                )}>
-                                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover/node:opacity-100 transition-opacity" />
-                                  <span className="relative z-10">{idx + 1}</span>
-                                </div>
-                                <div className="absolute -inset-2 bg-ctu-gold/5 rounded-3xl opacity-0 group-hover/node:opacity-100 blur-sm transition-all" />
-                              </div>
-
-                              <div className="flex-1 space-y-3">
-                                <div className="flex items-center justify-between">
-                                  <h3 className="text-lg font-bold text-foreground group-hover:text-ctu-gold transition-colors">{step.title}</h3>
-                                  <Badge variant="outline" className={cn(
-                                    "text-[9px] font-black uppercase tracking-[0.1em] border-none",
-                                    step.difficulty === 'hard' ? "bg-ctu-maroon/10 text-ctu-maroon" : "bg-green-500/10 text-green-500"
+                              <div className="flex flex-col items-center">
+                                {/* Phase Header Node */}
+                                <div className="z-20 mb-8 w-full max-w-sm">
+                                  <div className={cn(
+                                    "p-4 rounded-2xl border flex items-center gap-4 shadow-xl transition-all duration-500",
+                                    step.difficulty === 'hard' 
+                                      ? "bg-ctu-maroon/10 border-ctu-maroon/30 shadow-ctu-maroon/5" 
+                                      : "bg-ctu-gold/10 border-ctu-gold/30 shadow-ctu-gold/5"
                                   )}>
-                                    {step.difficulty} Phase
-                                  </Badge>
-                                </div>
-                                
-                                <p className="text-xs text-foreground/50 font-medium leading-relaxed max-w-2xl">{step.description}</p>
-                                
-                                <div className="flex flex-wrap gap-2 pt-1">
-                                  {step.subjects?.map((sCode: string) => (
-                                    <Badge 
-                                      key={sCode} 
-                                      onClick={() => navigate(`/catalog`)}
-                                      className="bg-background border border-white/5 text-[9px] font-bold text-foreground/40 hover:bg-ctu-gold/10 hover:text-ctu-gold transition-all cursor-pointer rounded-lg px-2 h-6"
-                                    >
-                                      {sCode}
-                                    </Badge>
-                                  ))}
-                                  {step.estimatedTime && (
-                                    <div className="flex items-center gap-1.5 ml-auto text-[10px] font-bold text-foreground/30 uppercase tracking-widest">
-                                      <Clock size={12} />
-                                      {step.estimatedTime}
+                                    <div className={cn(
+                                      "w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg",
+                                      step.difficulty === 'hard' ? "bg-ctu-maroon text-white" : "bg-ctu-gold text-white"
+                                    )}>
+                                      {idx + 1}
                                     </div>
-                                  )}
+                                    <div>
+                                      <h3 className="font-black text-foreground text-sm uppercase tracking-wider">{step.title}</h3>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <Badge variant="outline" className={cn(
+                                          "text-[8px] font-black uppercase tracking-widest border-none px-2 py-0.5 h-auto",
+                                          step.difficulty === 'hard' ? "bg-ctu-maroon/20 text-ctu-maroon" : "bg-green-500/20 text-green-500"
+                                        )}>
+                                          {step.difficulty} Phase
+                                        </Badge>
+                                        {step.estimatedTime && (
+                                          <span className="text-[8px] font-bold text-foreground/30 uppercase flex items-center gap-1">
+                                            <Clock size={10} /> {step.estimatedTime}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
 
-                                {idx === 0 && (
-                                   <div className="mt-4 p-4 rounded-xl bg-ctu-gold/5 border border-ctu-gold/10 flex items-center gap-3">
-                                      <div className="p-2 bg-ctu-gold rounded-lg text-white">
-                                        <ArrowRight size={14} className="animate-bounce-x" />
-                                      </div>
-                                      <p className="text-[10px] font-bold text-ctu-gold uppercase tracking-[0.1em]">Recommended Point of Entry</p>
-                                   </div>
-                                )}
+                                {/* Subjects Grid (Interconnected Nodes) */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+                                  {step.subjects?.map((sCode: string, sIdx: number) => {
+                                    const normalizeCode = (c: string) => c.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                                    const subjectInfo = IE_SUBJECTS.find(s => normalizeCode(s.code) === normalizeCode(sCode));
+                                    const progress = subjectInfo ? progressMap[subjectInfo.id] : null;
+                                    const isDone = progress?.status === 'done';
+                                    const isInProgress = progress?.status === 'in_progress';
+                                    
+                                    return (
+                                      <motion.div 
+                                        key={sCode}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: (idx * 0.2) + (sIdx * 0.1) }}
+                                        className="relative group"
+                                      >
+                                        <div className={cn(
+                                          "p-5 rounded-2xl border-2 transition-all duration-300 relative overflow-hidden",
+                                          isDone 
+                                            ? "bg-green-500/5 border-green-500/30" 
+                                            : isInProgress 
+                                              ? "bg-ctu-gold/5 border-ctu-gold/50 shadow-[0_0_15px_rgba(197,160,89,0.1)]"
+                                              : "bg-background border-foreground/5 hover:border-ctu-gold/30"
+                                        )}>
+                                          {/* Background Pattern for 'Done' */}
+                                          {isDone && (
+                                            <div className="absolute top-0 right-0 p-2 text-green-500 opacity-20">
+                                              <Award size={40} />
+                                            </div>
+                                          )}
+
+                                          <div className="flex items-start justify-between mb-3">
+                                            <span className={cn(
+                                              "text-[9px] font-black tracking-tighter uppercase px-2 py-0.5 rounded-md",
+                                              isDone ? "bg-green-500 text-white" : "bg-foreground/10 text-foreground/60"
+                                            )}>
+                                              {sCode}
+                                            </span>
+                                            {isDone ? (
+                                              <Badge className="bg-green-500 text-white border-none text-[8px] font-bold">COMPLETED</Badge>
+                                            ) : isInProgress ? (
+                                              <Badge className="bg-ctu-gold text-white border-none text-[8px] font-bold animate-pulse">ACTIVE FOCUS</Badge>
+                                            ) : null}
+                                          </div>
+
+                                          <h4 className="text-xs font-bold text-foreground mb-4 line-clamp-2 min-h-[2rem]">
+                                            {subjectInfo?.name || sCode}
+                                          </h4>
+
+                                          {/* Prerequisite Tags */}
+                                          {subjectInfo?.prerequisiteIds && subjectInfo.prerequisiteIds.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-auto">
+                                              {subjectInfo.prerequisiteIds.map(pid => {
+                                                const preCode = IE_SUBJECTS.find(s => s.id === pid)?.code || pid;
+                                                return (
+                                                  <span key={pid} className="text-[7px] font-black bg-foreground/5 text-foreground/40 px-1.5 py-0.5 rounded border border-foreground/5">
+                                                    PRE: {preCode}
+                                                  </span>
+                                                );
+                                              })}
+                                            </div>
+                                          )}
+                                          
+                                          <button 
+                                            onClick={() => subjectInfo && navigate(`/catalog/${subjectInfo.id}`)}
+                                            className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity text-ctu-gold"
+                                          >
+                                            <ChevronRight size={16} />
+                                          </button>
+                                        </div>
+
+                                        {/* Dynamic SVG Connections (Simplified) */}
+                                        {sIdx < (step.subjects?.length || 0) - 1 && (
+                                          <div className="absolute -right-3 top-1/2 w-3 h-0.5 bg-foreground/5 hidden lg:block" />
+                                        )}
+                                      </motion.div>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             </motion.div>
                           ))}

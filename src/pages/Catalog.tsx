@@ -59,6 +59,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
@@ -285,8 +286,8 @@ export default function Catalog() {
 
   const FilterPanelContent = () => (
     <div className="space-y-8 py-4">
-      <div className="space-y-4">
-        <h4 className="text-sm font-bold uppercase tracking-widest text-foreground/40 px-1">Year Level</h4>
+      <div className="space-y-4" role="group" aria-labelledby="filter-year-level">
+        <h4 id="filter-year-level" className="text-sm font-bold uppercase tracking-widest text-foreground/40 px-1">Year Level</h4>
         <div className="grid grid-cols-2 gap-3">
           {(['1st', '2nd', '3rd', '4th'] as YearLevel[]).map(year => (
             <div key={year} className="flex items-center space-x-2">
@@ -298,20 +299,21 @@ export default function Catalog() {
                   else setSelectedYears(prev => prev.filter(y => y !== year));
                 }}
               />
-              <label htmlFor={`year-${year}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              <Label htmlFor={`year-${year}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
                 {year} Year
-              </label>
+              </Label>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="space-y-4">
-        <h4 className="text-sm font-bold uppercase tracking-widest text-foreground/40 px-1">Semester</h4>
+      <div className="space-y-4" role="group" aria-labelledby="filter-semester">
+        <h4 id="filter-semester" className="text-sm font-bold uppercase tracking-widest text-foreground/40 px-1">Semester</h4>
         <div className="flex flex-wrap gap-2">
           {(['1st', '2nd', 'Summer'] as Semester[]).map(sem => (
             <button
               key={sem}
+              aria-pressed={selectedSems.includes(sem)}
               onClick={() => {
                 if (selectedSems.includes(sem)) setSelectedSems(prev => prev.filter(s => s !== sem));
                 else setSelectedSems(prev => [...prev, sem]);
@@ -330,8 +332,8 @@ export default function Catalog() {
       </div>
 
       {departments.length > 0 && (
-        <div className="space-y-4">
-          <h4 className="text-sm font-bold uppercase tracking-widest text-foreground/40 px-1">Department</h4>
+        <div className="space-y-4" role="group" aria-labelledby="filter-department">
+          <h4 id="filter-department" className="text-sm font-bold uppercase tracking-widest text-foreground/40 px-1">Department</h4>
           <div className="space-y-2">
             {departments.map(dept => (
               <div key={dept} className="flex items-center space-x-2">
@@ -343,19 +345,19 @@ export default function Catalog() {
                     else setSelectedDepartments(prev => prev.filter(d => d !== dept));
                   }}
                 />
-                <label htmlFor={`dept-${dept}`} className="text-sm font-medium leading-none truncate">
+                <Label htmlFor={`dept-${dept}`} className="text-sm font-medium leading-none truncate cursor-pointer">
                   {dept}
-                </label>
+                </Label>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <div className="space-y-6 px-1">
+      <div className="space-y-6 px-1" role="group" aria-labelledby="filter-units">
         <div className="flex justify-between items-center">
-          <h4 className="text-sm font-bold uppercase tracking-widest text-foreground/40">Max Units</h4>
-          <span className="text-sm font-bold text-ctu-gold">{unitRange[0]} Units</span>
+          <h4 id="filter-units" className="text-sm font-bold uppercase tracking-widest text-foreground/40">Max Units</h4>
+          <span className="text-sm font-bold text-ctu-gold" aria-live="polite">{unitRange[0]} Units</span>
         </div>
         <Slider
           value={unitRange}
@@ -364,36 +366,40 @@ export default function Catalog() {
           step={1}
           onValueChange={setUnitRange as any}
           className="py-4"
+          aria-label="Maximum units"
         />
       </div>
 
-      <div className="space-y-4 pt-4 border-t border-foreground/5">
+      <div className="space-y-4 pt-4 border-t border-foreground/5" role="group" aria-label="Course Availability and Preferences">
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <h4 className="text-sm font-bold">Available Slots</h4>
+            <Label htmlFor="available-slots" className="text-sm font-bold cursor-pointer">Available Slots</Label>
             <p className="text-[10px] text-foreground/40">Show only courses with open slots</p>
           </div>
           <Switch 
+            id="available-slots"
             checked={onlyAvailable}
             onCheckedChange={setOnlyAvailable}
           />
         </div>
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <h4 className="text-sm font-bold">Favorites</h4>
+            <Label htmlFor="only-favorites" className="text-sm font-bold cursor-pointer">Favorites</Label>
             <p className="text-[10px] text-foreground/40">Show only your favorited courses</p>
           </div>
           <Switch 
+            id="only-favorites"
             checked={onlyFavorites}
             onCheckedChange={setOnlyFavorites}
           />
         </div>
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <h4 className="text-sm font-bold">Has Reviews</h4>
+            <Label htmlFor="has-reviews" className="text-sm font-bold cursor-pointer">Has Reviews</Label>
             <p className="text-[10px] text-foreground/40">Show only courses with student feedback</p>
           </div>
           <Switch 
+            id="has-reviews"
             checked={hasReviews}
             onCheckedChange={setHasReviews}
           />
@@ -484,22 +490,31 @@ export default function Catalog() {
                   Recent
                 </div>
                 {searchHistory.map((item, idx) => (
-                  <div 
+                  <button 
                     key={idx}
                     onClick={() => setSearchQuery(item)}
+                    aria-label={`Search for ${item}`}
                     className="group flex items-center gap-2 px-3 py-1 rounded-lg neumorphic-raised hover:neumorphic-pressed transition-all cursor-pointer bg-background/30 border border-white/5"
                   >
                     <span className="text-[10px] font-bold text-foreground/50 group-hover:text-ctu-gold transition-colors">
                       {item}
                     </span>
-                    <button 
+                    <div 
                       onClick={(e) => removeFromHistory(item, e)}
                       aria-label={`Remove ${item} from search history`}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.stopPropagation();
+                          removeFromHistory(item, e as any);
+                        }
+                      }}
                       className="text-foreground/20 hover:text-ctu-maroon transition-colors"
                     >
                       <X size={10} />
-                    </button>
-                  </div>
+                    </div>
+                  </button>
                 ))}
                 <button 
                   onClick={() => {
@@ -545,7 +560,10 @@ export default function Catalog() {
 
                 <div className="flex gap-3 h-14">
                   <Sheet>
-                    <SheetTrigger className="h-full px-5 rounded-2xl neumorphic-raised hover:neumorphic-pressed transition-all flex items-center gap-2 text-foreground/60">
+                    <SheetTrigger 
+                      aria-label="Open advanced filters"
+                      className="h-full px-5 rounded-2xl neumorphic-raised hover:neumorphic-pressed transition-all flex items-center gap-2 text-foreground/60"
+                    >
                       <SlidersHorizontal size={18} />
                       <span className="font-bold text-sm hidden sm:inline">Advanced</span>
                       {activeFilterCount > 0 && (
@@ -566,7 +584,10 @@ export default function Catalog() {
                   </Sheet>
 
                   <DropdownMenu>
-                    <DropdownMenuTrigger className="h-full px-5 rounded-2xl neumorphic-raised hover:neumorphic-pressed transition-all flex items-center gap-2 text-foreground/60 min-w-[140px] justify-between">
+                    <DropdownMenuTrigger 
+                      aria-label="Sort subjects"
+                      className="h-full px-5 rounded-2xl neumorphic-raised hover:neumorphic-pressed transition-all flex items-center gap-2 text-foreground/60 min-w-[140px] justify-between"
+                    >
                       <div className="flex items-center gap-2">
                         <ArrowUpDown size={18} />
                         <span className="font-bold text-sm hidden sm:inline">Sort</span>
@@ -619,6 +640,7 @@ export default function Catalog() {
                   return (
                     <button
                       key={chip.id}
+                      aria-pressed={isActive}
                       onClick={() => {
                         if (chip.year === null) setSelectedYears([]);
                         else setSelectedYears([chip.year as YearLevel]);
