@@ -2,26 +2,25 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import firebaseConfigJson from '../../firebase-applet-config.json';
 
-// Use the provided JSON config as the source of truth for AI Studio Build.
-// Environment variables are supported but should be used with caution as they can cause mismatches.
-const envProjectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
-const jsonProjectId = firebaseConfigJson.projectId;
-
-if (envProjectId && jsonProjectId && envProjectId !== jsonProjectId) {
-  console.warn(`[Firebase Diagnostics] CONFIG MISMATCH: Environment settings are using "${envProjectId}" but the project config uses "${jsonProjectId}". Overriding environment to use the correct project config.`);
-}
-
+// In AI Studio Build, we prefer environment variables for flexibility.
+// These are defined in .env.example and should be provided by the platform or .env file.
 const config = {
-  apiKey: firebaseConfigJson.apiKey,
-  authDomain: firebaseConfigJson.authDomain,
-  projectId: firebaseConfigJson.projectId,
-  storageBucket: firebaseConfigJson.storageBucket,
-  messagingSenderId: firebaseConfigJson.messagingSenderId,
-  appId: firebaseConfigJson.appId,
-  firestoreDatabaseId: firebaseConfigJson.firestoreDatabaseId || 'ai-studio-ed95dc68-ee18-4519-b44b-779a2b247f49'
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || 'ai-studio-ed95dc68-ee18-4519-b44b-779a2b247f49'
 };
+
+// Check if critical config is missing
+const isFirebaseConfigured = !!config.apiKey && !!config.projectId;
+
+if (!isFirebaseConfigured) {
+  console.warn("[Firebase] Warning: Firebase configuration is incomplete. Please ensure VITE_FIREBASE_* environment variables are set.");
+}
 
 const app = initializeApp(config);
 export const auth = getAuth(app);
@@ -38,6 +37,8 @@ export const googleProvider = new GoogleAuthProvider();
 
 // Connection Test
 const testConnection = async () => {
+  if (!isFirebaseConfigured) return;
+  
   console.log(`[Firebase Diagnostics] Initializing connection test...`);
   console.log(`[Firebase Diagnostics] Project ID: ${config.projectId}`);
   console.log(`[Firebase Diagnostics] Firestore DB ID: ${config.firestoreDatabaseId || '(default)'}`);
