@@ -1,0 +1,553 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { 
+  LayoutDashboard, 
+  BookOpen, 
+  TrendingUp, 
+  FolderOpen, 
+  Megaphone, 
+  CalendarDays,
+  Search,
+  ChevronRight,
+  Clock,
+  Filter,
+  X,
+  Trophy,
+} from 'lucide-react';
+import { useAuth } from '@/src/context/AuthContext';
+import { useProgress } from '@/src/hooks/useProgress';
+import Sidebar from '@/src/components/layout/Sidebar';
+import BottomNav from '@/src/components/layout/BottomNav';
+import { Subject, Announcement, CalendarEvent, YearLevel } from '@/src/types/index';
+import { IE_SUBJECTS, ANNOUNCEMENTS, CALENDAR_EVENTS } from '@/src/lib/constants';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { GlowCard } from '@/components/ui/spotlight-card';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+import { BrainCircuit } from 'lucide-react';
+import { toast } from 'sonner';
+
+export default function Dashboard() {
+  const { profile, loading: authLoading } = useAuth();
+  const { progressMap, loading: progressLoading } = useProgress();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedYear, setSelectedYear] = useState<YearLevel | 'All'>(() => {
+    return (localStorage.getItem('dashboard-year-filter') as YearLevel | 'All') || 'All';
+  });
+  const [showOnlyRemaining, setShowOnlyRemaining] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    localStorage.setItem('dashboard-year-filter', selectedYear);
+  }, [selectedYear]);
+
+  useEffect(() => {
+    if (!authLoading && !profile) {
+      navigate('/login');
+    }
+  }, [profile, authLoading, navigate]);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 }
+  };
+
+  const subjectsByYear = {
+    '1st': IE_SUBJECTS.filter(s => s.yearLevel === '1st'),
+    '2nd': IE_SUBJECTS.filter(s => s.yearLevel === '2nd'),
+    '3rd': IE_SUBJECTS.filter(s => s.yearLevel === '3rd'),
+    '4th': IE_SUBJECTS.filter(s => s.yearLevel === '4th'),
+  };
+
+  const getStats = () => {
+    const total = IE_SUBJECTS.length;
+    const items = Object.values(progressMap);
+    const done = items.filter(s => s.status === 'done').length;
+    const inProgress = items.filter(s => s.status === 'in_progress').length;
+    
+    let totalWeightedGrade = 0;
+    let gradedUnits = 0;
+    
+    IE_SUBJECTS.forEach(s => {
+      const p = progressMap[s.id];
+      if (p?.status === 'done' && p.grade) {
+        totalWeightedGrade += p.grade * s.units;
+        gradedUnits += s.units;
+      }
+    });
+
+    const gwa = gradedUnits > 0 ? (totalWeightedGrade / gradedUnits).toFixed(2) : '0.00';
+    return { total, done, inProgress, gwa };
+  };
+
+  const stats = getStats();
+
+  const filteredSubjects = IE_SUBJECTS.filter(s => {
+    const matchesSearch = 
+      s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      s.code.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      s.department?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      s.professor?.toLowerCase().includes(debouncedSearch.toLowerCase());
+    
+    const matchesYear = selectedYear === 'All' || s.yearLevel === selectedYear;
+    
+    const isCompleted = progressMap[s.id]?.status === 'done';
+    const matchesRemaining = !showOnlyRemaining || !isCompleted;
+    
+    return matchesSearch && matchesYear && matchesRemaining;
+  });
+
+  const isFilterActive = debouncedSearch !== '' || selectedYear !== 'All' || showOnlyRemaining;
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedYear('All');
+    setShowOnlyRemaining(false);
+  };
+
+  if (authLoading || progressLoading || !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="loader"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
+      <Sidebar user={profile} />
+      
+      <main id="main-content" className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+          <motion.div
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            className="flex items-center gap-6"
+          >
+            {/* AI Robot Logo in Dashboard */}
+            <div className="relative w-24 h-24 shrink-0 hidden sm:block" aria-hidden="true">
+              <div className="absolute inset-0 bg-ctu-gold/20 rounded-full blur-xl animate-pulse" />
+              <div className="relative w-full h-full neumorphic-raised rounded-full p-1 flex items-center justify-center bg-background overflow-hidden border border-white/10 scale-90">
+                <div className="absolute inset-0 border-2 border-ctu-gold/30 rounded-full animate-[spin_10s_linear_infinite]" />
+                <div className="absolute inset-2 border border-ctu-maroon/20 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
+                
+                <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-ctu-gold via-ctu-maroon to-navy-deep flex items-center justify-center shadow-inner overflow-hidden">
+                  <motion.div 
+                    animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    className="w-8 h-8 rounded-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)] flex items-center justify-center"
+                    role="img"
+                    aria-label="Glowing AI Robot eye representing Matrix intelligence"
+                  >
+                    <div className="w-4 h-4 rounded-full bg-navy-deep flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-ctu-gold animate-ping" />
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h1 className="text-4xl frosted-header font-bold tracking-tight">
+                {getGreeting()}, {profile.fullName.split(' ')[0]} 👋
+              </h1>
+              <p className="text-foreground/60 mt-1 text-sm font-medium">Navigate your IE journey. One subject at a time.</p>
+            </div>
+          </motion.div>
+
+          <div className="flex flex-col items-end gap-3 translate-y-2">
+            <div className="flex items-center gap-4">
+              <div className="relative hidden md:block w-72">
+                <Label htmlFor="dashboard-search" className="sr-only">Search subjects</Label>
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" size={16} aria-hidden="true" />
+                <input 
+                  id="dashboard-search"
+                  type="text" 
+                  placeholder="Search subjects..." 
+                  aria-label="Search subjects"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-background border-none neumorphic-pressed rounded-xl py-3 pl-10 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-ctu-gold/50 transition-all text-foreground placeholder:text-foreground/30"
+                />
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center rounded-full hover:bg-foreground/5 text-foreground/40 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <button 
+                onClick={() => {
+                  const url = `/catalog?q=${encodeURIComponent(searchQuery)}${selectedYear !== 'All' ? `&year=${selectedYear}` : ''}`;
+                  navigate(url);
+                }}
+                className="neumorphic-raised hover:neumorphic-pressed px-8 py-3 rounded-full text-foreground font-bold text-sm transition-all whitespace-nowrap"
+              >
+                Search Matrix
+              </button>
+            </div>
+
+            {/* Quick Filters */}
+            <div className="hidden md:flex flex-col items-end gap-3 mt-2">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowOnlyRemaining(!showOnlyRemaining)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border",
+                    showOnlyRemaining 
+                      ? "bg-ctu-maroon border-ctu-maroon text-white shadow-[0_0_10px_rgba(141,18,34,0.3)]" 
+                      : "border-foreground/10 text-foreground/40 hover:text-foreground/60"
+                  )}
+                >
+                  <TrendingUp size={12} />
+                  Remaining Only
+                </button>
+                <div className="w-px h-4 bg-foreground/10 mx-1" />
+                <Filter size={12} className="text-ctu-gold" />
+                {(['All', '1st', '2nd', '3rd', '4th'] as const).map((year) => {
+                  const yearSubjects = year === 'All' ? IE_SUBJECTS : subjectsByYear[year];
+                  const completed = yearSubjects.filter(s => progressMap[s.id]?.status === 'done').length;
+                  const progress = Math.round((completed / yearSubjects.length) * 100);
+                  
+                  const icons = {
+                    'All': <LayoutDashboard size={12} />,
+                    '1st': <BookOpen size={12} />,
+                    '2nd': <BrainCircuit size={12} />,
+                    '3rd': <FolderOpen size={12} />,
+                    '4th': <Trophy size={12} />
+                  };
+
+                  return (
+                    <button
+                      key={year}
+                      onClick={() => setSelectedYear(year)}
+                      className={cn(
+                        "group relative flex items-center gap-2 px-3 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all",
+                        selectedYear === year 
+                          ? "neumorphic-pressed text-ctu-gold" 
+                          : "text-foreground/30 hover:text-foreground/60"
+                      )}
+                    >
+                      {icons[year as keyof typeof icons]}
+                      <span>{year === 'All' ? 'All' : `${year}`}</span>
+                      <span className={cn(
+                        "text-[8px] opacity-40 ml-1 font-black",
+                        selectedYear === year && "opacity-100"
+                      )}>
+                        ({yearSubjects.length})
+                      </span>
+                      {selectedYear !== year && completed > 0 && (
+                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-emerald-500/50" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+        >
+          {/* Main Content Area */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[
+                { label: 'Total Subjects', value: stats.total.toString(), icon: BookOpen, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+                { label: 'Completed', value: stats.done.toString(), icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                { label: 'In Progress', value: stats.inProgress.toString(), icon: Clock, color: 'text-ctu-maroon', bg: 'bg-ctu-maroon/10' },
+                { label: 'Standing', value: `GWA ${stats.gwa}`, icon: LayoutDashboard, color: 'text-ctu-gold', bg: 'bg-ctu-gold/10' },
+              ].map((stat, i) => (
+                <motion.div key={i} variants={itemVariants}>
+                  <Card className="neumorphic-card border-none overflow-hidden hover:scale-[1.02] transition-transform cursor-default">
+                    <CardContent className="p-6">
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-colors", stat.bg)}>
+                        <stat.icon size={20} className={stat.color} />
+                      </div>
+                      <p className="text-[11px] text-foreground/40 uppercase tracking-[1px] font-bold">{stat.label}</p>
+                      <p className="text-2xl lg:text-3xl font-bold text-foreground mt-2">{stat.value}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Year Progress Grid */}
+            <motion.div variants={itemVariants} className="neumorphic-card p-8">
+              <h3 className="text-sm font-bold text-ctu-gold uppercase tracking-[2px] mb-8">Year Level Progress</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[
+                  { 
+                    id: '1st',
+                    year: '1st Year', 
+                    subjects: subjectsByYear['1st'],
+                    gradient: 'from-ctu-maroon to-pink-400', 
+                    badge: 'bg-ctu-maroon',
+                    glow: 'shadow-[0_0_15px_rgba(240,100,163,0.3)]'
+                  },
+                  { 
+                    id: '2nd',
+                    year: '2nd Year', 
+                    subjects: subjectsByYear['2nd'],
+                    gradient: 'from-ctu-gold to-purple-400', 
+                    badge: 'bg-ctu-gold',
+                    glow: 'shadow-[0_0_15px_rgba(146,93,252,0.3)]'
+                  },
+                  { 
+                    id: '3rd',
+                    year: '3rd Year', 
+                    subjects: subjectsByYear['3rd'],
+                    gradient: 'from-cyan-500 to-blue-400', 
+                    badge: 'bg-cyan-500',
+                    glow: 'shadow-[0_0_15px_rgba(6,182,212,0.3)]'
+                  },
+                  { 
+                    id: '4th',
+                    year: '4th Year', 
+                    subjects: subjectsByYear['4th'],
+                    gradient: 'from-emerald-500 to-teal-400', 
+                    badge: 'bg-emerald-500',
+                    glow: 'shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                  },
+                ].map((year, i) => {
+                  const done = year.subjects.filter(s => progressMap[s.id]?.status === 'done').length;
+                  const progress = Math.round((done / year.subjects.length) * 100);
+                  
+                  return (
+                    <div key={i} className="neumorphic-pressed border-none p-6 rounded-2xl flex flex-col justify-between group">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className={cn(
+                          "text-[9px] px-3 py-1 rounded-lg font-bold uppercase tracking-wider text-white",
+                          year.badge
+                        )}>
+                          {year.year}
+                        </span>
+                        <span className="text-[10px] text-foreground/40 font-bold uppercase tracking-widest">{done}/{year.subjects.length} DONE</span>
+                      </div>
+                      <div className="text-3xl font-black text-foreground mt-2 tracking-tighter">{progress}%</div>
+                      <div className="h-2.5 bg-foreground/5 rounded-full mt-6 overflow-hidden relative">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${progress}%` }}
+                          transition={{ duration: 1, delay: 0.5 + i * 0.1, ease: "easeOut" }}
+                          className={cn(
+                            "h-full rounded-full transition-all duration-500 bg-gradient-to-r",
+                            year.gradient,
+                            year.glow
+                          )}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+
+            {/* Dynamic Results Area */}
+            <motion.div variants={itemVariants} className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-display font-bold">
+                  {isFilterActive ? `Search Results (${filteredSubjects.length})` : 'Recommended for You'}
+                </h3>
+                <div className="flex gap-2">
+                  {isFilterActive && (
+                    <button 
+                      onClick={clearFilters}
+                      className="text-xs font-bold text-foreground/40 hover:text-foreground/60 transition-colors bg-foreground/5 px-3 py-1.5 rounded-lg flex items-center gap-1.5"
+                    >
+                      <X size={12} /> Clear Filters
+                    </button>
+                  )}
+                  <div className="hidden md:flex items-center gap-1 ml-4 mr-2">
+                    <button 
+                      onClick={() => {
+                        const el = document.getElementById('horizontal-scroll-container');
+                        if (el) el.scrollBy({ left: -300, behavior: 'smooth' });
+                      }}
+                      className="p-2 rounded-full neumorphic-raised hover:neumorphic-pressed text-foreground/40 hover:text-ctu-gold transition-all"
+                      aria-label="Scroll left"
+                    >
+                      <ChevronRight size={16} className="rotate-180" />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const el = document.getElementById('horizontal-scroll-container');
+                        if (el) el.scrollBy({ left: 300, behavior: 'smooth' });
+                      }}
+                      className="p-2 rounded-full neumorphic-raised hover:neumorphic-pressed text-foreground/40 hover:text-ctu-gold transition-all"
+                      aria-label="Scroll right"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                  {!isFilterActive && (
+                    <button 
+                      onClick={() => navigate('/catalog')}
+                      className="text-ctu-gold text-sm font-bold flex items-center gap-1 hover:underline px-2"
+                    >
+                      View Library <ChevronRight size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {filteredSubjects.length > 0 ? (
+                <div className="relative group/scroll">
+                   <div 
+                    id="horizontal-scroll-container"
+                    className="flex gap-8 overflow-x-auto pb-10 px-4 scroll-smooth no-scrollbar snap-x snap-mandatory"
+                  >
+                    {filteredSubjects.slice(0, 10).map((subject, idx) => (
+                      <GlowCard 
+                        key={subject.id} 
+                        glowColor={idx % 2 === 0 ? 'blue' : 'orange'}
+                        customSize
+                        className="w-72 h-44 shrink-0 hover:scale-[1.05] transition-all cursor-pointer border-none flex flex-col justify-between snap-start"
+                        onClick={() => navigate(`/catalog/${subject.id}`)}
+                      >
+                        <div className="relative z-10 w-full">
+                          <Badge variant="outline" className="mb-3 border-ctu-gold text-ctu-gold text-[10px] font-bold bg-ctu-gold/5">{subject.code}</Badge>
+                          <h4 className="font-bold text-foreground truncate text-lg w-full">{subject.name}</h4>
+                          <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-wider mt-1 truncate">
+                            {subject.department || 'IE Department'}
+                          </p>
+                        </div>
+                        <div className="relative z-10 flex justify-between items-center">
+                          <p className="text-xs text-foreground/60 font-medium">{subject.units} Units · {subject.semester} Sem</p>
+                          <div className="w-8 h-8 rounded-full bg-foreground/10 flex items-center justify-center text-foreground">
+                            <ChevronRight size={16} />
+                          </div>
+                        </div>
+                      </GlowCard>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="neumorphic-pressed rounded-3xl p-12 text-center"
+                >
+                  <div className="w-20 h-20 bg-foreground/5 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Search size={32} className="text-foreground/20" />
+                  </div>
+                  <h4 className="text-lg font-bold text-foreground mb-2">No subjects found</h4>
+                  <p className="text-sm text-foreground/40 max-w-xs mx-auto mb-6">
+                    We couldn't find any subjects matching "{searchQuery}" in {selectedYear === 'All' ? 'any year level' : selectedYear + ' Year'}.
+                  </p>
+                  <button 
+                    onClick={clearFilters}
+                    className="bg-ctu-gold text-white font-bold px-6 py-2.5 rounded-xl hover:opacity-90 transition-opacity text-sm"
+                  >
+                    Reset all filters
+                  </button>
+                </motion.div>
+              )}
+            </motion.div>
+          </div>
+
+          {/* Right Panel */}
+          <div className="space-y-8">
+            {/* Calendar Widget */}
+            <motion.div variants={itemVariants}>
+              <Card className="neumorphic-card border-none">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg flex items-center gap-2 font-bold">
+                    <CalendarDays size={20} className="text-ctu-gold" />
+                    Upcoming Events
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {CALENDAR_EVENTS.map((event) => (
+                    <div 
+                      key={event.id} 
+                      onClick={() => navigate('/calendar')}
+                      className="flex gap-4 items-start p-4 rounded-2xl neumorphic-raised hover:neumorphic-pressed transition-all cursor-pointer"
+                    >
+                      <div className="flex flex-col items-center justify-center w-12 h-12 rounded-xl neumorphic-pressed shrink-0">
+                        <span className="text-[10px] font-bold uppercase text-foreground/40">{new Date(event.date).toLocaleString('default', { month: 'short' })}</span>
+                        <span className="text-lg font-bold text-foreground leading-none">{new Date(event.date).getDate()}</span>
+                      </div>
+                      <div>
+                        <h5 className="text-sm font-bold text-foreground">{event.title}</h5>
+                        <p className="text-xs text-foreground/40 font-medium line-clamp-1">{event.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Announcements */}
+            <motion.div variants={itemVariants}>
+              <Card className="neumorphic-card border-none">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-sm font-bold text-ctu-gold uppercase tracking-[2px]">
+                    Campus Bulletin
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {ANNOUNCEMENTS.map((ann) => (
+                    <div 
+                      key={ann.id} 
+                      onClick={() => toast.info(`Bulletin: ${ann.title}`, { description: 'Full announcement details are available at the Registrar office.' })}
+                      className={cn(
+                        "p-5 rounded-2xl neumorphic-raised hover:neumorphic-pressed transition-all cursor-pointer border-l-4",
+                        ann.category === 'academic' ? 'border-ctu-maroon' :
+                        ann.category === 'event' ? 'border-ctu-gold' :
+                        ann.category === 'holiday' ? 'border-blue-600' : 'border-green-600'
+                      )}
+                    >
+                      <h5 className="text-[13px] font-bold text-foreground mb-1">{ann.title}</h5>
+                      <p className="text-[11px] text-foreground/40 font-bold uppercase tracking-wider">
+                        {new Date(ann.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} • {ann.category}
+                      </p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        </motion.div>
+      </main>
+
+      <BottomNav />
+    </div>
+  );
+}

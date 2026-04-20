@@ -1,0 +1,280 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId} (Auth UID)
+    // Fields:
+    //   - uid: string (required)
+    //   - fullName: string (required)
+    //   - idNumber: string (required)
+    //   - email: string (optional)
+    //   - role: string (required, 'student' | 'admin')
+    //   - lastLogin: timestamp (optional)
+    //   - progress: map (optional)
+    //
+    // Collection: ratings
+    // Document ID: auto-generated
+    // Fields:
+    //   - subjectId: string (required)
+    //   - userId: string (required)
+    //   - userName: string (required)
+    //   - rating: number (required, 1-5)
+    //   - feedback: string (optional)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: studyGroups
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required)
+    //   - description: string (optional)
+    //   - subjectCode: string (required)
+    //   - members: array of strings (required, list of UIDs)
+    //   - creatorId: string (required, creator's UID)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: questions
+    // Document ID: auto-generated
+    // Fields:
+    //   - title: string (required)
+    //   - content: string (optional)
+    //   - userId: string (required)
+    //   - userName: string (required)
+    //   - subjectTag: string (optional)
+    //   - votes: number (required)
+    //   - answerCount: number (required)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: resources
+    // Document ID: auto-generated
+    // Fields:
+    //   - title: string (required)
+    //   - subjectId: string (required)
+    //   - userId: string (required)
+    //   - userName: string (required)
+    //   - type: string (required)
+    //   - url: string (required)
+    //   - fileName: string (optional)
+    //   - isPublic: bool (required)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: userProgress
+    // Document ID: {userId}
+    // Fields:
+    //   - progressMap: map (required)
+    //   - updatedAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "rashmae26@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidResource(data) {
+      return data.keys().hasAll(['title', 'subjectId', 'userId', 'userName', 'type', 'url', 'isPublic', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 255 &&
+             data.subjectId is string && data.subjectId.size() > 0 &&
+             data.userName is string && data.userName.size() > 0 &&
+             data.type is string &&
+             data.url is string && data.url.size() > 0 &&
+             data.isPublic is bool &&
+             data.createdAt == request.time;
+    }
+
+    function isValidUserProgress(data) {
+      return data.keys().hasAll(['progressMap', 'updatedAt']) &&
+             data.progressMap is map &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'fullName', 'idNumber', 'role']) &&
+             data.uid == request.auth.uid &&
+             data.fullName is string && data.fullName.size() > 0 && data.fullName.size() < 100 &&
+             data.idNumber is string && data.idNumber.size() > 0 && data.idNumber.size() < 20 &&
+             data.role in ['student', 'admin'];
+    }
+
+    function isValidRating(data) {
+      return data.keys().hasAll(['subjectId', 'userId', 'userName', 'rating', 'createdAt']) &&
+             data.subjectId is string && data.subjectId.size() > 0 &&
+             data.userId == request.auth.uid &&
+             data.userName is string && data.userName.size() > 0 && data.userName.size() < 100 &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+             data.createdAt == request.time;
+    }
+
+    function isValidQuestion(data) {
+      return data.keys().hasAll(['title', 'userId', 'userName', 'votes', 'answerCount', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 5 && data.title.size() < 255 &&
+             data.userName is string && data.userName.size() > 0 &&
+             data.votes is number &&
+             data.answerCount is number &&
+             data.createdAt == request.time;
+    }
+
+    function isValidStudyGroup(data) {
+      return data.keys().hasAll(['name', 'subjectCode', 'members', 'creatorId', 'createdAt']) &&
+             data.creatorId == request.auth.uid &&
+             data.name is string && data.name.size() > 3 && data.name.size() < 50 &&
+             data.subjectCode is string && data.subjectCode.size() > 0 &&
+             data.members is list && data.members.size() <= 100 &&
+             data.createdAt == request.time;
+    }
+
+    function isValidCalendarEvent(data) {
+      return data.keys().hasAll(['title', 'type', 'date', 'description', 'createdBy', 'createdAt']) &&
+             data.createdAt == request.time;
+    }
+
+    function isValidNotebook(data) {
+      return data.keys().hasAll(['userId', 'name', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.createdAt == request.time;
+    }
+
+    function isValidNotebookSource(data) {
+      return data.keys().hasAll(['notebookId', 'userId', 'title', 'type', 'content', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 255 &&
+             data.type in ['file', 'link', 'text'] &&
+             data.content is string &&
+             data.createdAt == request.time;
+    }
+
+    function isValidNotebookMessage(data) {
+      return data.keys().hasAll(['notebookId', 'userId', 'role', 'content', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.role in ['user', 'assistant'] &&
+             data.content is string &&
+             data.createdAt == request.time;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Connection Test Document
+    match /test/connection {
+      allow read: if true;
+    }
+
+    match /notebooks/{notebookId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidId(notebookId) && isValidNotebook(request.resource.data);
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'summary', 'updatedAt']) &&
+        (request.resource.data.updatedAt == request.time || !request.resource.data.keys().contains('updatedAt'))
+      ) || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+
+      match /sources/{sourceId} {
+        allow read: if isAuthenticated() && (get(/databases/$(database)/documents/notebooks/$(notebookId)).data.userId == request.auth.uid || isAdmin());
+        allow create: if isAuthenticated() && isValidId(sourceId) && isValidNotebookSource(request.resource.data);
+        allow update, delete: if isAuthenticated() && (get(/databases/$(database)/documents/notebooks/$(notebookId)).data.userId == request.auth.uid || isAdmin());
+      }
+
+      match /messages/{messageId} {
+        allow read: if isAuthenticated() && (get(/databases/$(database)/documents/notebooks/$(notebookId)).data.userId == request.auth.uid || isAdmin());
+        allow create: if isAuthenticated() && isValidId(messageId) && isValidNotebookMessage(request.resource.data);
+        allow update, delete: if isAuthenticated() && (get(/databases/$(database)/documents/notebooks/$(notebookId)).data.userId == request.auth.uid || isAdmin());
+      }
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isValidId(userId) && isValidUser(request.resource.data) && 
+                    (isOwner(userId) && request.resource.data.role == 'student' || isAdmin());
+      allow update: if isAuthenticated() && isValidId(userId) && isValidUser(request.resource.data) &&
+                    ((isOwner(userId) && request.resource.data.role == resource.data.role && 
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fullName', 'idNumber', 'progress'])) || 
+                     isAdmin());
+    }
+
+    match /ratings/{ratingId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidId(ratingId) && isValidRating(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+
+    match /studyGroups/{groupId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidId(groupId) && isValidStudyGroup(request.resource.data);
+      allow update: if isAuthenticated() && isValidId(groupId) && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) && 
+         request.resource.data.members.size() <= 100 &&
+         request.resource.data.members.hasAll(resource.data.members)) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /questions/{questionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidId(questionId) && isValidQuestion(request.resource.data);
+      allow update: if isAuthenticated() && isValidId(questionId) && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes']) && 
+         math.abs(request.resource.data.votes - resource.data.votes) == 1) ||
+        (request.resource.data.userId == request.auth.uid && isValidQuestion(request.resource.data) && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'content', 'subjectTag'])) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /resources/{resourceId} {
+      allow read: if isAuthenticated() && (resource.data.isPublic == true || resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidId(resourceId) && isValidResource(request.resource.data);
+      allow update: if isAuthenticated() && isValidId(resourceId) && (resource.data.userId == request.auth.uid && isValidResource(request.resource.data) || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /userProgress/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) && isValidId(userId) && isValidUserProgress(request.resource.data);
+    }
+
+    match /announcements/{annId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /subjects/{subjectId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /calendarEvents/{eventId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
