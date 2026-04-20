@@ -3,13 +3,13 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 let genAI: GoogleGenerativeAI | null = null;
 
-export const getGenAI = () => {
+export const getGeminiClient = () => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) {
+    console.warn('Gemini API key not configured');
+    return null;
+  }
   if (!genAI) {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_FIREBASE_API_KEY;
-    if (!apiKey) {
-      console.error('Gemini API key not set. Please set VITE_GEMINI_API_KEY or VITE_FIREBASE_API_KEY.');
-      return null;
-    }
     genAI = new GoogleGenerativeAI(apiKey);
   }
   return genAI;
@@ -18,8 +18,8 @@ export const getGenAI = () => {
 const DEFAULT_MODEL = "gemini-3-flash-preview";
 
 export async function generateStudyPlan(currentProgress: any, subjects: any[]) {
-  const ai = getGenAI();
-  if (!ai) return [];
+  const client = getGeminiClient();
+  if (!client) return [];
 
   const prompt = `
     You are an expert Industrial Engineering Academic Advisor.
@@ -38,7 +38,7 @@ export async function generateStudyPlan(currentProgress: any, subjects: any[]) {
   `;
 
   try {
-    const model = ai.getGenerativeModel({ model: DEFAULT_MODEL });
+    const model = client.getGenerativeModel({ model: DEFAULT_MODEL });
     const response = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
@@ -55,8 +55,8 @@ export async function generateStudyPlan(currentProgress: any, subjects: any[]) {
 }
 
 export async function askQuestion(question: string, context: string) {
-  const ai = getGenAI();
-  if (!ai) return "AI Assistant is currently unavailable.";
+  const client = getGeminiClient();
+  if (!client) return "AI Assistant is currently unavailable.";
 
   const prompt = `
     You are an IE Matrix AI Tutor. 
@@ -67,7 +67,7 @@ export async function askQuestion(question: string, context: string) {
   `;
   
   try {
-    const model = ai.getGenerativeModel({ model: DEFAULT_MODEL });
+    const model = client.getGenerativeModel({ model: DEFAULT_MODEL });
     const response = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }]
     });
@@ -79,8 +79,8 @@ export async function askQuestion(question: string, context: string) {
 }
 
 export async function generateQuiz(subjectName: string) {
-  const ai = getGenAI();
-  if (!ai) return [];
+  const client = getGeminiClient();
+  if (!client) return [];
 
   const prompt = `
     Create a 5-question multiple choice quiz for the subject: ${subjectName}.
@@ -94,7 +94,7 @@ export async function generateQuiz(subjectName: string) {
   `;
   
   try {
-    const model = ai.getGenerativeModel({ model: DEFAULT_MODEL });
+    const model = client.getGenerativeModel({ model: DEFAULT_MODEL });
     const response = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
@@ -110,8 +110,8 @@ export async function generateQuiz(subjectName: string) {
 }
 
 export async function getCurriculumAdvice(userProgress: any, subjects: any[]) {
-  const ai = getGenAI();
-  if (!ai) return "I'm sorry, I couldn't generate advice at the moment.";
+  const client = getGeminiClient();
+  if (!client) return "I'm sorry, I couldn't generate advice at the moment.";
 
   const prompt = `
     You are an academic advisor for Industrial Engineering students at Cebu Technological University (CTU).
@@ -128,7 +128,7 @@ export async function getCurriculumAdvice(userProgress: any, subjects: any[]) {
   `;
 
   try {
-    const model = ai.getGenerativeModel({ model: DEFAULT_MODEL });
+    const model = client.getGenerativeModel({ model: DEFAULT_MODEL });
     const response = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }]
     });
