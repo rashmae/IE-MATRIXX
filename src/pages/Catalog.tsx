@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, 
   Filter, 
@@ -65,6 +65,7 @@ import { toast } from 'sonner';
 
 import { useAuth } from '@/src/context/AuthContext';
 import { useProgress } from '@/src/hooks/useProgress';
+import { getGWAEquivalent, getGWAColor } from '@/src/lib/gradeUtils';
 import { db } from '@/src/lib/firebase';
 import { collection, getDocs, query, orderBy, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 
@@ -133,7 +134,7 @@ export default function Catalog() {
       setSelectedYears([yearParam as YearLevel]);
     }
 
-    const history = localStorage.getItem('ie_catalog_search_history');
+    const history = localStorage.getItem('ctu_hub_catalog_search_history');
     if (history) {
       setSearchHistory(JSON.parse(history));
     }
@@ -219,7 +220,7 @@ export default function Catalog() {
     e.stopPropagation();
     setSearchHistory(prev => {
       const newHistory = prev.filter(item => item !== query);
-      localStorage.setItem('ie_catalog_search_history', JSON.stringify(newHistory));
+      localStorage.setItem('ctu_hub_catalog_search_history', JSON.stringify(newHistory));
       return newHistory;
     });
   };
@@ -230,7 +231,7 @@ export default function Catalog() {
     setSearchHistory(prev => {
       const filtered = prev.filter(item => item.toLowerCase() !== query.toLowerCase());
       const newHistory = [query, ...filtered].slice(0, 3);
-      localStorage.setItem('ie_catalog_search_history', JSON.stringify(newHistory));
+      localStorage.setItem('ctu_hub_catalog_search_history', JSON.stringify(newHistory));
       return newHistory;
     });
   };
@@ -503,7 +504,7 @@ export default function Catalog() {
                 <button 
                   onClick={() => {
                     setSearchHistory([]);
-                    localStorage.removeItem('ie_catalog_search_history');
+                    localStorage.removeItem('ctu_hub_catalog_search_history');
                   }}
                   className="text-[9px] font-bold text-foreground/20 uppercase tracking-widest hover:text-ctu-maroon transition-colors ml-2"
                 >
@@ -761,9 +762,19 @@ export default function Catalog() {
                           
                           <div className="flex items-center gap-1.5">
                             {progressMap[subject.id]?.status === 'done' ? (
-                              <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-md">
-                                <CheckCircle2 size={12} />
-                                <span className="text-[10px] font-bold uppercase tracking-widest">Completed</span>
+                              <div className="flex items-center gap-2">
+                                {progressMap[subject.id]?.grade && (
+                                  <div className={cn(
+                                    "px-2 py-0.5 rounded-md text-[10px] font-black border-2 border-current",
+                                    getGWAColor(getGWAEquivalent(progressMap[subject.id].grade!))
+                                  )}>
+                                    GWA {getGWAEquivalent(progressMap[subject.id].grade!).toFixed(1)}
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-md">
+                                  <CheckCircle2 size={12} />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest">Completed</span>
+                                </div>
                               </div>
                             ) : progressMap[subject.id]?.status === 'in_progress' ? (
                               <div className="flex items-center gap-1.5 bg-ctu-gold/10 text-ctu-gold px-2 py-1 rounded-md">

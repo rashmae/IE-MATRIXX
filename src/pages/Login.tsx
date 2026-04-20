@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { LiquidButton, GlassFilter } from '@/components/ui/liquid-glass';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,8 +8,8 @@ import { toast } from 'sonner';
 import { SplineScene } from '@/components/ui/splite';
 import { Spotlight } from '@/components/ui/spotlight';
 import { db, signInWithGoogle } from '@/src/lib/firebase';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { LogIn } from 'lucide-react';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { LogIn, BookOpen, Sparkles, Shield, GraduationCap, ChevronRight } from 'lucide-react';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import { useAuth } from '@/src/context/AuthContext';
 import { handleFirestoreError } from '@/src/lib/firestore-errors';
@@ -52,10 +52,7 @@ export default function Login() {
 
     setLoading(true);
     try {
-      // 1. Sign in with Google
       const authUser = await signInWithGoogle();
-      
-      // 2. Check if user document exists
       const userRef = doc(db, 'users', authUser.uid);
       
       const userData = {
@@ -64,14 +61,13 @@ export default function Login() {
         idNumber: idNumber,
         yearLevel: yearLevel,
         email: authUser.email,
-        role: authUser.email === 'rashmae26@gmail.com' ? 'admin' : 'student',
+        role: authUser.email === import.meta.env.VITE_ADMIN_EMAIL ? 'admin' : 'student',
         lastLogin: serverTimestamp(),
       };
 
-      // 3. Save/Update user in Firestore
       await setDoc(userRef, userData, { merge: true }).catch(err => handleFirestoreError(err, 'write', `users/${authUser.uid}`));
 
-      toast.success('Welcome to IE Matrix!');
+      toast.success('Welcome to CTU Curriculum Hub!');
       navigate('/dashboard');
     } catch (error: any) {
       console.error("Login error:", error);
@@ -102,14 +98,17 @@ export default function Login() {
       <div className="absolute inset-0 z-0 bg-background opacity-50" />
       <GlassFilter />
       
-      {/* Left Panel: Branding & 3D Scene */}
+      {/* Left Panel: Branding & AI Robot */}
       <div className="hidden md:flex flex-1 items-center justify-center relative overflow-hidden z-10">
+        {/* Animated Gradient Background */}
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-ctu-gold/20 via-navy-deep to-black animate-pulse opacity-50" />
+        
         <Spotlight
           className="-top-40 left-0 md:left-60 md:-top-20"
           fill="white"
         />
         
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 opacity-40">
           <SplineScene 
             scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
             className="w-full h-full"
@@ -117,113 +116,149 @@ export default function Login() {
         </div>
         
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-          className="z-10 text-center pointer-events-none"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+          className="z-10 text-center pointer-events-none flex flex-col items-center"
         >
-          {/* Realistic AI/Robot Logo */}
-          <div className="relative w-32 h-32 mx-auto mb-8 group">
-            <div className="absolute inset-0 bg-ctu-gold/20 rounded-full blur-2xl animate-pulse" />
-            <div className="relative w-full h-full neumorphic-raised rounded-full p-1 flex items-center justify-center bg-background overflow-hidden border border-white/10">
-              {/* Outer Ring */}
-              <div className="absolute inset-0 border-2 border-ctu-gold/30 rounded-full animate-[spin_10s_linear_infinite]" />
-              <div className="absolute inset-2 border border-ctu-maroon/20 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
-              
-              {/* Core AI Eye */}
-              <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-ctu-gold via-ctu-maroon to-navy-deep flex items-center justify-center shadow-inner overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_0%,transparent_70%)]" />
-                
-                {/* Iris/Pupil */}
-                <motion.div 
-                  animate={{ 
-                    scale: [1, 1.1, 1],
-                    opacity: [0.8, 1, 0.8]
-                  }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  className="w-12 h-12 rounded-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.8)] flex items-center justify-center"
-                >
-                  <div className="w-6 h-6 rounded-full bg-navy-deep flex items-center justify-center">
-                    <div className="w-2 h-2 rounded-full bg-ctu-gold animate-ping" />
-                  </div>
-                </motion.div>
-
-                {/* Digital Scan Line */}
-                <div className="absolute inset-0 w-full h-1 bg-white/20 blur-sm animate-[scan_4s_linear_infinite]" />
-              </div>
+          {/* Main Typography Header Section */}
+          <div className="mb-12">
+            <h1 className="text-8xl md:text-9xl font-display font-black tracking-tighter drop-shadow-2xl text-foreground mb-4">
+              CTU HUB
+            </h1>
+            <div className="flex flex-col items-center">
+              <span className="text-ctu-gold font-bold text-2xl tracking-[0.2em] uppercase mb-1 drop-shadow-md">
+                CTU Curriculum Hub
+              </span>
+              <span className="text-foreground/40 font-light text-lg tracking-widest uppercase">
+                Cebu Technological University
+              </span>
             </div>
           </div>
 
-          <h1 className="text-7xl frosted-header font-bold mb-2 tracking-tighter drop-shadow-lg text-foreground">IE MATRIX</h1>
-          <p className="text-foreground/80 text-xl font-medium max-w-md mx-auto">
-            Interactive 3D Curriculum Intelligence.
+          {/* Realistic AI/Robot Mascot (Repositioned Lower) */}
+          <div className="relative w-48 h-48 group mt-12 mb-8">
+            <div className="absolute inset-0 bg-ctu-gold/30 rounded-full blur-3xl animate-pulse" />
+            <div className="relative w-full h-full neumorphic-raised rounded-full p-1.5 flex items-center justify-center bg-background overflow-hidden border border-white/10">
+              {/* Outer Rings */}
+              <div className="absolute inset-0 border-2 border-ctu-gold/30 rounded-full animate-[spin_10s_linear_infinite]" />
+              <div className="absolute inset-4 border border-ctu-maroon/20 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
+              
+              {/* Core AI Eye */}
+              <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-ctu-gold via-ctu-maroon to-navy-deep flex items-center justify-center shadow-inner overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_0%,transparent_70%)]" />
+                <motion.div 
+                  animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  className="w-16 h-16 rounded-full bg-white shadow-[0_0_30px_rgba(255,255,255,0.8)] flex items-center justify-center"
+                >
+                  <div className="w-8 h-8 rounded-full bg-navy-deep flex items-center justify-center">
+                    <div className="w-3 h-3 rounded-full bg-ctu-gold animate-ping" />
+                  </div>
+                </motion.div>
+                <div className="absolute inset-0 w-full h-2 bg-white/20 blur-sm animate-[scan_4s_linear_infinite]" />
+              </div>
+            </div>
+
+            {/* Floating Stat Badges */}
+            <motion.div 
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 1.2 }}
+              className="absolute -left-20 top-0 glass-card px-4 py-2 flex items-center gap-2 shadow-2xl scale-90"
+            >
+              <div className="p-1.5 bg-ctu-gold/20 rounded-lg text-ctu-gold">
+                <BookOpen size={14} />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-tighter">IE Curriculum</span>
+            </motion.div>
+
+            <motion.div 
+              initial={{ x: 20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 1.4 }}
+              className="absolute -right-20 top-20 glass-card px-4 py-2 flex items-center gap-2 shadow-2xl scale-90"
+            >
+              <div className="p-1.5 bg-ctu-maroon/20 rounded-lg text-ctu-maroon">
+                <Sparkles size={14} />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-tighter">AI-Powered</span>
+            </motion.div>
+
+            <motion.div 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 1.6 }}
+              className="absolute left-1/2 -translate-x-1/2 -bottom-6 glass-card px-4 py-2 flex items-center gap-2 shadow-2xl scale-90"
+            >
+              <div className="p-1.5 bg-foreground/10 rounded-lg text-foreground">
+                <Shield size={14} />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-tighter">CTU Official</span>
+            </motion.div>
+          </div>
+
+          <p className="text-ctu-gold/80 text-xl font-display italic tracking-wide mt-4">
+            Excellence in Engineering Education
           </p>
         </motion.div>
       </div>
 
-      {/* Mobile Branding & AI Robot */}
-      <div className="md:hidden pt-12 pb-4 text-center z-10 space-y-6">
-        <div className="relative w-24 h-24 mx-auto group">
-          <div className="absolute inset-0 bg-ctu-gold/20 rounded-full blur-xl animate-pulse" />
-          <div className="relative w-full h-full neumorphic-raised rounded-full p-1 flex items-center justify-center bg-background overflow-hidden border border-white/10 scale-75">
-            <div className="absolute inset-0 border-2 border-ctu-gold/30 rounded-full animate-[spin_10s_linear_infinite]" />
-            <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-ctu-gold via-ctu-maroon to-navy-deep flex items-center justify-center shadow-inner overflow-hidden">
-              <motion.div 
-                animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                className="w-8 h-8 rounded-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)] flex items-center justify-center"
-              >
-                <div className="w-4 h-4 rounded-full bg-navy-deep flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-ctu-gold animate-ping" />
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </div>
-        <h1 className="text-4xl frosted-header font-bold tracking-tighter">IE MATRIX</h1>
+      {/* Mobile Branding */}
+      <div className="md:hidden pt-12 pb-4 text-center z-10 space-y-4">
+         <h1 className="text-5xl font-display font-black tracking-tighter text-foreground">CTU HUB</h1>
+         <div className="text-[10px] tracking-[0.2em] font-bold text-ctu-gold uppercase">CTU Curriculum Hub</div>
       </div>
 
       {/* Right Panel: Login Form */}
       <div className="flex-1 flex items-start md:items-center justify-center p-6 md:p-6 z-10">
         <motion.div 
-          initial={{ y: 40, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="w-full max-w-md neumorphic-card p-6 md:p-10"
+          initial={{ x: 50, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="w-full max-w-md neumorphic-card p-8 md:p-10 relative overflow-hidden"
         >
-          <div className="mb-6 md:mb-8 text-center md:text-left">
-            <h2 className="text-2xl md:text-3xl frosted-header font-bold mb-1">Welcome Back</h2>
-            <p className="text-sm md:text-base text-foreground/60 font-medium">CTU Industrial Engineering Portal</p>
+          {/* CTU Logo Placeholder */}
+          <div className="flex justify-center mb-10">
+            <div className="w-20 h-20 bg-gradient-to-br from-ctu-gold to-ctu-maroon rounded-2xl flex items-center justify-center shadow-lg relative p-4 group">
+               <GraduationCap size={40} className="text-white group-hover:scale-110 transition-transform" />
+               <div className="absolute -inset-1 bg-white/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
-            <div className="space-y-2 md:space-y-3">
-              <Label htmlFor="fullName" className="text-xs md:text-sm text-foreground/70 font-bold ml-1">Full Name</Label>
+          <div className="mb-10 text-center md:text-left">
+            <h2 className="text-4xl font-display font-medium mb-2">Welcome Back</h2>
+            <p className="text-sm text-foreground/40 font-medium tracking-wide">Enter your credentials to access the matrix</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="fullName" className="text-xs text-foreground/60 font-bold ml-1 uppercase tracking-widest">Full Name</Label>
               <Input 
                 id="fullName"
-                placeholder="Enter your full name"
+                placeholder="Juan Dela Cruz"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="bg-background border-none neumorphic-pressed h-12 md:h-14 rounded-2xl focus:ring-ctu-gold text-foreground placeholder:text-foreground/30 text-sm"
+                className="bg-background border-2 border-transparent focus:border-ctu-gold/50 neumorphic-pressed h-14 rounded-2xl transition-all font-sans"
               />
             </div>
 
-            <div className="space-y-2 md:space-y-3">
-              <Label htmlFor="idNumber" className="text-xs md:text-sm text-foreground/70 font-bold ml-1">ID Number</Label>
+            <div className="space-y-2">
+              <Label htmlFor="idNumber" className="text-xs text-foreground/60 font-bold ml-1 uppercase tracking-widest">ID Number</Label>
               <Input 
                 id="idNumber"
                 placeholder="XX-XXXXX-XXX"
                 value={idNumber}
                 onChange={(e) => setIdNumber(e.target.value)}
-                className="bg-background border-none neumorphic-pressed h-12 md:h-14 rounded-2xl focus:ring-ctu-gold text-foreground placeholder:text-foreground/30 text-sm"
+                className="bg-background border-2 border-transparent focus:border-ctu-gold/50 neumorphic-pressed h-14 rounded-2xl transition-all font-sans"
               />
             </div>
 
-            <div className="space-y-2 md:space-y-3">
-              <Label className="text-xs md:text-sm text-foreground/70 font-bold ml-1">Year Level</Label>
+            <div className="space-y-2">
+              <Label className="text-xs text-foreground/60 font-bold ml-1 uppercase tracking-widest">Year Level</Label>
               <Select onValueChange={setYearLevel} value={yearLevel}>
-                <SelectTrigger className="bg-background border-none neumorphic-pressed h-12 md:h-14 rounded-2xl focus:ring-ctu-gold text-foreground text-sm w-full shadow-none border-0">
-                  <SelectValue placeholder="Select your year" />
+                <SelectTrigger className="bg-background border-2 border-transparent focus:border-ctu-gold/50 neumorphic-pressed h-14 rounded-2xl transition-all w-full font-sans">
+                  <SelectValue placeholder="Select Year" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border border-white/10 rounded-xl overflow-hidden shadow-2xl">
                   <SelectItem value="1st Year">1st Year</SelectItem>
@@ -235,32 +270,38 @@ export default function Login() {
               </Select>
             </div>
 
-            <div className="pt-6 md:pt-10">
+            <div className="pt-8">
               <LiquidButton 
                 type="submit" 
                 disabled={loading} 
-                className="bg-gradient-to-r from-ctu-gold to-ctu-maroon hover:opacity-90 shadow-[0_10px_30px_rgba(146,93,252,0.3)] transition-all duration-300 rounded-2xl md:rounded-3xl min-h-[64px] md:min-h-[76px] w-full border-none"
+                className="bg-gradient-to-r from-ctu-gold via-ctu-gold to-ctu-maroon hover:opacity-95 shadow-[0_20px_40px_rgba(146,93,252,0.3)] transition-all duration-300 rounded-2xl min-h-[72px] w-full border-none group"
               >
-                <div className="flex items-center justify-center gap-3 md:gap-4 w-full h-full">
+                <div className="flex items-center justify-center gap-3 w-full h-full text-white">
                   {loading ? (
-                    <span className="animate-pulse text-white font-bold text-base md:text-lg">Connecting...</span>
+                    <span className="animate-pulse font-bold text-lg">Initializing...</span>
                   ) : (
                     <>
-                      <LogIn size={20} className="text-white md:w-6 md:h-6" />
-                      <span className="text-white font-bold text-lg md:text-2xl tracking-tight">Enter Matrix</span>
+                      <span className="font-accent font-bold text-xl tracking-tight">Enter the Matrix</span>
+                      <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" />
                     </>
                   )}
                 </div>
               </LiquidButton>
-              <p className="text-[9px] md:text-[10px] text-foreground/40 text-center mt-6 font-bold uppercase tracking-widest whitespace-nowrap">
-                * Requires Google Auth
+              <p className="text-[10px] text-foreground/30 text-center mt-6 font-bold uppercase tracking-[0.2em] whitespace-nowrap">
+                Requires Campus-Verified Google Auth
               </p>
             </div>
           </form>
 
-          <p className="mt-8 md:mt-10 text-center text-[9px] font-bold uppercase tracking-widest text-foreground/20">
-            © 2026 CTU IE Dept.
-          </p>
+          <div className="mt-12 pt-8 border-t border-foreground/5 text-center">
+            <p className="text-[11px] font-medium text-foreground/40 leading-relaxed">
+               For IE students of Cebu Technological University <br />
+               Academic Year 2025-2026
+            </p>
+            <p className="mt-4 text-[9px] font-bold uppercase tracking-widest text-foreground/10">
+              © 2026 CTU Curriculum Hub · Cebu Technological University · Industrial Engineering Department
+            </p>
+          </div>
         </motion.div>
       </div>
     </div>

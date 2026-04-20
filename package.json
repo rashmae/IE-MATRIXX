@@ -1,8 +1,10 @@
 {
-  "name": "react-example",
+  "name": "ctu-curriculum-hub",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "description": "CTU IE Academic Advisor — Cebu Technological University Industrial Engineering Portal",
+  "author": "CTU IE Department",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",

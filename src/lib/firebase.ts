@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import firebaseConfigJson from '../../firebase-applet-config.json';
 
@@ -20,12 +20,19 @@ const config = {
   storageBucket: firebaseConfigJson.storageBucket,
   messagingSenderId: firebaseConfigJson.messagingSenderId,
   appId: firebaseConfigJson.appId,
-  firestoreDatabaseId: firebaseConfigJson.firestoreDatabaseId
+  firestoreDatabaseId: firebaseConfigJson.firestoreDatabaseId || 'ai-studio-ed95dc68-ee18-4519-b44b-779a2b247f49'
 };
 
 const app = initializeApp(config);
 export const auth = getAuth(app);
-export const db = getFirestore(app, config.firestoreDatabaseId);
+
+// Initialize Firestore with custom database ID and robust connection settings for restricted environments.
+// We force long polling and disable fetch streams to bypass typical proxy issues in dev environments.
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+  useFetchStreams: false,
+} as any, config.firestoreDatabaseId);
+
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
 

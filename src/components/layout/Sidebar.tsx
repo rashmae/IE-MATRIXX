@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { 
   LayoutDashboard, 
   BookOpen, 
@@ -42,7 +42,7 @@ export default function Sidebar({ user }: SidebarProps) {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      localStorage.removeItem('ie_matrix_session'); // Clean up old storage if any
+      localStorage.removeItem('ctu_hub_session'); // Clean up old storage if any
       navigate('/login');
     } catch (error) {
       console.error("Logout error:", error);
@@ -80,7 +80,7 @@ export default function Sidebar({ user }: SidebarProps) {
               </div>
             </div>
           </div>
-          <span className="text-xl font-display font-extrabold text-foreground tracking-tighter">IE MATRIX</span>
+          <span className="text-xl font-display font-extrabold text-foreground tracking-tighter">CTU HUB</span>
         </div>
         <ThemeToggle className="neumorphic-raised" />
       </div>

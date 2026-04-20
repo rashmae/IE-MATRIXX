@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Book, Plus, Search, Trash2, Clock, ChevronRight } from 'lucide-react';
 import { useNotebooks } from '@/src/hooks/useNotebooks';
 import { Button } from '@/components/ui/button';

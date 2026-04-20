@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Users, 
   MessageSquare, 
@@ -61,7 +61,7 @@ export default function StudyTools() {
   const { profile: user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('advisor');
   const [roadmap, setRoadmap] = useState<any[]>(() => {
-    const saved = localStorage.getItem('ie_matrix_roadmap');
+    const saved = localStorage.getItem('ctu_hub_roadmap');
     return saved ? JSON.parse(saved) : [];
   });
   const { progressMap, loading: progressLoading } = useProgress();
@@ -146,13 +146,13 @@ export default function StudyTools() {
 
   const handleGenerateRoadmap = async () => {
     setIsGenerating(true);
-    const progress = localStorage.getItem('ie_matrix_progress_v2');
+    const progress = localStorage.getItem('ctu_hub_progress_v2');
     const progressMap = progress ? JSON.parse(progress) : {};
     
     try {
       const plan = await generateStudyPlan(progressMap, IE_SUBJECTS);
       setRoadmap(plan);
-      localStorage.setItem('ie_matrix_roadmap', JSON.stringify(plan));
+      localStorage.setItem('ctu_hub_roadmap', JSON.stringify(plan));
       toast.success("Personalized roadmap generated!");
     } catch (error) {
       toast.error("Failed to generate advisor advice.");
@@ -571,36 +571,91 @@ export default function StudyTools() {
                       </div>
                     </div>
 
-                    <div className="space-y-6">
-                      {roadmap.length > 0 ? roadmap.map((step, idx) => (
-                        <div key={idx} className="flex gap-6 relative">
-                          {idx < roadmap.length - 1 && <div className="absolute left-[19px] top-10 bottom-0 w-0.5 bg-foreground/5" />}
-                          <div className={cn(
-                            "w-10 h-10 rounded-full neumorphic-pressed flex items-center justify-center font-bold shrink-0",
-                            step.difficulty === 'hard' ? "text-ctu-maroon" : "text-ctu-gold"
-                          )}>
-                            {idx + 1}
-                          </div>
-                          <div className="flex-1 pb-6">
-                            <h3 className="font-bold text-foreground">{step.title}</h3>
-                            <p className="text-xs text-foreground/40 mt-1">{step.description}</p>
-                            <div className="mt-4 flex flex-wrap gap-2">
-                              {step.subjects?.map((sCode: string) => (
-                                <Badge key={sCode} variant="secondary" className="bg-background text-[10px] font-bold">{sCode}</Badge>
-                              ))}
-                              <Badge variant="outline" className={cn(
-                                "text-[10px] font-bold border-none",
-                                step.difficulty === 'hard' ? "bg-ctu-maroon/10 text-ctu-maroon" : "bg-green-500/10 text-green-500"
-                              )}>
-                                {step.difficulty}
-                              </Badge>
-                            </div>
-                          </div>
+                    <div className="space-y-0 relative">
+                      {roadmap.length > 0 ? (
+                        <div className="mt-8">
+                          {roadmap.map((step, idx) => (
+                            <motion.div 
+                              key={idx} 
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: idx * 0.1 }}
+                              className="flex gap-8 relative pb-10 last:pb-0"
+                            >
+                              {/* Vertical Line Connector */}
+                              {idx < roadmap.length - 1 && (
+                                <div className="absolute left-[20px] top-10 bottom-0 w-0.5 bg-gradient-to-b from-ctu-gold via-ctu-maroon/20 to-transparent" />
+                              )}
+                              
+                              {/* Connector Node */}
+                              <div className="relative group/node">
+                                <div className={cn(
+                                  "w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 transition-all duration-300 z-10 relative overflow-hidden",
+                                  step.difficulty === 'hard' 
+                                    ? "bg-ctu-maroon text-white shadow-[0_0_20px_rgba(154,1,1,0.3)]" 
+                                    : "bg-ctu-gold text-white shadow-[0_0_20px_rgba(197,160,89,0.3)]"
+                                )}>
+                                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover/node:opacity-100 transition-opacity" />
+                                  <span className="relative z-10">{idx + 1}</span>
+                                </div>
+                                <div className="absolute -inset-2 bg-ctu-gold/5 rounded-3xl opacity-0 group-hover/node:opacity-100 blur-sm transition-all" />
+                              </div>
+
+                              <div className="flex-1 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <h3 className="text-lg font-bold text-foreground group-hover:text-ctu-gold transition-colors">{step.title}</h3>
+                                  <Badge variant="outline" className={cn(
+                                    "text-[9px] font-black uppercase tracking-[0.1em] border-none",
+                                    step.difficulty === 'hard' ? "bg-ctu-maroon/10 text-ctu-maroon" : "bg-green-500/10 text-green-500"
+                                  )}>
+                                    {step.difficulty} Phase
+                                  </Badge>
+                                </div>
+                                
+                                <p className="text-xs text-foreground/50 font-medium leading-relaxed max-w-2xl">{step.description}</p>
+                                
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                  {step.subjects?.map((sCode: string) => (
+                                    <Badge 
+                                      key={sCode} 
+                                      onClick={() => navigate(`/catalog`)}
+                                      className="bg-background border border-white/5 text-[9px] font-bold text-foreground/40 hover:bg-ctu-gold/10 hover:text-ctu-gold transition-all cursor-pointer rounded-lg px-2 h-6"
+                                    >
+                                      {sCode}
+                                    </Badge>
+                                  ))}
+                                  {step.estimatedTime && (
+                                    <div className="flex items-center gap-1.5 ml-auto text-[10px] font-bold text-foreground/30 uppercase tracking-widest">
+                                      <Clock size={12} />
+                                      {step.estimatedTime}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {idx === 0 && (
+                                   <div className="mt-4 p-4 rounded-xl bg-ctu-gold/5 border border-ctu-gold/10 flex items-center gap-3">
+                                      <div className="p-2 bg-ctu-gold rounded-lg text-white">
+                                        <ArrowRight size={14} className="animate-bounce-x" />
+                                      </div>
+                                      <p className="text-[10px] font-bold text-ctu-gold uppercase tracking-[0.1em]">Recommended Point of Entry</p>
+                                   </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          ))}
                         </div>
-                      )) : (
-                        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-40">
-                          <BrainCircuit size={48} className="text-ctu-gold animate-pulse" />
-                          <p className="text-sm font-medium">Click generate to receive an AI-powered study roadmap<br/>centered around your IE matrix progress.</p>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-24 text-center space-y-6">
+                           <div className="relative">
+                             <div className="absolute inset-0 bg-ctu-gold/20 blur-3xl animate-pulse rounded-full" />
+                             <BrainCircuit size={64} className="text-ctu-gold relative z-10" />
+                           </div>
+                           <div className="max-w-xs">
+                             <h4 className="text-lg font-bold mb-2">Matrix Analysis Pending</h4>
+                             <p className="text-xs text-foreground/40 font-medium leading-relaxed">
+                               Initialization required. Click <span className="text-ctu-gold font-bold">Generate Plan</span> to synthesize subject data and academic flow.
+                             </p>
+                           </div>
                         </div>
                       )}
                     </div>

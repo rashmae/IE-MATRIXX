@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, Link as LinkIcon, FileText, Video, Globe, Lock, Youtube, FileBarChart, FilePieChart, Loader2 } from 'lucide-react';
 import { ResourceType, Subject, User } from '@/src/types/index';
 import { IE_SUBJECTS } from '@/src/lib/constants';

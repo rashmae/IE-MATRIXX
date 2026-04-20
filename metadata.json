@@ -1,6 +1,6 @@
 {
-  "name": "IE MATRIX",
-  "description": "An interactive AI-powered Student Curriculum Information System with study roadmaps, GWA tracking, and collaborative community tools for Industrial Engineering students at CTU Main Campus.",
+  "name": "CTU Curriculum Hub",
+  "description": "Official Academic Advisor and Learning Management System for Industrial Engineering students at Cebu Technological University. Features study roadmaps, GWA tracking, and collaborative community tools.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

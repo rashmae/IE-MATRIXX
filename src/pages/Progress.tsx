@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { 
   TrendingUp, 
   CheckCircle2, 
@@ -14,12 +14,20 @@ import {
   Calculator,
   GraduationCap,
   Search,
-  X
+  X,
+  Trophy
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
-import { User, Subject, SubjectStatus, YearLevel, Progress } from '@/src/types/index';
+import { User, Subject, SubjectStatus, YearLevel } from '@/src/types/index';
 import { IE_SUBJECTS } from '@/src/lib/constants';
+import { 
+  getGWAEquivalent, 
+  getGWALabel, 
+  getGWAColor, 
+  getGWAHexColor,
+  LATIN_HONORS
+} from '@/src/lib/gradeUtils';
 import { 
   LineChart, 
   Line, 
@@ -33,6 +41,7 @@ import {
 } from 'recharts';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { 
   Tooltip,
@@ -97,7 +106,7 @@ export default function ProgressPage() {
       }
     });
 
-    const gwa = totalUnits > 0 ? (totalWeightedGrade / totalUnits).toFixed(2) : '0.00';
+    const gwa = totalUnits > 0 ? parseFloat((totalWeightedGrade / totalUnits).toFixed(2)) : 0;
     
     // Trend Data for Chart
     const trendData = (['1st', '2nd', '3rd', '4th'] as YearLevel[]).map(year => {
@@ -116,7 +125,9 @@ export default function ProgressPage() {
       };
     }).filter(d => d.gwa !== null);
 
-    return { total, done, inProgress, percent, gwa, totalUnits, trendData };
+    const latinHonor = LATIN_HONORS.find(h => gwa >= h.min && gwa <= h.max);
+
+    return { total, done, inProgress, percent, gwa, totalUnits, trendData, latinHonor };
   };
 
   const stats = getStats();
@@ -140,101 +151,142 @@ export default function ProgressPage() {
         </div>
 
         {/* Overall Progress Header */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-          <Card className="neumorphic-card border-none lg:col-span-1 flex flex-col items-center justify-center p-8">
-            <div className="relative w-40 h-40 mb-6">
-              <svg className="w-full h-full" viewBox="0 0 100 100">
-                <circle
-                  className="text-foreground/5 stroke-current"
-                  strokeWidth="8"
-                  fill="transparent"
-                  r="40"
-                  cx="50"
-                  cy="50"
-                />
-                <motion.circle
-                  className="text-ctu-gold stroke-current"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  fill="transparent"
-                  r="40"
-                  cx="50"
-                  cy="50"
-                  initial={{ strokeDasharray: "251.2", strokeDashoffset: "251.2" }}
-                  animate={{ strokeDashoffset: 251.2 - (251.2 * stats.percent) / 100 }}
-                  transition={{ duration: 1.5, ease: "easeOut" }}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-display font-bold text-foreground">{stats.percent}%</span>
-                <span className="text-[8px] uppercase font-bold text-foreground/40 tracking-widest">Done</span>
-              </div>
-            </div>
-            
-            <div className="w-full h-[120px] mt-4">
-               <ResponsiveContainer width="100%" height="100%">
-                 <AreaChart data={stats.trendData}>
-                   <defs>
-                     <linearGradient id="colorGwa" x1="0" y1="0" x2="0" y2="1">
-                       <stop offset="5%" stopColor="#C5A059" stopOpacity={0.3}/>
-                       <stop offset="95%" stopColor="#C5A059" stopOpacity={0}/>
-                     </linearGradient>
-                   </defs>
-                   <ReTooltip 
-                     content={({ active, payload }) => {
-                       if (active && payload && payload.length) {
-                         return (
-                           <div className="bg-background/95 backdrop-blur-md p-2 rounded-lg neumorphic-card border-none shadow-xl text-[10px] font-bold">
-                             <p className="text-ctu-gold uppercase">{payload[0].payload.name}</p>
-                             <p className="text-foreground">GWA: {payload[0].value}</p>
-                           </div>
-                         );
-                       }
-                       return null;
-                     }}
-                   />
-                   <Area type="monotone" dataKey="gwa" stroke="#C5A059" strokeWidth={3} fillOpacity={1} fill="url(#colorGwa)" />
-                 </AreaChart>
-               </ResponsiveContainer>
-               <p className="text-center text-[9px] font-bold text-foreground/30 uppercase mt-2 tracking-widest">GWA Performance Trend</p>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">
+          {/* GWA Card - THE HERO */}
+          <Card className="lg:col-span-2 neumorphic-card border-none bg-gradient-to-br from-ctu-gold/10 via-background to-background relative overflow-hidden p-1">
+             <div className="absolute inset-0 bg-ctu-gold/5 animate-pulse" />
+             <div className="relative z-10 p-8 h-full flex flex-col items-center justify-between text-center">
+                <div className="space-y-1">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-ctu-gold">Combined Academic GWA</h3>
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="text-7xl font-display font-black text-foreground">{stats.gwa || '0.00'}</span>
+                    <div className="flex flex-col items-start">
+                      <Badge className={cn("text-[9px] font-bold uppercase", getGWAColor(stats.gwa) === 'text-ctu-gold' ? 'bg-ctu-gold text-white' : 'bg-foreground/10')}>
+                         {getGWALabel(stats.gwa)}
+                      </Badge>
+                      <span className="text-[10px] text-foreground/40 font-bold mt-1">{stats.totalUnits} Units Tracked</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="my-8 w-full">
+                  {stats.latinHonor ? (
+                    <motion.div 
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="glass-card border-ctu-gold/30 bg-ctu-gold/5 py-4 px-6 flex items-center justify-center gap-3"
+                    >
+                      <Trophy className="text-ctu-gold" size={24} />
+                      <div className="text-left">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-ctu-gold">Current Standing</p>
+                        <p className="text-lg font-display font-bold leading-tight">{stats.latinHonor.label}</p>
+                      </div>
+                    </motion.div>
+                  ) : stats.gwa > 0 && stats.gwa <= 3.0 ? (
+                    <div className="text-foreground/60 text-sm font-medium italic">
+                       "Excellence is not an act, but a habit. Keep striving for institutional excellence."
+                    </div>
+                  ) : (
+                    <div className="text-foreground/30 text-xs font-bold uppercase tracking-widest">
+                       Input your first grades to begin evaluation
+                    </div>
+                  )}
+                </div>
+
+                <div className="w-full flex items-center justify-between pt-6 border-t border-foreground/5">
+                   <div className="text-left">
+                      <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">Target Honor</p>
+                      <p className="text-xs font-bold">Summa Cum Laude (1.20)</p>
+                   </div>
+                   <div className="text-right">
+                      <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">Min. Units Left</p>
+                      <p className="text-xs font-bold">~{164 - stats.totalUnits} Units</p>
+                   </div>
+                </div>
+             </div>
           </Card>
 
-          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="neumorphic-card border-none p-8 flex flex-col justify-center bg-ctu-gold/5 border border-ctu-gold/20">
-              <div className="p-3 rounded-2xl neumorphic-pressed w-fit mb-4 text-ctu-gold">
-                <Calculator size={24} />
-              </div>
-              <p className="text-4xl font-bold text-foreground">{stats.gwa}</p>
-              <p className="text-xs text-foreground/40 font-bold uppercase tracking-widest mt-1">Overall GWA</p>
-              <p className="text-[10px] text-foreground/30 mt-2 italic">Based on {stats.totalUnits} graded units</p>
-            </Card>
-
-            {[
-              { label: 'Done', value: stats.done, color: 'text-green-500', icon: CheckCircle2 },
-              { label: 'In Progress', value: stats.inProgress, color: 'text-ctu-gold', icon: Clock },
-            ].map((stat, i) => (
-              <Card key={i} className="neumorphic-card border-none p-8 flex flex-col justify-center">
-                <div className={cn("p-3 rounded-2xl neumorphic-pressed w-fit mb-4", stat.color)}>
-                  <stat.icon size={24} />
+          {/* Stats Column */}
+          <div className="lg:col-span-2 grid grid-cols-2 gap-6">
+             <Card className="neumorphic-card border-none p-6 flex flex-col justify-center items-center text-center">
+                <div className="relative w-28 h-28 mb-4">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                    <circle className="text-foreground/5 stroke-current" strokeWidth="8" fill="transparent" r="40" cx="50" cy="50" />
+                    <motion.circle className="text-ctu-gold stroke-current" strokeWidth="8" strokeLinecap="round" fill="transparent" r="40" cx="50" cy="50"
+                      initial={{ strokeDasharray: "251.2", strokeDashoffset: "251.2" }}
+                      animate={{ strokeDashoffset: 251.2 - (251.2 * stats.percent) / 100 }}
+                      transition={{ duration: 1.5, ease: "easeOut" }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-xl font-bold text-foreground">{stats.percent}%</span>
+                    <span className="text-[7px] uppercase font-bold text-foreground/40">Curriculum</span>
+                  </div>
                 </div>
-                <p className="text-4xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-xs text-foreground/40 font-bold uppercase tracking-widest mt-1">{stat.label}</p>
-              </Card>
-            ))}
-            
-            <Card 
-              onClick={() => navigate('/study')}
-              className="neumorphic-card border-none p-6 md:col-span-3 flex items-center gap-4 bg-ctu-maroon/5 border border-ctu-maroon/10 cursor-pointer hover:bg-ctu-maroon/10 transition-colors"
-            >
-              <div className="p-2 rounded-xl neumorphic-pressed text-ctu-maroon">
-                <GraduationCap size={24} />
-              </div>
-              <p className="text-sm text-foreground/70 font-medium">
-                Academic Tips: Aim for <b className="text-ctu-gold font-bold">1.50</b> or higher to be a Consistent Dean's Lister. 
-                <span className="block text-xs mt-1 text-foreground/40 font-bold tracking-tight uppercase">Input your grades in the subject list below to calculate GWA.</span>
-              </p>
-            </Card>
+                <p className="text-xs font-bold uppercase tracking-widest text-foreground/40">Overall Done</p>
+             </Card>
+
+             <Card className="neumorphic-card border-none p-6 flex flex-col justify-center">
+                <div className="h-full space-y-4">
+                  <div>
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-foreground/40">Performance Trend</span>
+                      <TrendingUp size={12} className="text-ctu-gold" />
+                    </div>
+                    <div className="h-20 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={stats.trendData}>
+                          <Line type="monotone" dataKey="gwa" stroke="#925dfc" strokeWidth={3} dot={{ fill: '#925dfc', r: 3 }} />
+                          <ReTooltip 
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                return (
+                                  <div className="bg-background/95 backdrop-blur-md p-2 rounded-lg border border-white/5 shadow-xl text-[10px] font-bold">
+                                    <p className="text-ctu-gold">{payload[0].payload.name}</p>
+                                    <p className="text-foreground">GWA: {payload[0].value}</p>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-foreground/5">
+                     <div className="flex items-center gap-2">
+                        <CheckCircle2 size={16} className="text-green-500" />
+                        <div>
+                          <p className="text-sm font-bold leading-none">{stats.done}</p>
+                          <p className="text-[8px] font-bold text-foreground/40 uppercase">Passed</p>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-2">
+                        <Clock size={16} className="text-ctu-gold" />
+                        <div>
+                          <p className="text-sm font-bold leading-none">{stats.inProgress}</p>
+                          <p className="text-[8px] font-bold text-foreground/40 uppercase">Active</p>
+                        </div>
+                     </div>
+                  </div>
+                </div>
+             </Card>
+
+             <Card className="col-span-2 neumorphic-card border-none p-6 flex items-center justify-between bg-foreground/5 border border-white/5">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-ctu-maroon/20 rounded-xl text-ctu-maroon">
+                    <GraduationCap size={20} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold leading-none mb-1">Dean's List Readiness</p>
+                    <p className="text-[10px] text-foreground/40 font-medium">Maintain a GWA of <b>1.75 or better</b> for honors.</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/admin-roadmap')} className="text-[10px] font-bold text-ctu-gold uppercase tracking-widest hover:bg-ctu-gold/10">
+                   View Roadmap →
+                </Button>
+             </Card>
           </div>
         </div>
 
