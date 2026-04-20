@@ -17,7 +17,7 @@ import {
 import { useAuth } from '@/src/context/AuthContext';
 import { db } from '@/src/lib/firebase';
 import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { GoogleGenAI, Type } from "@google/genai";
+import { getGeminiClient } from '@/src/lib/gemini';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -89,8 +89,10 @@ export default function SyllabusIngestion() {
       updateResult(fileId, { message: 'Extracting data with AI...' });
 
       // 3. Extract with Gemini
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
-      const model = "gemini-3-flash-preview";
+      const client = getGeminiClient();
+      if (!client) throw new Error('AI Assistant is not configured. Please set VITE_GEMINI_API_KEY.');
+      
+      const modelName = "gemini-1.5-flash";
       const prompt = `Extract academic information from this syllabus PDF. Return JSON.
       Fields:
       - subjectCode (The catalog code, e.g. "IE-PC 212")
@@ -104,9 +106,16 @@ export default function SyllabusIngestion() {
       - courseOutcomes (array of strings)
       - topics (array of strings)`;
 
-      const aiResponse = await ai.models.generateContent({
-        model,
+      const model = client.getGenerativeModel({ 
+        model: modelName,
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      const aiResponse = await model.generateContent({
         contents: [{
+          role: 'user',
           parts: [
             { text: prompt },
             {
@@ -116,29 +125,11 @@ export default function SyllabusIngestion() {
               }
             }
           ]
-        }],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              subjectCode: { type: Type.STRING },
-              subjectName: { type: Type.STRING },
-              units: { type: Type.NUMBER },
-              yearLevel: { type: Type.STRING },
-              semester: { type: Type.STRING },
-              courseDescription: { type: Type.STRING },
-              prerequisites: { type: Type.ARRAY, items: { type: Type.STRING } },
-              instructor: { type: Type.STRING },
-              courseOutcomes: { type: Type.ARRAY, items: { type: Type.STRING } },
-              topics: { type: Type.ARRAY, items: { type: Type.STRING } }
-            },
-            required: ["subjectCode", "subjectName"]
-          }
-        }
+        }]
       });
 
-      const info = JSON.parse(aiResponse.text);
+      const responseText = aiResponse.response.text();
+      const info = JSON.parse(responseText);
       updateResult(fileId, { subjectCode: info.subjectCode, message: 'Updating Firestore...' });
 
       // 4. Update Firestore

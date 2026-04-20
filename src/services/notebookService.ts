@@ -1,9 +1,12 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import { NotebookSource } from "../types";
+import { getGeminiClient } from "../lib/gemini";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const DEFAULT_MODEL = "gemini-1.5-flash";
 
 export async function generateNotebookSummary(name: string, sources: NotebookSource[]) {
+  const client = getGeminiClient();
+  if (!client) return "AI Summary is currently unavailable.";
+
   const sourcesText = sources.map(s => `Source: ${s.title}\nContent: ${s.content}`).join('\n\n---\n\n');
   
   const prompt = `
@@ -15,12 +18,14 @@ export async function generateNotebookSummary(name: string, sources: NotebookSou
     Format your response in Markdown.
   `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: prompt,
-  });
-
-  return response.text;
+  try {
+    const model = client.getGenerativeModel({ model: DEFAULT_MODEL });
+    const response = await model.generateContent(prompt);
+    return response.response.text();
+  } catch (error) {
+    console.error("Summary Error:", error);
+    return "Failed to generate summary.";
+  }
 }
 
 export async function chatWithNotebook(
@@ -29,6 +34,9 @@ export async function chatWithNotebook(
   history: { role: 'user' | 'model', parts: { text: string }[] }[],
   userMessage: string
 ) {
+  const client = getGeminiClient();
+  if (!client) return "AI Chat is currently unavailable.";
+
   const sourcesText = sources.map(s => `[ID: ${s.id}] Source: ${s.title}\nContent: ${s.content}`).join('\n\n---\n\n');
   
   const systemInstruction = `
@@ -46,18 +54,29 @@ export async function chatWithNotebook(
     5. You can summarize, explain complex concepts, or quiz the user based on their sources.
   `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: [...history, { role: 'user', parts: [{ text: userMessage }] }],
-    config: {
-      systemInstruction,
-    }
-  });
+  try {
+    const model = client.getGenerativeModel({ 
+      model: DEFAULT_MODEL,
+      systemInstruction: {
+        role: "system",
+        parts: [{ text: systemInstruction }]
+      }
+    });
+    const response = await model.generateContent({
+      contents: [...history, { role: 'user', parts: [{ text: userMessage }] }]
+    });
 
-  return response.text;
+    return response.response.text();
+  } catch (error) {
+    console.error("Notebook Chat Error:", error);
+    return "I encounterered an error while processing your request.";
+  }
 }
 
 export async function searchExternalResources(query: string) {
+  const client = getGeminiClient();
+  if (!client) return [];
+
   const prompt = `
     Find high-quality academic and educational resources (articles, papers, study guides) related to: "${query}".
     Specifically focus on material relevant to Industrial Engineering if applicable.
@@ -65,29 +84,15 @@ export async function searchExternalResources(query: string) {
     Return the results in a JSON array of objects with 'title', 'url', and a short 'snippet'.
   `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: prompt,
-    config: {
-      tools: [{ googleSearch: {} }],
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            url: { type: Type.STRING },
-            snippet: { type: Type.STRING }
-          },
-          required: ["title", "url", "snippet"]
-        }
-      }
-    }
-  });
-
   try {
-    return JSON.parse(response.text);
+    const model = client.getGenerativeModel({ 
+      model: DEFAULT_MODEL,
+      generationConfig: {
+        responseMimeType: "application/json"
+      }
+    });
+    const response = await model.generateContent(prompt);
+    return JSON.parse(response.response.text());
   } catch (e) {
     console.error("Failed to parse search results:", e);
     return [];

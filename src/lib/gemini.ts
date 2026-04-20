@@ -1,21 +1,45 @@
 
+console.log('--- GEMINI MODULE INITIALIZED [v1.0.2] ---');
+
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 let genAI: GoogleGenerativeAI | null = null;
 
 export const getGeminiClient = () => {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) {
-    console.warn('Gemini API key not configured');
+  // Try to find ANY possible location for the key
+  const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || 
+                  import.meta.env.VITE_FIREBASE_API_KEY || 
+                  (window as any).process?.env?.VITE_GEMINI_API_KEY);
+  
+  // Strict check for "undefined" or "null" strings that might leak from environment
+  const isValidKey = apiKey && 
+    typeof apiKey === 'string' &&
+    apiKey !== 'undefined' && 
+    apiKey !== 'null' && 
+    apiKey.trim() !== '';
+
+  if (!isValidKey) {
+    if (apiKey === undefined || apiKey === 'undefined') {
+      console.warn('[Gemini] API Key is UNDEFINED. Check your Vercel/Env configuration.');
+    } else {
+      console.warn('[Gemini] API key missing or invalid:', apiKey);
+    }
     return null;
   }
+
   if (!genAI) {
-    genAI = new GoogleGenerativeAI(apiKey);
+    try {
+      console.log('[Gemini] Initializing client...');
+      genAI = new GoogleGenerativeAI(apiKey);
+    } catch (error) {
+      console.error('[Gemini] Initialization failed:', error);
+      return null;
+    }
   }
   return genAI;
 };
 
-const DEFAULT_MODEL = "gemini-3-flash-preview";
+const DEFAULT_MODEL = "gemini-1.5-flash";
 
 export async function generateStudyPlan(currentProgress: any, subjects: any[]) {
   const client = getGeminiClient();
