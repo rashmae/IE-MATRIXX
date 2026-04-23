@@ -213,7 +213,7 @@ export default function ProgressPage() {
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                     <circle className="text-foreground/5 stroke-current" strokeWidth="8" fill="transparent" r="40" cx="50" cy="50" />
                     <motion.circle className="text-ctu-gold stroke-current" strokeWidth="8" strokeLinecap="round" fill="transparent" r="40" cx="50" cy="50"
-                      initial={{ strokeDasharray: "251.2", strokeDashoffset: "251.2" }}
+                      initial={{ strokeDasharray: "251.2", strokeDashoffset: 251.2 }}
                       animate={{ strokeDashoffset: 251.2 - (251.2 * stats.percent) / 100 }}
                       transition={{ duration: 1.5, ease: "easeOut" }}
                     />
@@ -233,8 +233,8 @@ export default function ProgressPage() {
                       <span className="text-[9px] font-bold uppercase tracking-widest text-foreground/40">Performance Trend</span>
                       <TrendingUp size={12} className="text-ctu-gold" />
                     </div>
-                    <div className="h-20 w-full">
-                      <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-20 w-full overflow-hidden">
+                      <ResponsiveContainer width="100%" height={80} minWidth={0}>
                         <LineChart data={stats.trendData}>
                           <Line type="monotone" dataKey="gwa" stroke="#925dfc" strokeWidth={3} dot={{ fill: '#925dfc', r: 3 }} />
                           <ReTooltip 
