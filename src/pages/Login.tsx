@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { LiquidButton, GlassFilter } from '@/components/ui/liquid-glass';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,8 +27,24 @@ export default function Login() {
   const [idNumber, setIdNumber] = useState('');
   const [yearLevel, setYearLevel] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sloganIndex, setSloganIndex] = useState(0);
   const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  const slogans = [
+    "CTU INDUSTRIAL ENGINEERING PORTAL",
+    "71 CORE IE SUBJECTS CATALOGED",
+    "OPTIMIZE YOUR ACADEMIC PLAN",
+    "THE MATRIX OF IE EXCELLENCE",
+    "EMPOWERING FUTURE ENGINEERS"
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSloganIndex((prev) => (prev + 1) % slogans.length);
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!authLoading && user && profile) {
@@ -124,12 +140,21 @@ export default function Login() {
           {/* Main Typography Header Section */}
           <div className="mb-12">
             <h1 className="text-8xl md:text-9xl font-display font-black tracking-tighter drop-shadow-2xl text-foreground mb-4">
-              CTU HUB
+              IE MATRIX
             </h1>
-            <div className="flex flex-col items-center">
-              <span className="text-ctu-gold font-bold text-2xl tracking-[0.2em] uppercase mb-1 drop-shadow-md">
-                CTU Curriculum Hub
-              </span>
+            <div className="flex flex-col items-center min-h-[80px]">
+              <AnimatePresence mode="wait">
+                <motion.span 
+                  key={sloganIndex}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.5 }}
+                  className="text-ctu-gold font-bold text-2xl tracking-[0.2em] uppercase mb-1 drop-shadow-md text-center max-w-[500px]"
+                >
+                  {slogans[sloganIndex]}
+                </motion.span>
+              </AnimatePresence>
               <span className="text-foreground/40 font-light text-lg tracking-widest uppercase">
                 Cebu Technological University
               </span>
@@ -206,8 +231,20 @@ export default function Login() {
 
       {/* Mobile Branding */}
       <div className="md:hidden pt-12 pb-4 text-center z-10 space-y-4">
-         <h1 className="text-5xl font-display font-black tracking-tighter text-foreground">CTU HUB</h1>
-         <div className="text-[10px] tracking-[0.2em] font-bold text-ctu-gold uppercase">CTU Curriculum Hub</div>
+         <h1 className="text-5xl font-display font-black tracking-tighter text-foreground">IE MATRIX</h1>
+         <div className="min-h-[40px] px-4">
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={sloganIndex}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
+                className="text-[10px] tracking-[0.2em] font-bold text-ctu-gold uppercase"
+              >
+                {slogans[sloganIndex]}
+              </motion.div>
+            </AnimatePresence>
+         </div>
       </div>
 
       {/* Right Panel: Login Form */}

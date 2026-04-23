@@ -19,7 +19,8 @@ import {
   Youtube,
   FileBarChart,
   FilePieChart,
-  Upload as UploadIcon
+  Upload as UploadIcon,
+  Trash2
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
@@ -63,7 +64,8 @@ import {
   serverTimestamp,
   doc,
   getDoc,
-  updateDoc
+  updateDoc,
+  deleteDoc
 } from 'firebase/firestore';
 
 export default function SubjectDetail() {
@@ -89,6 +91,8 @@ export default function SubjectDetail() {
   const [selectedStarFilter, setSelectedStarFilter] = useState<number | null>(null);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isLikeLoading, setIsLikeLoading] = useState<string | null>(null);
+  const [isDeleteLoading, setIsDeleteLoading] = useState<string | null>(null);
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -193,24 +197,21 @@ export default function SubjectDetail() {
 
   const handleSubmitRating = async () => {
     if (!subject || !profile) return;
-    if (!arePrerequisitesMet) {
-      toast.error('You cannot rate this subject until all prerequisites are completed.');
-      return;
-    }
-
+    
     if (userRating === 0) {
       toast.error('Please select a rating');
       return;
     }
 
+    setIsSubmittingRating(true);
     try {
       await addDoc(collection(db, 'ratings'), {
         subjectId: subject.id,
         userId: profile.uid,
         userName: isAnonymous ? 'Anonymous Student' : profile.fullName,
-        userAvatar: isAnonymous ? null : profile.photoURL,
+        userAvatar: isAnonymous ? null : (profile.photoURL || null),
         rating: userRating,
-        feedback: feedback,
+        feedback: feedback || "",
         isAnonymous: isAnonymous,
         likes: 0,
         likedBy: [],
@@ -224,18 +225,63 @@ export default function SubjectDetail() {
       setIsAnonymous(false);
       fetchSubjectData();
     } catch (error) {
-      handleFirestoreError(error, 'create', 'ratings');
+      console.error("Rating submission error:", error);
+      toast.error('Failed to submit rating. Please try again.');
+    } finally {
+      setIsSubmittingRating(false);
     }
   };
 
   const handleLikeReview = async (reviewId: string) => {
-    if (isLikeLoading) return;
+    if (isLikeLoading || !profile) return;
+    
+    const review = ratings.find(r => r.id === reviewId);
+    if (!review) return;
+
+    const hasLiked = review.likedBy?.includes(profile.uid);
     setIsLikeLoading(reviewId);
+
     try {
-      // In a real app, logic for updating likes in Firestore would go here
-      toast.success('Helpful vote recorded!');
+      const reviewRef = doc(db, 'ratings', reviewId);
+      const newLikedBy = hasLiked 
+        ? review.likedBy.filter((uid: string) => uid !== profile.uid)
+        : [...(review.likedBy || []), profile.uid];
+      
+      await updateDoc(reviewRef, {
+        likedBy: newLikedBy,
+        likes: newLikedBy.length
+      });
+
+      // Update local state
+      setRatings(prev => prev.map(r => 
+        r.id === reviewId 
+          ? { ...r, likedBy: newLikedBy, likes: newLikedBy.length } 
+          : r
+      ));
+
+      toast.success(hasLiked ? 'Vote removed' : 'Helpful vote recorded!');
+    } catch (error) {
+      console.error("Error liking review:", error);
+      toast.error('Failed to update vote');
     } finally {
       setIsLikeLoading(null);
+    }
+  };
+
+  const handleDeleteRating = async (ratingId: string) => {
+    if (!window.confirm('Are you sure you want to delete your rating? This action cannot be undone.')) return;
+    
+    setIsDeleteLoading(ratingId);
+    try {
+      await deleteDoc(doc(db, 'ratings', ratingId));
+      toast.success('Rating deleted successfully');
+      setRatings(prev => prev.filter(r => r.id !== ratingId));
+      fetchSubjectData(); // Refresh aggregate data
+    } catch (error) {
+      console.error("Error deleting rating:", error);
+      toast.error('Failed to delete rating');
+    } finally {
+      setIsDeleteLoading(null);
     }
   };
 
@@ -698,6 +744,21 @@ export default function SubjectDetail() {
                                 <ThumbsUp size={12} fill={review.likedBy?.includes(profile.uid) ? "currentColor" : "none"} />
                                 Helpful ({review.likes || 0})
                               </button>
+
+                              {review.userId === profile.uid && (
+                                <button
+                                  onClick={() => handleDeleteRating(review.id)}
+                                  disabled={isDeleteLoading === review.id}
+                                  className="p-2 text-foreground/20 hover:text-red-500 transition-colors disabled:opacity-50"
+                                  title="Delete Rating"
+                                >
+                                  {isDeleteLoading === review.id ? (
+                                    <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <Trash2 size={12} />
+                                  )}
+                                </button>
+                              )}
                             </div>
                           </div>
                         ))
@@ -711,17 +772,8 @@ export default function SubjectDetail() {
 
                   <div className="mt-10">
                     <button 
-                      onClick={() => {
-                        if (!arePrerequisitesMet) {
-                          toast.error('You cannot rate this subject until all prerequisites are completed.');
-                        } else {
-                          setIsRatingModalOpen(true);
-                        }
-                      }}
-                      className={cn(
-                        "w-full py-4 neumorphic-raised hover:neumorphic-pressed rounded-2xl text-foreground font-bold transition-all",
-                        !arePrerequisitesMet && "opacity-50 cursor-not-allowed grayscale hover:neumorphic-raised"
-                      )}
+                      onClick={() => setIsRatingModalOpen(true)}
+                      className="w-full py-4 neumorphic-raised hover:neumorphic-pressed rounded-2xl text-foreground font-bold transition-all"
                     >
                       Rate this Subject
                     </button>
@@ -784,9 +836,18 @@ export default function SubjectDetail() {
                         <div className="pt-4">
                           <button 
                             onClick={handleSubmitRating}
-                            className="w-full py-4 neumorphic-raised hover:neumorphic-pressed rounded-2xl text-foreground font-bold transition-all"
+                            disabled={isSubmittingRating}
+                            className={cn(
+                              "w-full py-4 neumorphic-raised hover:neumorphic-pressed rounded-2xl text-foreground font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+                              isSubmittingRating && "neumorphic-pressed"
+                            )}
                           >
-                            Submit Rating
+                            {isSubmittingRating ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <div className="w-4 h-4 border-2 border-ctu-gold border-t-transparent rounded-full animate-spin" />
+                                Submitting...
+                              </div>
+                            ) : "Submit Rating"}
                           </button>
                         </div>
                       </div>

@@ -6,7 +6,6 @@ import {
   Filter, 
   Grid, 
   List as ListIcon,
-  Star,
   Link as LinkIcon,
   ChevronRight,
   CheckCircle2,
@@ -17,10 +16,7 @@ import {
   SlidersHorizontal,
   ChevronDown,
   ArrowUpDown,
-  Trophy,
-  MessageSquare,
   Calendar,
-  Heart,
   Upload,
   FileText
 } from 'lucide-react';
@@ -70,7 +66,7 @@ import { getGWAEquivalent, getGWAColor } from '@/src/lib/gradeUtils';
 import { db } from '@/src/lib/firebase';
 import { collection, getDocs, query, orderBy, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 
-type SortOption = 'relevance' | 'alpha-asc' | 'alpha-desc' | 'rating-desc' | 'reviews-desc' | 'newest';
+type SortOption = 'relevance' | 'alpha-asc' | 'alpha-desc' | 'newest';
 
 export default function Catalog() {
   const { profile, isAdmin, loading: authLoading } = useAuth();
@@ -101,9 +97,8 @@ export default function Catalog() {
     if (selectedYears.length > 0) count++;
     if (selectedSems.length > 0) count++;
     if (unitRange[0] < 5) count++;
-    if (hasReviews) count++;
     return count;
-  }, [selectedYears, selectedSems, unitRange, hasReviews]);
+  }, [selectedYears, selectedSems, unitRange]);
 
   useEffect(() => {
     if (!authLoading && !profile) {
@@ -184,9 +179,8 @@ export default function Catalog() {
       const matchesYear = selectedYears.length === 0 || selectedYears.includes(s.yearLevel);
       const matchesSem = selectedSems.length === 0 || selectedSems.includes(s.semester);
       const matchesUnits = s.units <= unitRange[0];
-      const matchesReviews = !hasReviews || (s.reviewCount && s.reviewCount > 0);
       
-      return matchesSearch && matchesYear && matchesSem && matchesUnits && matchesReviews;
+      return matchesSearch && matchesYear && matchesSem && matchesUnits;
     });
 
     // Apply Sorting
@@ -197,12 +191,6 @@ export default function Catalog() {
       case 'alpha-desc':
         result.sort((a, b) => b.name.localeCompare(a.name));
         break;
-      case 'rating-desc':
-        result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-        break;
-      case 'reviews-desc':
-        result.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
-        break;
       case 'newest':
         result.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
         break;
@@ -212,7 +200,7 @@ export default function Catalog() {
     }
 
     return result;
-  }, [subjects, searchQuery, selectedYears, selectedSems, unitRange, hasReviews, sortBy]);
+  }, [subjects, searchQuery, selectedYears, selectedSems, unitRange, sortBy]);
 
   const clearAllFilters = () => {
     setSearchQuery('');
@@ -363,20 +351,6 @@ export default function Catalog() {
           </div>
         </div>
         <div className="h-0.5 w-full bg-foreground/10 rounded-full my-4" />
-      </div>
-
-      <div className="space-y-4 pt-4" role="group" aria-label="Course Preferences">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <Label htmlFor="has-reviews" className="text-sm font-bold cursor-pointer">Has Reviews</Label>
-            <p className="text-[10px] text-foreground/40">Show only courses with student feedback</p>
-          </div>
-          <Switch 
-            id="has-reviews"
-            checked={hasReviews}
-            onCheckedChange={setHasReviews}
-          />
-        </div>
       </div>
 
       <Button 
@@ -579,12 +553,6 @@ export default function Catalog() {
                       <DropdownMenuItem onClick={() => setSortBy('alpha-desc')} className={cn("rounded-xl px-3 py-2.5 font-medium cursor-pointer flex items-center justify-between", sortBy === 'alpha-desc' && "bg-ctu-gold/10 text-ctu-gold")}>
                         Alphabetical (Z-A)
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSortBy('rating-desc')} className={cn("rounded-xl px-3 py-2.5 font-medium cursor-pointer flex items-center gap-2", sortBy === 'rating-desc' && "bg-ctu-gold/10 text-ctu-gold")}>
-                        <Trophy size={14} className="text-ctu-gold" /> Highest Rated
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSortBy('reviews-desc')} className={cn("rounded-xl px-3 py-2.5 font-medium cursor-pointer flex items-center gap-2", sortBy === 'reviews-desc' && "bg-ctu-gold/10 text-ctu-gold")}>
-                        <MessageSquare size={14} className="text-blue-500" /> Most Reviewed
-                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setSortBy('newest')} className={cn("rounded-xl px-3 py-2.5 font-medium cursor-pointer flex items-center gap-2", sortBy === 'newest' && "bg-ctu-gold/10 text-ctu-gold")}>
                         <Calendar size={14} className="text-emerald-500" /> Newest Added
                       </DropdownMenuItem>
@@ -678,12 +646,6 @@ export default function Catalog() {
                     >
                       <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-ctu-maroon opacity-0 group-hover:opacity-100 transition-opacity" />
                       
-                      {subject.isFavorite && (
-                        <div className="absolute right-4 top-4 z-20 text-ctu-gold">
-                          <Heart size={16} fill="currentColor" />
-                        </div>
-                      )}
-
                       <div className="p-5 flex flex-col h-full justify-between relative z-10">
                         <div>
                             <div className="flex justify-between items-start mb-6">
@@ -693,14 +655,6 @@ export default function Catalog() {
                                   {subject.yearLevel} Year
                                 </Badge>
                               </div>
-                              {subject.rating ? (
-                                <div className="flex items-center gap-1 text-ctu-gold bg-ctu-gold/5 px-2 py-1 rounded-lg">
-                                  <Star size={12} fill="currentColor" />
-                                  <span className="text-xs font-bold leading-none">{subject.rating}</span>
-                                </div>
-                              ) : (
-                                <span className="text-[10px] text-foreground/30 font-bold uppercase tracking-widest italic">No ratings yet</span>
-                              )}
                             </div>
 
                           <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-ctu-gold transition-colors leading-tight line-clamp-2">
