@@ -65,7 +65,7 @@ export default function AdminDashboard() {
       const batch = writeBatch(db);
       IE_SUBJECTS.forEach((subject) => {
         const docRef = doc(db, 'subjects', subject.id);
-        batch.set(docRef, subject);
+        batch.set(docRef, subject, { merge: true });
       });
       await batch.commit();
       toast.success('Successfully seeded curriculum subjects!');

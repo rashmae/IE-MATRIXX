@@ -26,7 +26,7 @@ import { LiquidButton } from '@/components/ui/liquid-glass';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
 
-const FILE_IDS = [
+const DEFAULT_FILES = [
   { id: '1v4kEQcZ33Oi_6bE4cvNpaXlAD5k3nt_o', name: 'BES-CFP: Computer Fundamentals and Programming' },
   { id: '1mPUieL99B92iZ76DDx5mwayYVxeT-Zec', name: 'IE-AC 111: Principles of Economics' },
   { id: '1NCi8MtAMVkh-6j2MvSTPTtuFWSubCmTU', name: 'IE-IPC 111: Introduction to Engineering' },
@@ -49,15 +49,66 @@ interface IngestionResult {
 export default function SyllabusIngestion() {
   const { profile, loading: authLoading } = useAuth();
   const [results, setResults] = useState<IngestionResult[]>(
-    FILE_IDS.map(f => ({ id: f.id, name: f.name, status: 'pending' }))
+    DEFAULT_FILES.map(f => ({ id: f.id, name: f.name, status: 'pending' }))
   );
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!authLoading && (!profile || profile.role !== 'admin')) {
-      toast.error('Admin access required');
-      navigate('/dashboard');
+    const fetchSyllabusFiles = async () => {
+      setIsLoadingFiles(true);
+      try {
+        const subjectsRef = collection(db, 'subjects');
+        const snapshot = await getDocs(subjectsRef);
+        
+        const filesFromFirestore = snapshot.docs
+          .map(doc => {
+            const data = doc.data();
+            const url = data.syllabusUrl || data.syllabusURL || '';
+            if (!url) return null;
+
+            // Extract ID from https://drive.google.com/file/d/FILE_ID/preview
+            const match = url.match(/\/d\/([^\/]+)/);
+            const fileId = match ? match[1] : (url.includes('id=') ? url.split('id=')[1].split('&')[0] : null);
+            
+            if (!fileId) return null;
+
+            return {
+              id: fileId,
+              name: `${data.code}: ${data.name}`,
+              status: (data.topics && data.topics.length > 0) ? 'success' : 'pending',
+              subjectCode: data.code
+            } as IngestionResult;
+          })
+          .filter((f): f is IngestionResult => f !== null);
+
+        // Dedup by ID
+        const uniqueFiles = Array.from(new Map(
+          [
+            ...DEFAULT_FILES.map(f => ({ id: f.id, name: f.name, status: 'pending' as const })), 
+            ...filesFromFirestore
+          ].map(item => [item.id, item as IngestionResult])
+        ).values());
+
+        if (uniqueFiles.length > 0) {
+          setResults(uniqueFiles);
+        }
+      } catch (err) {
+        console.error("Error fetching syllabus files:", err);
+        toast.error("Failed to load syllabus links from database");
+      } finally {
+        setIsLoadingFiles(false);
+      }
+    };
+
+    if (!authLoading) {
+      if (!profile || profile.role !== 'admin') {
+        toast.error('Admin access required');
+        navigate('/dashboard');
+      } else {
+        fetchSyllabusFiles();
+      }
     }
   }, [profile, authLoading, navigate]);
 
@@ -133,16 +184,16 @@ export default function SyllabusIngestion() {
       updateResult(fileId, { subjectCode: info.subjectCode, message: 'Updating Firestore...' });
 
       // 4. Update Firestore
-      const syllabusURL = `https://drive.google.com/file/d/${fileId}/preview`;
+      const syllabusUrl = `https://drive.google.com/file/d/${fileId}/preview`;
       const subjectsRef = collection(db, 'subjects');
-      const q = query(subjectsRef, where('code', '==', info.subjectCode)); // The constants uses 'code' not 'subjectCode'
+      const q = query(subjectsRef, where('code', '==', info.subjectCode));
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
-        const docId = querySnapshot.docs[0].id;
-        await updateDoc(doc(db, 'subjects', docId), {
+        const docRef = doc(db, 'subjects', querySnapshot.docs[0].id);
+        await updateDoc(docRef, {
           ...info,
-          syllabusURL,
+          syllabusUrl,
           isAvailable: true,
           updatedAt: serverTimestamp()
         });
@@ -219,7 +270,7 @@ export default function SyllabusIngestion() {
                 <CardTitle className="text-2xl font-bold flex items-center justify-between">
                   Processing Queue
                   <Badge className="neumorphic-pressed border-none text-foreground/40 px-3 py-1">
-                    {FILE_IDS.length} Files Found
+                    {isLoadingFiles ? 'Scanning...' : `${results.length} Files Found`}
                   </Badge>
                 </CardTitle>
               </CardHeader>

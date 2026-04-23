@@ -90,32 +90,20 @@ export default function Catalog() {
   // Advanced Filter State
   const [selectedYears, setSelectedYears] = useState<YearLevel[]>([]);
   const [selectedSems, setSelectedSems] = useState<Semester[]>([]);
-  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [unitRange, setUnitRange] = useState<[number]>([5]);
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
-  const [onlyAvailable, setOnlyAvailable] = useState(false);
-  const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [hasReviews, setHasReviews] = useState(false);
   
   const navigate = useNavigate();
-
-  const departments = useMemo(() => {
-    const deps = new Set<string>();
-    subjects.forEach(s => s.department && deps.add(s.department));
-    return Array.from(deps).sort();
-  }, [subjects]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (selectedYears.length > 0) count++;
     if (selectedSems.length > 0) count++;
-    if (selectedDepartments.length > 0) count++;
     if (unitRange[0] < 5) count++;
-    if (onlyAvailable) count++;
-    if (onlyFavorites) count++;
     if (hasReviews) count++;
     return count;
-  }, [selectedYears, selectedSems, selectedDepartments, unitRange, onlyAvailable, onlyFavorites, hasReviews]);
+  }, [selectedYears, selectedSems, unitRange, hasReviews]);
 
   useEffect(() => {
     if (!authLoading && !profile) {
@@ -147,13 +135,37 @@ export default function Catalog() {
       const q = query(collection(db, 'subjects'), orderBy('yearLevel'), orderBy('semester'));
       const querySnapshot = await getDocs(q);
       
-      let fetchedSubjects: Subject[] = [];
+      // Start with our official 71 subjects
+      let finalSubjects: Subject[] = [...IE_SUBJECTS];
+      
       if (!querySnapshot.empty) {
-        fetchedSubjects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subject));
-      } else {
-        fetchedSubjects = IE_SUBJECTS;
+        const firestoreSubjects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subject));
+        
+        // Merge Firestore data into our official 71 subjects to avoid duplicates (117 -> 71 transition)
+        // We use code as the matching key
+        finalSubjects = IE_SUBJECTS.map(officialSub => {
+          const matchingFirestoreSub = firestoreSubjects.find(fs => 
+            fs.code.replace(/\s/g, '').toLowerCase() === officialSub.code.replace(/\s/g, '').toLowerCase()
+          );
+          
+          if (matchingFirestoreSub) {
+            // Keep official metadata but take user-contributed data from Firestore
+            return {
+              ...officialSub,
+              ...matchingFirestoreSub,
+              // Ensure we keep the official yearLevel and semester to maintain the 71-count logic
+              id: matchingFirestoreSub.id, 
+              yearLevel: officialSub.yearLevel,
+              semester: officialSub.semester,
+              units: officialSub.units,
+              code: officialSub.code // Standardize code display
+            };
+          }
+          return officialSub;
+        });
       }
-      setSubjects(fetchedSubjects);
+      
+      setSubjects(finalSubjects);
     } catch (error) {
       console.error("Error fetching subjects:", error);
       setSubjects(IE_SUBJECTS);
@@ -171,13 +183,10 @@ export default function Catalog() {
         
       const matchesYear = selectedYears.length === 0 || selectedYears.includes(s.yearLevel);
       const matchesSem = selectedSems.length === 0 || selectedSems.includes(s.semester);
-      const matchesDept = selectedDepartments.length === 0 || (s.department && selectedDepartments.includes(s.department));
       const matchesUnits = s.units <= unitRange[0];
-      const matchesAvailable = !onlyAvailable || (s.slotsAvailable && s.slotsAvailable > 0);
-      const matchesFavorite = !onlyFavorites || s.isFavorite;
       const matchesReviews = !hasReviews || (s.reviewCount && s.reviewCount > 0);
       
-      return matchesSearch && matchesYear && matchesSem && matchesDept && matchesUnits && matchesAvailable && matchesFavorite && matchesReviews;
+      return matchesSearch && matchesYear && matchesSem && matchesUnits && matchesReviews;
     });
 
     // Apply Sorting
@@ -203,16 +212,13 @@ export default function Catalog() {
     }
 
     return result;
-  }, [subjects, searchQuery, selectedYears, selectedSems, selectedDepartments, unitRange, onlyAvailable, onlyFavorites, hasReviews, sortBy]);
+  }, [subjects, searchQuery, selectedYears, selectedSems, unitRange, hasReviews, sortBy]);
 
   const clearAllFilters = () => {
     setSearchQuery('');
     setSelectedYears([]);
     setSelectedSems([]);
-    setSelectedDepartments([]);
     setUnitRange([5]);
-    setOnlyAvailable(false);
-    setOnlyFavorites(false);
     setHasReviews(false);
     setSortBy('relevance');
   };
@@ -331,68 +337,35 @@ export default function Catalog() {
         </div>
       </div>
 
-      {departments.length > 0 && (
-        <div className="space-y-4" role="group" aria-labelledby="filter-department">
-          <h4 id="filter-department" className="text-sm font-bold uppercase tracking-widest text-foreground/40 px-1">Department</h4>
-          <div className="space-y-2">
-            {departments.map(dept => (
-              <div key={dept} className="flex items-center space-x-2">
-                <Checkbox 
-                  id={`dept-${dept}`} 
-                  checked={selectedDepartments.includes(dept)}
-                  onCheckedChange={(checked) => {
-                    if (checked) setSelectedDepartments(prev => [...prev, dept]);
-                    else setSelectedDepartments(prev => prev.filter(d => d !== dept));
-                  }}
-                />
-                <Label htmlFor={`dept-${dept}`} className="text-sm font-medium leading-none truncate cursor-pointer">
-                  {dept}
-                </Label>
-              </div>
-            ))}
+      <div className="space-y-6 px-1" role="group" aria-labelledby="filter-units">
+        <div className="flex justify-between items-center mb-2">
+          <h4 id="filter-units" className="text-sm font-bold uppercase tracking-widest text-foreground/40">Max Units</h4>
+          <div className="bg-primary/10 text-primary px-3 py-1.5 rounded-xl text-sm font-black border border-primary/20 shadow-sm transition-all duration-300">
+            {unitRange[0] || 5} Units
           </div>
         </div>
-      )}
-
-      <div className="space-y-6 px-1" role="group" aria-labelledby="filter-units">
-        <div className="flex justify-between items-center">
-          <h4 id="filter-units" className="text-sm font-bold uppercase tracking-widest text-foreground/40">Max Units</h4>
-          <span className="text-sm font-bold text-ctu-gold" aria-live="polite">{unitRange[0]} Units</span>
+        <div className="space-y-3 px-2">
+          <Slider
+            value={unitRange}
+            min={1}
+            max={5}
+            step={1}
+            onValueChange={setUnitRange as any}
+            className="py-4"
+            aria-label="Maximum units"
+          />
+          <div className="flex justify-between px-1 text-[11px] font-black text-foreground/40">
+            <span>1</span>
+            <span>2</span>
+            <span>3</span>
+            <span>4</span>
+            <span className="text-primary font-black">5 (Max)</span>
+          </div>
         </div>
-        <Slider
-          value={unitRange}
-          min={1}
-          max={5}
-          step={1}
-          onValueChange={setUnitRange as any}
-          className="py-4"
-          aria-label="Maximum units"
-        />
+        <div className="h-0.5 w-full bg-foreground/10 rounded-full my-4" />
       </div>
 
-      <div className="space-y-4 pt-4 border-t border-foreground/5" role="group" aria-label="Course Availability and Preferences">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <Label htmlFor="available-slots" className="text-sm font-bold cursor-pointer">Available Slots</Label>
-            <p className="text-[10px] text-foreground/40">Show only courses with open slots</p>
-          </div>
-          <Switch 
-            id="available-slots"
-            checked={onlyAvailable}
-            onCheckedChange={setOnlyAvailable}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <Label htmlFor="only-favorites" className="text-sm font-bold cursor-pointer">Favorites</Label>
-            <p className="text-[10px] text-foreground/40">Show only your favorited courses</p>
-          </div>
-          <Switch 
-            id="only-favorites"
-            checked={onlyFavorites}
-            onCheckedChange={setOnlyFavorites}
-          />
-        </div>
+      <div className="space-y-4 pt-4" role="group" aria-label="Course Preferences">
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="has-reviews" className="text-sm font-bold cursor-pointer">Has Reviews</Label>
@@ -749,25 +722,7 @@ export default function Catalog() {
                           <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-[10px] text-foreground/40 font-bold uppercase tracking-wider mb-6">
                             <span className="flex items-center gap-1"><Circle size={8} className="fill-blue-500 text-blue-500" /> {subject.units} Units</span>
                             <span className="flex items-center gap-1"><Circle size={8} className="fill-orange-500 text-orange-500" /> {subject.semester} Semester</span>
-                            {subject.department && <span className="flex items-center gap-1"><Circle size={8} className="fill-emerald-500 text-emerald-500" /> {subject.department}</span>}
                           </div>
-
-                          {subject.slotsAvailable !== undefined && (
-                            <div className="mb-6 space-y-1.5">
-                              <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
-                                <span className="text-foreground/40">Available Slots</span>
-                                <span className={cn(subject.slotsAvailable === 0 ? "text-ctu-maroon" : "text-emerald-500")}>
-                                  {subject.slotsAvailable} / {subject.totalSlots}
-                                </span>
-                              </div>
-                              <div className="h-1.5 w-full bg-foreground/5 rounded-full overflow-hidden">
-                                <div 
-                                  className={cn("h-full rounded-full transition-all duration-1000", subject.slotsAvailable === 0 ? "bg-ctu-maroon" : "bg-emerald-500")}
-                                  style={{ width: `${(subject.slotsAvailable / (subject.totalSlots || 1)) * 100}%` }}
-                                />
-                              </div>
-                            </div>
-                          )}
                         </div>
 
                         <div className="flex items-center justify-between pt-5 border-t border-foreground/5">
