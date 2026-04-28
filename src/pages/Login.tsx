@@ -139,8 +139,8 @@ export default function Login() {
         >
           {/* Main Typography Header Section */}
           <div className="mb-12">
-            <h1 className="text-8xl md:text-9xl font-display font-black tracking-tighter drop-shadow-2xl text-foreground mb-4">
-              IE MATRIX
+            <h1 className="text-8xl md:text-9xl font-display font-black tracking-tighter drop-shadow-2xl text-foreground mb-4 frosted-header">
+               IE MATRIX
             </h1>
             <div className="flex flex-col items-center min-h-[80px]">
               <AnimatePresence mode="wait">

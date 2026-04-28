@@ -19,7 +19,12 @@ import {
   HelpCircle,
   Info,
   X,
-  ChevronLeft
+  ChevronLeft,
+  Flag,
+  Trash2,
+  AlertTriangle,
+  ShieldAlert,
+  MoreVertical
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
@@ -27,7 +32,7 @@ import { User, StudyGroup, StudyPost, Quiz, Subject, Progress as ProgressType } 
 import { IE_SUBJECTS } from '@/src/lib/constants';
 import { generateStudyPlan, generateQuiz, askQuestion } from '@/src/lib/gemini';
 import { db, auth as firebaseAuth } from '@/src/lib/firebase';
-import { collection, onSnapshot, query, orderBy, limit, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, where, getDocs, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, where, getDocs, getDoc, deleteDoc } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '@/src/lib/firestoreErrorHandler';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -81,6 +86,7 @@ export default function StudyTools() {
   const [advisorInput, setAdvisorInput] = useState('');
   const [isAdvisorLoading, setIsAdvisorLoading] = useState(false);
   const [newGroup, setNewGroup] = useState({ name: '', description: '', subjectCode: '' });
+  const [groupSearchQuery, setGroupSearchQuery] = useState('');
   const [newQuestion, setNewQuestion] = useState({ title: '', content: '', subjectTag: '' });
   const [activeNotebookId, setActiveNotebookId] = useState<string | null>(null);
 
@@ -108,6 +114,13 @@ export default function StudyTools() {
   const filteredCards = deckCards.filter(card => {
     return card.front?.toLowerCase().includes(cardSearchQuery.toLowerCase()) || 
            card.back?.toLowerCase().includes(cardSearchQuery.toLowerCase());
+  });
+
+  const filteredStudyGroups = studyGroups.filter(group => {
+    const matchesSearch = group.name?.toLowerCase().includes(groupSearchQuery.toLowerCase()) || 
+                          group.description?.toLowerCase().includes(groupSearchQuery.toLowerCase());
+    const matchesSubject = group.subjectCode?.toLowerCase().includes(groupSearchQuery.toLowerCase());
+    return matchesSearch || matchesSubject;
   });
   const [activeChatGroup, setActiveChatGroup] = useState<any | null>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
@@ -320,6 +333,80 @@ export default function StudyTools() {
       });
     } catch (error) {
       toast.error("Failed to register vote.");
+    }
+  };
+
+  const handleReportQuestion = async (q: any) => {
+    try {
+      await updateDoc(doc(db, 'questions', q.id), {
+        reportCount: (q.reportCount || 0) + 1
+      });
+      toast.success("Question reported. Moderation will review it soon.");
+    } catch (error) {
+      toast.error("Failed to report.");
+    }
+  };
+
+  const handleFlagQuestion = async (q: any) => {
+    try {
+      await updateDoc(doc(db, 'questions', q.id), {
+        isFlagged: !q.isFlagged
+      });
+      toast.success(q.isFlagged ? "Flag removed" : "Question flagged");
+      if (selectedQuestion?.id === q.id) {
+        setSelectedQuestion({ ...selectedQuestion, isFlagged: !q.isFlagged });
+      }
+    } catch (error) {
+      toast.error("Failed to update status.");
+    }
+  };
+
+  const handleDeleteQuestion = async (qId: string) => {
+    if (!window.confirm("Permanently delete this question?")) return;
+    try {
+      await deleteDoc(doc(db, 'questions', qId));
+      setSelectedQuestion(null);
+      toast.success("Question removed from forum.");
+    } catch (error) {
+      toast.error("Deletion failed.");
+    }
+  };
+
+  const handleFlagAnswer = async (q: any) => {
+    if (!q.latestAnswer) return;
+    try {
+      await updateDoc(doc(db, 'questions', q.id), {
+        'latestAnswer.isFlagged': !q.latestAnswer.isFlagged
+      });
+      toast.success(q.latestAnswer.isFlagged ? "Flag removed from answer" : "Answer flagged");
+      if (selectedQuestion?.id === q.id) {
+        setSelectedQuestion({ 
+          ...selectedQuestion, 
+          latestAnswer: { ...selectedQuestion.latestAnswer, isFlagged: !q.latestAnswer.isFlagged }
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to flag answer.");
+    }
+  };
+
+  const handleDeleteAnswer = async (q: any) => {
+    if (!window.confirm("Remove this answer?")) return;
+    try {
+      await updateDoc(doc(db, 'questions', q.id), {
+        latestAnswer: null,
+        answerCount: Math.max(0, (q.answerCount || 1) - 1)
+      });
+      toast.success("Answer removed.");
+      if (selectedQuestion?.id === q.id) {
+        setSelectedQuestion({ 
+          ...selectedQuestion, 
+          latestAnswer: null, 
+          answerCount: Math.max(0, (q.answerCount || 1) - 1)
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to remove answer.");
     }
   };
 
@@ -697,47 +784,6 @@ export default function StudyTools() {
             </h1>
             <p className="text-foreground/40 mt-3 text-lg font-medium tracking-tight">Elevate your learning with AI guidance and community support.</p>
           </div>
-          
-          <div className="flex bg-background p-1.5 rounded-2xl neumorphic-raised w-fit">
-            <Dialog open={isNewGroupModalOpen} onOpenChange={setIsNewGroupModalOpen}>
-              <DialogTrigger 
-                render={
-                  <Button variant="ghost" className="rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest gap-2 h-10 md:h-12 px-4 md:px-6" />
-                }
-              >
-                <Plus size={16} /> New Group
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] neumorphic-card border-none">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-bold">Create Study Group</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-6 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="group-name" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Group Name</Label>
-                    <Input id="group-name" value={newGroup.name} onChange={e => setNewGroup({...newGroup, name: e.target.value})} className="neumorphic-pressed border-none" placeholder="e.g., OR-1 Mastermind" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="subject-code" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Subject</Label>
-                    <Select onValueChange={(val: string) => setNewGroup({...newGroup, subjectCode: val})}>
-                      <SelectTrigger className="neumorphic-pressed border-none">
-                        <SelectValue placeholder="Select a subject" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {IE_SUBJECTS.map(s => <SelectItem key={s.id} value={s.code}>{s.code} - {s.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="group-desc" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Description</Label>
-                    <Textarea id="group-desc" value={newGroup.description} onChange={e => setNewGroup({...newGroup, description: e.target.value})} className="neumorphic-pressed border-none" placeholder="What's this group about?" />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button onClick={handleCreateGroup} className="bg-ctu-gold text-white font-bold w-full rounded-xl">Create Group</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
         </div>
 
         <Tabs defaultValue="advisor" value={activeTab} onValueChange={setActiveTab} className="space-y-6 md:space-y-10">
@@ -1070,9 +1116,58 @@ export default function StudyTools() {
                     <h2 className="text-4xl font-display font-black tracking-tight">Active Study Groups</h2>
                     <p className="text-base text-foreground/40 font-medium mt-2">Connect with peers and learn together.</p>
                   </div>
+                  <div className="flex flex-wrap gap-4 w-full md:w-auto">
+                    <div className="relative flex-1 md:w-64">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/30" size={16} />
+                      <Input 
+                        placeholder="Search groups or subjects..." 
+                        className="pl-10 neumorphic-pressed border-none h-11 rounded-xl text-sm"
+                        value={groupSearchQuery}
+                        onChange={(e) => setGroupSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    <Dialog open={isNewGroupModalOpen} onOpenChange={setIsNewGroupModalOpen}>
+                      <DialogTrigger 
+                        render={
+                          <Button className="rounded-xl bg-ctu-maroon text-white font-black uppercase tracking-widest text-[10px] gap-2 h-11 px-6 shadow-lg shadow-ctu-maroon/20 hover:scale-105 transition-transform" />
+                        }
+                      >
+                        <Plus size={16} /> Create Group
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px] neumorphic-card border-none">
+                        <DialogHeader>
+                          <DialogTitle className="text-xl font-bold">Create Study Group</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid gap-6 py-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="group-name" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Group Name</Label>
+                            <Input id="group-name" value={newGroup.name} onChange={e => setNewGroup({...newGroup, name: e.target.value})} className="neumorphic-pressed border-none" placeholder="e.g., OR-1 Mastermind" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="subject-code" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Subject</Label>
+                            <Select onValueChange={(val: string) => setNewGroup({...newGroup, subjectCode: val})}>
+                              <SelectTrigger className="neumorphic-pressed border-none">
+                                <SelectValue placeholder="Select a subject" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {IE_SUBJECTS.map(s => <SelectItem key={s.id} value={s.code}>{s.code} - {s.name}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="group-desc" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Description</Label>
+                            <Textarea id="group-desc" value={newGroup.description} onChange={e => setNewGroup({...newGroup, description: e.target.value})} className="neumorphic-pressed border-none" placeholder="What's this group about?" />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button onClick={handleCreateGroup} className="bg-ctu-gold text-white font-bold w-full rounded-xl">Create Group Now</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {studyGroups.length > 0 ? studyGroups.map((group, idx) => (
+                  {filteredStudyGroups.length > 0 ? filteredStudyGroups.map((group, idx) => (
                     <motion.div
                       key={group.id}
                       initial={{ opacity: 0, scale: 0.95 }}
@@ -1220,11 +1315,31 @@ export default function StudyTools() {
                           <span className="text-[10px] font-bold text-foreground/20 uppercase">Votes</span>
                         </div>
                         <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                             <Badge className="bg-blue-500/10 text-blue-500 border-none text-[10px] font-bold">{q.subjectTag || 'General'}</Badge>
-                             <span className="text-[10px] font-bold text-foreground/20 uppercase tracking-widest">{q.createdAt ? new Date(q.createdAt.toDate()).toLocaleDateString() : 'Just now'}</span>
+                          <div className="flex items-center justify-between gap-4 mb-2">
+                             <div className="flex items-center gap-3">
+                               <Badge className="bg-blue-500/10 text-blue-500 border-none text-[10px] font-bold">{q.subjectTag || 'General'}</Badge>
+                               <span className="text-[10px] font-bold text-foreground/20 uppercase tracking-widest">{q.createdAt ? (q.createdAt.toDate ? new Date(q.createdAt.toDate()).toLocaleDateString() : 'Just now') : 'Just now'}</span>
+                               {q.isFlagged && (
+                                 <Badge className="bg-red-500/10 text-red-500 border-none text-[10px] font-bold flex items-center gap-1">
+                                   <ShieldAlert size={10} /> Flagged
+                                 </Badge>
+                               )}
+                             </div>
+                             {(user?.role === 'admin' || user?.uid !== q.userId) && (
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   handleReportQuestion(q);
+                                 }}
+                                 className="h-8 w-8 p-0 rounded-full text-foreground/20 hover:text-red-500 hover:bg-red-500/5 transition-colors"
+                               >
+                                 <Flag size={14} />
+                               </Button>
+                             )}
                           </div>
-                          <h3 className="text-lg font-bold text-foreground mb-2">{q.title}</h3>
+                          <h3 className="text-lg font-bold text-foreground mb-2 line-clamp-1">{q.title}</h3>
                           <p className="text-sm text-foreground/60 line-clamp-2 mb-4">{q.content}</p>
                           <div className="flex items-center gap-4 text-[10px] font-bold text-foreground/40 uppercase tracking-widest">
                             <span className="flex items-center gap-1.5"><MessageSquare size={12} /> {q.answerCount || 0} Answers</span>
@@ -1541,10 +1656,10 @@ export default function StudyTools() {
               <TabsContent value="quizzes" className="mt-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <GlowCard className="p-8" glowColor="orange">
-                    <div className="flex items-start justify-between mb-8">
+                    <div className="flex items-start justify-between mb-8 pb-6 border-b border-foreground/5">
                       <div>
-                        <h2 className="text-2xl font-bold text-foreground">Weekly Subject Quiz</h2>
-                        <p className="text-sm text-foreground/60 mt-1">Challenge yourself with this week's featured topics.</p>
+                        <h2 className="text-4xl font-display font-black tracking-tight text-foreground">Featured AI Quiz</h2>
+                        <p className="text-base text-foreground/40 mt-2 font-medium">Challenge yourself with this week's topics.</p>
                       </div>
                       <Award className="text-ctu-gold" size={40} />
                     </div>
@@ -1688,24 +1803,109 @@ export default function StudyTools() {
         <Dialog open={!!selectedQuestion} onOpenChange={(open) => !open && setSelectedQuestion(null)}>
           <DialogContent className="max-w-2xl bg-background rounded-3xl border-none p-8">
             <DialogHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <Badge className="bg-blue-500/10 text-blue-500 border-none text-[10px] font-bold">{selectedQuestion?.subjectTag || 'General'}</Badge>
-                <span className="text-[10px] font-bold text-foreground/20 uppercase tracking-widest">{selectedQuestion?.userName}</span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <Badge className="bg-blue-500/10 text-blue-500 border-none text-[10px] font-bold">{selectedQuestion?.subjectTag || 'General'}</Badge>
+                  <span className="text-[10px] font-bold text-foreground/20 uppercase tracking-widest">{selectedQuestion?.userName}</span>
+                  {selectedQuestion?.isFlagged && (
+                    <Badge className="bg-red-500/10 text-red-500 border-none text-[10px] font-bold flex items-center gap-1">
+                      <ShieldAlert size={10} /> Flagged by Moderation
+                    </Badge>
+                  )}
+                </div>
+                
+                {user?.role === 'admin' && (
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleFlagQuestion(selectedQuestion)}
+                      className={cn(
+                        "h-8 px-3 rounded-lg text-[10px] font-bold uppercase tracking-widest border-none transition-all",
+                        selectedQuestion?.isFlagged 
+                          ? "bg-red-500 text-white shadow-lg shadow-red-500/20" 
+                          : "neumorphic-raised text-red-500 hover:bg-red-500/5"
+                      )}
+                    >
+                      {selectedQuestion?.isFlagged ? 'Unflag' : 'Flag'}
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleDeleteQuestion(selectedQuestion.id)}
+                      className="h-8 w-8 p-0 rounded-lg text-foreground/20 hover:text-red-500 hover:bg-red-500/5 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+                )}
               </div>
               <DialogTitle className="text-2xl font-bold">{selectedQuestion?.title}</DialogTitle>
             </DialogHeader>
             <div className="py-6 space-y-8">
-              <p className="text-foreground/70 leading-relaxed font-medium">{selectedQuestion?.content}</p>
+              <div className="p-6 rounded-2xl neumorphic-pressed relative group">
+                <p className="text-foreground/80 leading-relaxed font-medium">{selectedQuestion?.content}</p>
+                {selectedQuestion?.reportCount > 0 && user?.role === 'admin' && (
+                  <div className="absolute top-2 right-2 flex items-center gap-1 bg-red-500 text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest">
+                    <AlertTriangle size={8} /> {selectedQuestion.reportCount} Reports
+                  </div>
+                )}
+              </div>
               
               <div className="space-y-4">
                 <h4 className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Responses ({selectedQuestion?.answerCount || 0})</h4>
                 {selectedQuestion?.latestAnswer ? (
-                  <div className="p-5 rounded-2xl neumorphic-pressed">
+                  <div className={cn(
+                    "p-5 rounded-2xl transition-all relative group",
+                    selectedQuestion.latestAnswer.isFlagged ? "bg-red-500/5 border border-red-500/10" : "neumorphic-pressed"
+                  )}>
                     <div className="flex justify-between items-start mb-2">
-                      <span className="text-[10px] font-bold text-ctu-gold uppercase tracking-widest">{selectedQuestion.latestAnswer.userName}</span>
-                      <span className="text-[10px] font-bold text-foreground/20 uppercase tracking-widest">Recent</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-ctu-gold uppercase tracking-widest">{selectedQuestion.latestAnswer.userName}</span>
+                        {selectedQuestion.latestAnswer.isFlagged && (
+                          <Badge className="bg-red-500/10 text-red-500 border-none text-[8px] font-bold py-0 h-4">FLAGGED</Badge>
+                        )}
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        {user?.role === 'admin' && (
+                          <>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleFlagAnswer(selectedQuestion)}
+                              className="h-6 w-6 p-0 rounded-md text-foreground/20 hover:text-red-500 transition-colors"
+                            >
+                              <Flag size={12} />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDeleteAnswer(selectedQuestion)}
+                              className="h-6 w-6 p-0 rounded-md text-foreground/20 hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 size={12} />
+                            </Button>
+                          </>
+                        )}
+                        {!user?.role || user.role !== 'admin' && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="h-6 w-6 p-0 rounded-md text-foreground/20 hover:text-red-500 transition-colors"
+                            onClick={() => toast.success("Answer reported.")}
+                          >
+                            <Flag size={12} />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-sm font-medium">{selectedQuestion.latestAnswer.content}</p>
+                    <p className={cn(
+                      "text-sm font-medium",
+                      selectedQuestion.latestAnswer.isFlagged ? "text-foreground/40 blur-[1px] hover:blur-0 transition-all cursor-help" : "text-foreground/80"
+                    )} title={selectedQuestion.latestAnswer.isFlagged ? "This content has been flagged" : ""}>
+                      {selectedQuestion.latestAnswer.content}
+                    </p>
                   </div>
                 ) : (
                   <p className="text-xs text-foreground/20 font-bold uppercase italic tracking-widest text-center py-6">No answers yet. Be the first to help!</p>

@@ -431,7 +431,7 @@ export default function SubjectDetail() {
 
             {/* Description */}
             <section className="space-y-6">
-              <h2 className="text-4xl font-display font-black text-foreground tracking-tight">Description</h2>
+              <h2 className="text-4xl font-display font-black text-foreground tracking-tight border-b-4 border-ctu-gold pb-4 w-fit">Course Narrative</h2>
               <div className="neumorphic-card p-8">
                 <p className="text-foreground/70 leading-relaxed text-lg font-medium">
                   {subject.description}
@@ -459,7 +459,7 @@ export default function SubjectDetail() {
 
             {/* Prerequisite Chain */}
             <section className="space-y-6">
-              <h2 className="text-4xl font-display font-black text-foreground tracking-tight">Prerequisite Flow</h2>
+              <h2 className="text-4xl font-display font-black text-foreground tracking-tight border-b-4 border-ctu-maroon pb-4 w-fit">Prerequisite Flow</h2>
               <div className="p-8 neumorphic-card rounded-[2.5rem] bg-foreground/[0.02]">
                 {prerequisites.length > 0 ? (
                   <div className="flex flex-col md:flex-row flex-wrap items-center gap-8 md:gap-4">
@@ -546,8 +546,8 @@ export default function SubjectDetail() {
 
             {/* Syllabus */}
             <section className="space-y-8">
-              <div className="flex items-center justify-between">
-                <h2 className="text-4xl font-display font-black text-foreground tracking-tight">Syllabus</h2>
+              <div className="flex items-center justify-between pb-6 border-b border-foreground/5">
+                <h2 className="text-4xl font-display font-black text-foreground tracking-tight border-b-4 border-blue-500 pb-4 w-fit">Curriculum Syllabus</h2>
                 <div className="flex items-center gap-3">
                   {isAdmin && (
                     <button 
@@ -597,9 +597,9 @@ export default function SubjectDetail() {
           {/* Right Column: Resources & Reviews */}
           <div className="space-y-10">
             {/* Study Resources */}
-            <section className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-4xl font-display font-black text-foreground tracking-tight">Resources</h2>
+            <section className="space-y-8">
+              <div className="flex items-center justify-between pb-6 border-b border-foreground/5">
+                <h2 className="text-4xl font-display font-black text-foreground tracking-tight border-b-4 border-orange-500 pb-4 w-fit">Study Vault</h2>
                 <div className="flex items-center gap-2">
                   <input 
                     type="file" 

@@ -129,12 +129,11 @@ service cloud.firestore {
 
     function isValidQuestion(data) {
       return data.keys().hasAll(['title', 'userId', 'userName', 'votes', 'answerCount', 'createdAt']) &&
-             data.userId == request.auth.uid &&
              data.title is string && data.title.size() > 5 && data.title.size() < 255 &&
              data.userName is string && data.userName.size() > 0 &&
              data.votes is number &&
              data.answerCount is number &&
-             data.createdAt == request.time;
+             (request.method == 'create' ? data.createdAt == request.time : true);
     }
 
     function isValidStudyGroup(data) {
@@ -280,12 +279,23 @@ service cloud.firestore {
 
     match /questions/{questionId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidId(questionId) && isValidQuestion(request.resource.data);
+      allow create: if isAuthenticated() && isValidId(questionId) && 
+                    isValidQuestion(request.resource.data) && 
+                    request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() && isValidId(questionId) && (
+        // Action: Vote
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes']) && 
          math.abs(request.resource.data.votes - resource.data.votes) == 1) ||
-        (request.resource.data.userId == request.auth.uid && isValidQuestion(request.resource.data) && 
+        // Action: Post Answer
+        (request.resource.data.diff(resource.data).affectedKeys().hasAny(['answerCount', 'latestAnswer']) && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answerCount', 'latestAnswer'])) ||
+        // Action: Report
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportCount']) &&
+         (request.resource.data.reportCount == resource.data.get('reportCount', 0) + 1)) ||
+        // Action: Edit (Owner)
+        (resource.data.userId == request.auth.uid && isValidQuestion(request.resource.data) && 
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'content', 'subjectTag'])) ||
+        // Admin
         isAdmin()
       );
       allow delete: if isAdmin();

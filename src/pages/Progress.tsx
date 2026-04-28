@@ -145,9 +145,9 @@ export default function ProgressPage() {
       <Sidebar user={user} />
       
       <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
-        <div className="mb-10">
-          <h1 className="text-4xl frosted-header font-bold tracking-tight">My Progress</h1>
-          <p className="text-foreground/60 mt-1 text-sm font-medium">Track your academic journey through the IE curriculum.</p>
+        <div className="mb-12">
+          <h1 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter leading-tight">My Progress</h1>
+          <p className="text-foreground/40 mt-3 text-lg font-medium tracking-tight">Track your academic journey through the IE curriculum.</p>
         </div>
 
         {/* Overall Progress Header */}
@@ -291,9 +291,9 @@ export default function ProgressPage() {
         </div>
 
         {/* Year-by-Year Breakdown */}
-        <div className="space-y-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
-            <h2 className="text-2xl font-display font-bold text-foreground whitespace-nowrap">Year-by-Year Breakdown</h2>
+        <div className="space-y-10 mt-20">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+            <h2 className="text-4xl font-display font-black text-foreground tracking-tight whitespace-nowrap">Year-by-Year Breakdown</h2>
             <div className="relative w-full md:w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" size={16} />
               <Input 

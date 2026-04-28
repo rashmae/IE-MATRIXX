@@ -56,7 +56,18 @@
         "subjectTag": { "type": "string" },
         "votes": { "type": "number" },
         "answerCount": { "type": "number" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "isFlagged": { "type": "boolean" },
+        "reportCount": { "type": "number" },
+        "latestAnswer": {
+          "type": "object",
+          "properties": {
+            "content": { "type": "string" },
+            "userName": { "type": "string" },
+            "createdAt": { "type": "string" },
+            "isFlagged": { "type": "boolean" }
+          }
+        }
       },
       "required": ["title", "userId", "createdAt"]
     },

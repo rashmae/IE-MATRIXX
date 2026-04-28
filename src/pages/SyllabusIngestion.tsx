@@ -225,14 +225,14 @@ export default function SyllabusIngestion() {
       <Sidebar user={profile} />
       
       <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <ShieldCheck className="text-ctu-gold" size={20} />
-              <span className="text-xs font-bold text-ctu-gold uppercase tracking-widest">Administrator Tool</span>
+            <div className="flex items-center gap-2 mb-3">
+              <ShieldCheck className="text-ctu-gold" size={24} />
+              <span className="text-xs font-black text-ctu-gold uppercase tracking-[0.3em]">Knowledge Extraction</span>
             </div>
-            <h1 className="text-4xl frosted-header font-bold tracking-tight">Syllabus Ingestion</h1>
-            <p className="text-foreground/60 mt-1 text-sm font-medium">Batch process PDFs from Google Drive to enrich subject data.</p>
+            <h1 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter leading-tight">Data Ingestion</h1>
+            <p className="text-foreground/40 mt-3 text-lg font-medium tracking-tight">Batch process PDFs from Google Drive to enrich subject data.</p>
           </div>
           
           <div className="flex gap-4">

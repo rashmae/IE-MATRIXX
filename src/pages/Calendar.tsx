@@ -71,10 +71,10 @@ export default function CalendarPage() {
       <Sidebar user={user} />
       
       <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
-            <h1 className="text-4xl frosted-header font-bold tracking-tight">School Calendar</h1>
-            <p className="text-foreground/60 mt-1 text-sm font-medium">Academic schedule for the 2nd Semester AY 2025-2026.</p>
+            <h1 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter leading-tight">Calendar</h1>
+            <p className="text-foreground/40 mt-3 text-lg font-medium tracking-tight">Academic schedule for the 2nd Semester AY 2025-2026.</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-4">

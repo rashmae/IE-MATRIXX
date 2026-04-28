@@ -377,10 +377,10 @@ export default function Catalog() {
       
       <main id="main-content" className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
         {/* Header & Search */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
-            <h1 className="text-4xl frosted-header font-bold tracking-tight">Course Catalog</h1>
-            <p className="text-foreground/60 mt-1 text-sm font-medium">Explore the CTU Industrial Engineering curriculum.</p>
+            <h1 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter leading-tight">Course Catalog</h1>
+            <p className="text-foreground/40 mt-3 text-lg font-medium tracking-tight">Explore the CTU Industrial Engineering curriculum.</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -620,112 +620,138 @@ export default function Catalog() {
               )}
             </div>
 
-            {/* Results Grid */}
-            <motion.div 
-              layout
-              className={cn(
-                "grid gap-8",
-                viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
-              )}
-            >
-              <AnimatePresence mode="popLayout">
-                {filteredSubjects.map((subject, idx) => (
-                  <motion.div
-                    key={subject.id}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.3, delay: idx * 0.05 }}
-                  >
-                    <GlowCard 
-                      onClick={() => navigate(`/catalog/${subject.id}`)}
-                      glowColor={idx % 2 === 0 ? 'blue' : 'orange'}
-                      customSize
-                      className="w-full h-full border-none hover:scale-[1.02] transition-all cursor-pointer group relative overflow-hidden flex flex-col justify-between"
-                    >
-                      <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-ctu-maroon opacity-0 group-hover:opacity-100 transition-opacity" />
-                      
-                      <div className="p-5 flex flex-col h-full justify-between relative z-10">
-                        <div>
-                            <div className="flex justify-between items-start mb-6">
-                              <div className="flex flex-wrap gap-2">
-                                <Badge variant="outline" className="border-ctu-gold text-ctu-gold font-bold bg-ctu-gold/5 px-2 py-0.5">{subject.code}</Badge>
-                                <Badge className={cn("text-white border-none font-bold px-2 py-0.5", getYearBadgeColor(subject.yearLevel))}>
-                                  {subject.yearLevel} Year
-                                </Badge>
-                              </div>
-                            </div>
+            {/* Results Grid - Grouped by Year and Semester */}
+            <div className="space-y-16">
+              {['1st', '2nd', '3rd', '4th'].map((year) => {
+                const yearSubjects = filteredSubjects.filter(s => s.yearLevel === year);
+                if (yearSubjects.length === 0) return null;
 
-                          <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-ctu-gold transition-colors leading-tight line-clamp-2">
-                            {subject.name}
+                return (
+                  <div key={year} className="space-y-8">
+                    <div className="flex items-center gap-4">
+                      <div className={cn("h-10 w-2 rounded-full", getYearBadgeColor(year as YearLevel))} />
+                      <h2 className="text-4xl font-display font-black tracking-tight text-foreground">{year} Year Curriculum</h2>
+                    </div>
+
+                    {['1st', '2nd', 'Summer'].map((sem) => {
+                      const semSubjects = yearSubjects.filter(s => s.semester === sem);
+                      if (semSubjects.length === 0) return null;
+
+                      return (
+                        <div key={`${year}-${sem}`} className="space-y-6 ml-6">
+                          <h3 className="text-xl font-bold text-foreground/40 uppercase tracking-[0.3em] flex items-center gap-4">
+                            {sem} Semester
+                            <div className="flex-1 h-px bg-foreground/10" />
                           </h3>
 
-                          {isAdmin && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => handleOpenUploadDialog(subject, e)}
-                              className="mb-4 h-8 text-[10px] font-bold uppercase tracking-widest border-ctu-gold/20 hover:bg-ctu-gold/5 text-ctu-gold"
-                            >
-                              <Upload size={12} className="mr-1.5" />
-                              Update Syllabus
-                            </Button>
-                          )}
-                          
-                          <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-[10px] text-foreground/40 font-bold uppercase tracking-wider mb-6">
-                            <span className="flex items-center gap-1"><Circle size={8} className="fill-blue-500 text-blue-500" /> {subject.units} Units</span>
-                            <span className="flex items-center gap-1"><Circle size={8} className="fill-orange-500 text-orange-500" /> {subject.semester} Semester</span>
-                          </div>
-                        </div>
+                          <motion.div 
+                            layout
+                            className={cn(
+                              "grid gap-8",
+                              viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
+                            )}
+                          >
+                            <AnimatePresence mode="popLayout">
+                              {semSubjects.map((subject, idx) => (
+                                <motion.div
+                                  key={subject.id}
+                                  layout
+                                  initial={{ opacity: 0, y: 20 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, scale: 0.95 }}
+                                  transition={{ duration: 0.3 }}
+                                >
+                                  <GlowCard 
+                                    onClick={() => navigate(`/catalog/${subject.id}`)}
+                                    glowColor={idx % 2 === 0 ? 'blue' : 'orange'}
+                                    customSize
+                                    className="w-full h-full border-none hover:scale-[1.02] transition-all cursor-pointer group relative overflow-hidden flex flex-col justify-between"
+                                  >
+                                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-ctu-maroon opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    
+                                    <div className="p-5 flex flex-col h-full justify-between relative z-10">
+                                      <div>
+                                          <div className="flex justify-between items-start mb-6">
+                                            <div className="flex flex-wrap gap-2">
+                                              <Badge variant="outline" className="border-ctu-gold text-ctu-gold font-bold bg-ctu-gold/5 px-2 py-0.5">{subject.code}</Badge>
+                                            </div>
+                                          </div>
 
-                        <div className="flex items-center justify-between pt-5 border-t border-foreground/5">
-                          <div className="flex items-center gap-2">
-                            {subject.prerequisiteIds.length > 0 ? (
-                              <div className="flex items-center gap-1 text-blue-500 text-[10px] font-bold uppercase tracking-widest bg-blue-500/5 px-2 py-1 rounded-md">
-                                <LinkIcon size={12} />
-                                Prereq
-                              </div>
-                            ) : (
-                              <span className="text-[10px] text-foreground/20 uppercase font-bold tracking-widest">No Prerequisites</span>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center gap-1.5">
-                            {progressMap[subject.id]?.status === 'done' ? (
-                              <div className="flex items-center gap-2">
-                                {progressMap[subject.id]?.grade && (
-                                  <div className={cn(
-                                    "px-2 py-0.5 rounded-md text-[10px] font-black border-2 border-current",
-                                    getGWAColor(getGWAEquivalent(progressMap[subject.id].grade!))
-                                  )}>
-                                    GWA {getGWAEquivalent(progressMap[subject.id].grade!).toFixed(1)}
-                                  </div>
-                                )}
-                                <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-md">
-                                  <CheckCircle2 size={12} />
-                                  <span className="text-[10px] font-bold uppercase tracking-widest">Completed</span>
-                                </div>
-                              </div>
-                            ) : progressMap[subject.id]?.status === 'in_progress' ? (
-                              <div className="flex items-center gap-1.5 bg-ctu-gold/10 text-ctu-gold px-2 py-1 rounded-md">
-                                <Clock size={12} />
-                                <span className="text-[10px] font-bold uppercase tracking-widest">In Progress</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1.5 bg-foreground/5 text-foreground/20 px-2 py-1 rounded-md">
-                                <Circle size={12} />
-                                <span className="text-[10px] font-bold uppercase tracking-widest">Not Started</span>
-                              </div>
-                            )}
-                          </div>
+                          <h3 className="text-2xl font-display font-black text-foreground mb-3 group-hover:text-ctu-gold transition-colors leading-tight line-clamp-2 uppercase tracking-tighter italic">
+                                          {subject.name}
+                                        </h3>
+
+                                        {isAdmin && (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={(e) => handleOpenUploadDialog(subject, e)}
+                                            className="mb-4 h-8 text-[10px] font-bold uppercase tracking-widest border-ctu-gold/20 hover:bg-ctu-gold/5 text-ctu-gold"
+                                          >
+                                            <Upload size={12} className="mr-1.5" />
+                                            Update Syllabus
+                                          </Button>
+                                        )}
+                                        
+                                        <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-[10px] text-foreground/40 font-bold uppercase tracking-wider mb-6">
+                                          <span className="flex items-center gap-1"><Circle size={8} className="fill-blue-500 text-blue-500" /> {subject.units} Units</span>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center justify-between pt-5 border-t border-foreground/5">
+                                        <div className="flex items-center gap-2">
+                                          {subject.prerequisiteIds.length > 0 ? (
+                                            <div className="flex items-center gap-1 text-blue-500 text-[10px] font-bold uppercase tracking-widest bg-blue-500/5 px-2 py-1 rounded-md">
+                                              <LinkIcon size={12} />
+                                              Prereq
+                                            </div>
+                                          ) : (
+                                            <span className="text-[10px] text-foreground/20 uppercase font-bold tracking-widest">No Prerequisites</span>
+                                          )}
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-1.5">
+                                          {progressMap[subject.id]?.status === 'done' ? (
+                                            <div className="flex items-center gap-2">
+                                              {progressMap[subject.id]?.grade && (
+                                                <div className={cn(
+                                                  "px-2 py-0.5 rounded-md text-[10px] font-black border-2 border-current",
+                                                  getGWAColor(getGWAEquivalent(progressMap[subject.id].grade!))
+                                                )}>
+                                                  GWA {getGWAEquivalent(progressMap[subject.id].grade!).toFixed(1)}
+                                                </div>
+                                              )}
+                                              <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-md">
+                                                <CheckCircle2 size={12} />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest">Completed</span>
+                                              </div>
+                                            </div>
+                                          ) : progressMap[subject.id]?.status === 'in_progress' ? (
+                                            <div className="flex items-center gap-1.5 bg-ctu-gold/10 text-ctu-gold px-2 py-1 rounded-md">
+                                              <Clock size={12} />
+                                              <span className="text-[10px] font-bold uppercase tracking-widest">In Progress</span>
+                                            </div>
+                                          ) : (
+                                            <div className="flex items-center gap-1.5 bg-foreground/5 text-foreground/20 px-2 py-1 rounded-md">
+                                              <Circle size={12} />
+                                              <span className="text-[10px] font-bold uppercase tracking-widest">Not Started</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </GlowCard>
+                                </motion.div>
+                              ))}
+                            </AnimatePresence>
+                          </motion.div>
                         </div>
-                      </div>
-                    </GlowCard>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
 
             {filteredSubjects.length === 0 && (
               <motion.div 

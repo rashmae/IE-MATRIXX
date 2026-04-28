@@ -45,8 +45,8 @@ export default function NotebookList({ onSelect }: NotebookListProps) {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl font-black text-foreground tracking-tight">Study Notebooks</h2>
-          <p className="text-foreground/40 text-sm font-bold uppercase tracking-widest mt-1">Your AI-powered research hub</p>
+          <h2 className="text-4xl font-display font-black text-foreground tracking-tight">Study Notebooks</h2>
+          <p className="text-foreground/40 mt-3 text-lg font-medium tracking-tight">Your AI-powered research hub for IE subjects.</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative group">

@@ -313,7 +313,7 @@ export default function Dashboard() {
 
             {/* Year Progress Grid */}
             <motion.div variants={itemVariants} className="neumorphic-card p-10">
-              <h3 className="text-lg font-display font-black text-ctu-gold uppercase tracking-[0.2em] mb-10 b-2 border-b border-foreground/5 pb-4">Year Level Progress</h3>
+              <h3 className="text-4xl font-display font-black text-ctu-gold uppercase tracking-[0.2em] mb-12 border-b border-foreground/5 pb-6">Year Level Progress</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[
                   { 
@@ -383,9 +383,9 @@ export default function Dashboard() {
             </motion.div>
 
             {/* Dynamic Results Area */}
-            <motion.div variants={itemVariants} className="space-y-6">
+            <motion.div variants={itemVariants} className="space-y-10 mt-12">
               <div className="flex items-center justify-between">
-                <h3 className="text-3xl font-display font-black tracking-tight frosted-header">
+                <h3 className="text-4xl font-display font-black tracking-tight frosted-header">
                   {isFilterActive ? `Search Results (${filteredSubjects.length})` : 'Recommended for You'}
                 </h3>
                 <div className="flex gap-2">
@@ -490,10 +490,10 @@ export default function Dashboard() {
             {/* Calendar Widget */}
             <motion.div variants={itemVariants}>
               <Card className="neumorphic-card border-none">
-                <CardHeader className="pb-6 border-b border-foreground/5 mb-4">
-                  <CardTitle className="text-xl flex items-center gap-2 font-black uppercase tracking-tight">
-                    <CalendarDays size={24} className="text-ctu-gold" />
-                    Upcoming Events
+                <CardHeader className="pb-6 border-b border-foreground/5 mb-6">
+                  <CardTitle className="text-3xl flex items-center gap-3 font-black uppercase tracking-tight">
+                    <CalendarDays size={32} className="text-ctu-gold" />
+                    Calendar
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -520,9 +520,9 @@ export default function Dashboard() {
             {/* Announcements */}
             <motion.div variants={itemVariants}>
               <Card className="neumorphic-card border-none">
-                <CardHeader className="pb-6 border-b border-foreground/5 mb-4">
-                  <CardTitle className="text-xl font-black text-ctu-gold uppercase tracking-[0.2em]">
-                    Campus Bulletin
+                <CardHeader className="pb-6 border-b border-foreground/5 mb-6">
+                  <CardTitle className="text-3xl font-black text-ctu-gold uppercase tracking-[0.2em]">
+                    Bulletin
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">

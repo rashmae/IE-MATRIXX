@@ -130,14 +130,14 @@ export default function AdminDashboard() {
       <Sidebar user={profile} />
       
       <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <ShieldCheck className="text-ctu-gold" size={20} />
-              <span className="text-xs font-bold text-ctu-gold uppercase tracking-widest">Administrator Portal</span>
+            <div className="flex items-center gap-2 mb-3">
+              <ShieldCheck className="text-ctu-gold" size={24} />
+              <span className="text-xs font-black text-ctu-gold uppercase tracking-[0.3em]">Command Center</span>
             </div>
-            <h1 className="text-4xl frosted-header font-bold tracking-tight">User Management</h1>
-            <p className="text-foreground/60 mt-1 text-sm font-medium">Monitor all CTU students currently in the Matrix.</p>
+            <h1 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter leading-tight">Admin Console</h1>
+            <p className="text-foreground/40 mt-3 text-lg font-medium tracking-tight">Monitor all CTU students currently in the Matrix.</p>
           </div>
           
           <div className="flex gap-3">
