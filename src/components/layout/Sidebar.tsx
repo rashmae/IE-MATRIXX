@@ -80,7 +80,12 @@ export default function Sidebar({ user }: SidebarProps) {
               </div>
             </div>
           </div>
-          <span className="text-xl font-display font-extrabold text-foreground tracking-tighter">CTU HUB</span>
+          <span 
+            className="text-xl font-extrabold text-foreground tracking-tighter flex items-center"
+            style={{ height: '32px', width: '96.3125px', fontFamily: 'system-ui' }}
+          >
+            CTU HUB
+          </span>
         </div>
         <ThemeToggle className="neumorphic-raised" />
       </div>

@@ -18,15 +18,17 @@ import {
   Sparkles,
   HelpCircle,
   Info,
-  X
+  X,
+  ChevronLeft
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
 import { User, StudyGroup, StudyPost, Quiz, Subject, Progress as ProgressType } from '@/src/types/index';
 import { IE_SUBJECTS } from '@/src/lib/constants';
 import { generateStudyPlan, generateQuiz, askQuestion } from '@/src/lib/gemini';
-import { db } from '@/src/lib/firebase';
+import { db, auth as firebaseAuth } from '@/src/lib/firebase';
 import { collection, onSnapshot, query, orderBy, limit, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, where, getDocs, getDoc } from 'firebase/firestore';
+import { handleFirestoreError, OperationType } from '@/src/lib/firestoreErrorHandler';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -81,8 +83,32 @@ export default function StudyTools() {
   const [newGroup, setNewGroup] = useState({ name: '', description: '', subjectCode: '' });
   const [newQuestion, setNewQuestion] = useState({ title: '', content: '', subjectTag: '' });
   const [activeNotebookId, setActiveNotebookId] = useState<string | null>(null);
+
+  // Flashcards state
+  const [decks, setDecks] = useState<any[]>([]);
+  const [deckSearchQuery, setDeckSearchQuery] = useState('');
+  const [deckSubjectFilter, setDeckSubjectFilter] = useState('all');
   
-  // Chat State
+  const [selectedDeck, setSelectedDeck] = useState<any | null>(null);
+  const [cardSearchQuery, setCardSearchQuery] = useState('');
+  
+  const [deckCards, setDeckCards] = useState<any[]>([]);
+  const [isNewDeckModalOpen, setIsNewDeckModalOpen] = useState(false);
+  const [isAddCardModalOpen, setIsAddCardModalOpen] = useState(false);
+  const [newDeck, setNewDeck] = useState({ name: '', description: '', subjectId: '', color: 'maroon' });
+  const [newCard, setNewCard] = useState({ front: '', back: '' });
+  
+  const filteredDecks = decks.filter(deck => {
+    const matchesSearch = deck.name?.toLowerCase().includes(deckSearchQuery.toLowerCase()) || 
+                          deck.description?.toLowerCase().includes(deckSearchQuery.toLowerCase());
+    const matchesSubject = deckSubjectFilter === 'all' || deck.subjectId === deckSubjectFilter;
+    return matchesSearch && matchesSubject;
+  });
+
+  const filteredCards = deckCards.filter(card => {
+    return card.front?.toLowerCase().includes(cardSearchQuery.toLowerCase()) || 
+           card.back?.toLowerCase().includes(cardSearchQuery.toLowerCase());
+  });
   const [activeChatGroup, setActiveChatGroup] = useState<any | null>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -109,6 +135,8 @@ export default function StudyTools() {
     const unsubscribeQA = onSnapshot(q, (snapshot) => {
       const qs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setQuestions(qs);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'questions');
     });
 
     // Real-time study groups
@@ -116,13 +144,42 @@ export default function StudyTools() {
     const unsubscribeGroups = onSnapshot(g, (snapshot) => {
       const gs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setStudyGroups(gs);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'studyGroups');
+    });
+
+    // Real-time flashcard decks
+    const d = query(collection(db, 'flashcardDecks'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+    const unsubscribeDecks = onSnapshot(d, (snapshot) => {
+      const ds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setDecks(ds);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'flashcardDecks');
     });
 
     return () => {
       unsubscribeQA();
       unsubscribeGroups();
+      unsubscribeDecks();
     };
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (!selectedDeck || !user) {
+      setDeckCards([]);
+      return;
+    }
+
+    const c = query(collection(db, 'flashcardDecks', selectedDeck.id, 'cards'), orderBy('createdAt', 'asc'));
+    const unsubscribeCards = onSnapshot(c, (snapshot) => {
+      const cs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setDeckCards(cs);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, `flashcardDecks/${selectedDeck.id}/cards`);
+    });
+
+    return () => unsubscribeCards();
+  }, [selectedDeck, user]);
 
   useEffect(() => {
     if (!activeChatGroup) {
@@ -139,6 +196,8 @@ export default function StudyTools() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setChatMessages(msgs);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, `studyGroups/${activeChatGroup.id}/messages`);
     });
 
     return () => unsubscribe();
@@ -281,14 +340,145 @@ export default function StudyTools() {
     }
   };
 
+  const handleCreateDeck = async () => {
+    if (!user || !newDeck.name) {
+      toast.error("Please provide a name for the deck");
+      return;
+    }
+    try {
+      await addDoc(collection(db, 'flashcardDecks'), {
+        ...newDeck,
+        userId: user.uid,
+        cardCount: 0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      setIsNewDeckModalOpen(false);
+      setNewDeck({ name: '', description: '', subjectId: '', color: 'maroon' });
+      toast.success("Flashcard deck created!");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'flashcardDecks');
+      toast.error("Failed to create deck.");
+    }
+  };
+
+  const handleAddCard = async () => {
+    if (!user || !selectedDeck || !newCard.front || !newCard.back) {
+      toast.error("Please fill in both sides of the card");
+      return;
+    }
+    try {
+      await addDoc(collection(db, 'flashcardDecks', selectedDeck.id, 'cards'), {
+        ...newCard,
+        deckId: selectedDeck.id,
+        userId: user.uid,
+        status: 'learning',
+        interval: 0,
+        easeFactor: 2.5,
+        repetitions: 0,
+        nextReview: serverTimestamp(),
+        createdAt: serverTimestamp()
+      });
+      
+      // Update card count in deck
+      const deckRef = doc(db, 'flashcardDecks', selectedDeck.id);
+      await updateDoc(deckRef, {
+        cardCount: (selectedDeck.cardCount || 0) + 1,
+        updatedAt: serverTimestamp()
+      });
+
+      setNewCard({ front: '', back: '' });
+      toast.success("Card added!");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `flashcardDecks/${selectedDeck.id}/cards`);
+      toast.error("Failed to add card.");
+    }
+  };
+
+  const handleMarkCardKnown = async (cardId: string) => {
+    if (!selectedDeck) return;
+    try {
+      const cardRef = doc(db, 'flashcardDecks', selectedDeck.id, 'cards', cardId);
+      await updateDoc(cardRef, {
+        status: 'known'
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `flashcardDecks/${selectedDeck.id}/cards/${cardId}`);
+      toast.error("Failed to update card status.");
+    }
+  };
+
+  const handleRateCard = async (cardId: string, quality: number) => {
+    if (!selectedDeck) return;
+    try {
+      const card = deckCards.find(c => c.id === cardId);
+      if (!card) return;
+
+      let { interval, easeFactor, repetitions } = card;
+      interval = interval || 0;
+      easeFactor = easeFactor || 2.5;
+      repetitions = repetitions || 0;
+
+      if (quality < 3) {
+        repetitions = 0;
+        interval = 1;
+      } else {
+        if (repetitions === 0) {
+          interval = 1;
+        } else if (repetitions === 1) {
+          interval = 6;
+        } else {
+          interval = Math.round(interval * easeFactor);
+        }
+        repetitions += 1;
+      }
+
+      easeFactor = easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+      if (easeFactor < 1.3) easeFactor = 1.3;
+
+      const nextReview = new Date();
+      nextReview.setDate(nextReview.getDate() + interval);
+
+      const cardRef = doc(db, 'flashcardDecks', selectedDeck.id, 'cards', cardId);
+      await updateDoc(cardRef, {
+        interval,
+        easeFactor,
+        repetitions,
+        nextReview: nextReview.toISOString(),
+        status: quality >= 4 ? 'known' : 'learning'
+      });
+
+      toast.success("Card updated!");
+      
+      // Move to next card or end session
+      if (currentStep < activeSession.data.length - 1) {
+        setCurrentStep(prev => prev + 1);
+        setIsFlipped(false);
+      } else {
+        setActiveSession(null);
+        toast("Session completed!");
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `flashcardDecks/${selectedDeck.id}/cards/${cardId}`);
+    }
+  };
+
   const startFlashcardSession = (deck: any) => {
-    // Generate mock cards for demo
-    const mockCards = [
-      { front: "What is Pareto Analysis?", back: "A technique used for decision-making based on the 80/20 rule." },
-      { front: "Define 5S", back: "Sort, Set in order, Shine, Standardize, Sustain." },
-      { front: "Six Sigma Goal", back: "To improve quality by identifying and removing causes of defects." }
-    ];
-    setActiveSession({ type: 'flashcards', data: mockCards });
+    if (deckCards.length === 0) {
+      toast.error("This deck has no cards yet!");
+      return;
+    }
+    
+    // Sort deckCards: Due cards first
+    const sortedCards = [...deckCards].sort((a, b) => {
+      const aDue = !a.nextReview || new Date(a.nextReview) <= new Date();
+      const bDue = !b.nextReview || new Date(b.nextReview) <= new Date();
+      if (aDue && !bDue) return -1;
+      if (!aDue && bDue) return 1;
+      return 0;
+    });
+
+    setActiveSession({ type: 'flashcards', data: sortedCards });
     setCurrentStep(0);
     setIsFlipped(false);
   };
@@ -335,7 +525,7 @@ export default function StudyTools() {
 
         <div className="max-w-xl w-full">
           {activeSession.type === 'flashcards' ? (
-            <div className="space-y-12">
+            <div className="space-y-8">
               <div className="text-center">
                 <Badge className="bg-ctu-gold text-white font-bold mb-4">FLASHCARD {currentStep + 1}/{activeSession.data.length}</Badge>
                 <div className="h-2 bg-foreground/5 rounded-full overflow-hidden w-full">
@@ -343,47 +533,93 @@ export default function StudyTools() {
                 </div>
               </div>
 
-              <motion.div 
-                key={currentStep + (isFlipped ? '-flipped' : '-front')}
-                initial={{ rotateY: isFlipped ? -90 : 90, opacity: 0 }}
-                animate={{ rotateY: 0, opacity: 1 }}
-                className="perspective-1000 cursor-pointer"
-                onClick={() => setIsFlipped(!isFlipped)}
-              >
-                <GlowCard className="aspect-video flex items-center justify-center p-12 text-center" glowColor="orange">
-                  <h2 className="text-2xl lg:text-3xl font-bold leading-tight">
-                    {isFlipped ? activeSession.data[currentStep].back : activeSession.data[currentStep].front}
-                  </h2>
-                </GlowCard>
-              </motion.div>
+              <div className="perspective-1000 h-[300px] md:h-[400px]">
+                <motion.div 
+                  key={currentStep}
+                  animate={{ rotateY: isFlipped ? 180 : 0 }}
+                  transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
+                  className="relative w-full h-full cursor-pointer preserve-3d"
+                  onClick={() => setIsFlipped(!isFlipped)}
+                >
+                  {/* Front */}
+                  <div className="absolute inset-0 backface-hidden flex items-center justify-center p-8 text-center bg-white rounded-3xl neumorphic-raised border border-white/20">
+                    <div className="space-y-4">
+                      <span className="text-[10px] font-bold text-foreground/20 uppercase tracking-[0.2em]">Question</span>
+                      <h2 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
+                        {activeSession.data[currentStep].front}
+                      </h2>
+                    </div>
+                  </div>
+                  
+                  {/* Back */}
+                  <div 
+                    className="absolute inset-0 backface-hidden flex items-center justify-center p-8 text-center bg-ctu-maroon/5 rounded-3xl neumorphic-pressed border border-ctu-maroon/10 rotate-y-180"
+                  >
+                    <div className="space-y-4">
+                      <span className="text-[10px] font-bold text-ctu-maroon/40 uppercase tracking-[0.2em]">Answer</span>
+                      <p className="text-lg md:text-xl font-medium text-foreground">
+                        {activeSession.data[currentStep].back}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
 
-              <div className="flex justify-between gap-6">
-                <Button 
-                  className="flex-1 h-14 rounded-2xl neumorphic-raised text-foreground font-bold"
-                  onClick={() => {
-                    if (currentStep > 0) {
-                      setCurrentStep(currentStep - 1);
-                      setIsFlipped(false);
-                    }
-                  }}
-                  disabled={currentStep === 0}
-                >
-                  Previous
-                </Button>
-                <Button 
-                  className="flex-1 h-14 rounded-2xl bg-ctu-gold text-white font-bold shadow-lg"
-                  onClick={() => {
-                    if (currentStep < activeSession.data.length - 1) {
-                      setCurrentStep(currentStep + 1);
-                      setIsFlipped(false);
-                    } else {
-                      setActiveSession(null);
-                      toast.success("Deck completed!");
-                    }
-                  }}
-                >
-                  {currentStep === activeSession.data.length - 1 ? "Finish" : "Next Card"}
-                </Button>
+              <div className="flex flex-col gap-4">
+                {!isFlipped ? (
+                  <Button 
+                    onClick={() => setIsFlipped(true)}
+                    className="w-full h-14 rounded-2xl bg-ctu-maroon text-white font-bold text-lg shadow-lg"
+                  >
+                    Reveal Answer
+                  </Button>
+                ) : (
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    {[
+                      { label: 'Again', quality: 0, color: 'bg-red-500 hover:bg-red-600' },
+                      { label: 'Hard', quality: 2, color: 'bg-orange-500 hover:bg-orange-600' },
+                      { label: 'Good', quality: 4, color: 'bg-blue-500 hover:bg-blue-600' },
+                      { label: 'Easy', quality: 5, color: 'bg-green-500 hover:bg-green-600' }
+                    ].map((btn) => (
+                      <Button
+                        key={btn.label}
+                        onClick={() => handleRateCard(activeSession.data[currentStep].id, btn.quality)}
+                        className={cn("h-12 rounded-xl text-white font-bold text-xs", btn.color)}
+                      >
+                        {btn.label}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="flex justify-between items-center px-2">
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => {
+                      if (currentStep > 0) {
+                        setCurrentStep(currentStep - 1);
+                        setIsFlipped(false);
+                      }
+                    }}
+                    disabled={currentStep === 0}
+                    className="text-xs font-bold text-foreground/40"
+                  >
+                    <ChevronLeft size={14} className="mr-1" /> Previous
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => {
+                      if (currentStep < activeSession.data.length - 1) {
+                        setCurrentStep(currentStep + 1);
+                        setIsFlipped(false);
+                      }
+                    }}
+                    disabled={currentStep === activeSession.data.length - 1}
+                    className="text-xs font-bold text-foreground/40"
+                  >
+                    Next <ChevronRight size={14} className="ml-1" />
+                  </Button>
+                </div>
               </div>
             </div>
           ) : (
@@ -456,10 +692,10 @@ export default function StudyTools() {
       <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 lg:mb-12">
           <div>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl frosted-header font-black tracking-tight flex items-center gap-3">
-              Study Hub <Sparkles className="text-ctu-gold" size={28} />
+            <h1 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter flex items-center gap-3">
+              Study Hub <Sparkles className="text-ctu-gold" size={48} />
             </h1>
-            <p className="text-foreground/60 mt-2 text-xs md:text-sm font-medium tracking-wide">Elevate your learning with AI guidance and community support.</p>
+            <p className="text-foreground/40 mt-3 text-lg font-medium tracking-tight">Elevate your learning with AI guidance and community support.</p>
           </div>
           
           <div className="flex bg-background p-1.5 rounded-2xl neumorphic-raised w-fit">
@@ -546,10 +782,10 @@ export default function StudyTools() {
                   <GlowCard className="lg:col-span-2 p-5 md:p-8" glowColor="orange">
                     <div className="flex items-start justify-between mb-8">
                       <div>
-                        <h2 className="text-2xl font-bold flex items-center gap-2">
-                          Smart Study Roadmap <TrendingUp className="text-ctu-gold" size={20} />
+                        <h2 className="text-4xl font-display font-black flex items-center gap-4 tracking-tight">
+                          Smart Study Roadmap <TrendingUp className="text-ctu-gold" size={32} />
                         </h2>
-                        <p className="text-sm text-foreground/60 mt-1">AI-generated sequence based on your progress and subject difficulty.</p>
+                        <p className="text-base text-foreground/40 mt-2 font-medium">AI-generated sequence based on your progress and subject difficulty.</p>
                       </div>
                       <div className="flex gap-4">
                         <Button 
@@ -751,8 +987,8 @@ export default function StudyTools() {
               <TabsContent value="map" className="mt-0">
                 <GlowCard className="p-6 md:p-10 min-h-[600px] flex flex-col items-center relative overflow-hidden" glowColor="blue">
                   <div className="absolute top-6 left-6 md:top-10 md:left-10 text-left z-20">
-                    <h2 className="text-2xl md:text-3xl font-black mb-2">Academic Matrix Map</h2>
-                    <p className="text-xs md:text-sm text-foreground/40 max-w-md font-medium">Visualizing the flow of Industrial Engineering subjects from fundamentals to specialization.</p>
+                    <h2 className="text-4xl font-display font-black mb-2 tracking-tight">Academic Matrix Map</h2>
+                    <p className="text-base text-foreground/40 max-w-md font-medium tracking-tight">Visualizing the flow of Industrial Engineering subjects from fundamentals to specialization.</p>
                   </div>
 
                   <div className="w-full flex flex-col items-center gap-20 mt-32 relative z-10">
@@ -828,7 +1064,13 @@ export default function StudyTools() {
                 </GlowCard>
               </TabsContent>
 
-              <TabsContent value="groups" className="mt-0">
+              <TabsContent value="groups" className="mt-0 space-y-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                  <div>
+                    <h2 className="text-4xl font-display font-black tracking-tight">Active Study Groups</h2>
+                    <p className="text-base text-foreground/40 font-medium mt-2">Connect with peers and learn together.</p>
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {studyGroups.length > 0 ? studyGroups.map((group, idx) => (
                     <motion.div
@@ -893,7 +1135,13 @@ export default function StudyTools() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="qa" className="mt-0 space-y-6">
+              <TabsContent value="qa" className="mt-0 space-y-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                  <div>
+                    <h2 className="text-4xl font-display font-black tracking-tight">Q&A Forum</h2>
+                    <p className="text-base text-foreground/40 font-medium mt-2">Ask questions and share knowledge with the community.</p>
+                  </div>
+                </div>
                 <div className="flex gap-4">
                   <div className="relative flex-1">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40" size={18} />
@@ -995,32 +1243,299 @@ export default function StudyTools() {
               </TabsContent>
 
               <TabsContent value="flashcards" className="mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {[
-                    { title: 'IE Terminology', cards: 45, color: 'maroon' },
-                    { title: 'Lean Manufacturing', cards: 28, color: 'gold' },
-                    { title: 'Work Measurement', cards: 15, color: 'blue' },
-                    { title: 'Ergonomics Basics', cards: 32, color: 'green' }
-                  ].map((deck, i) => (
-                    <GlowCard key={i} className="p-6 text-center cursor-pointer hover:scale-[1.02] transition-all" glowColor={deck.color as any}>
-                      <div className={cn(
-                        "w-16 h-16 rounded-2xl neumorphic-pressed flex items-center justify-center mx-auto mb-6",
-                        deck.color === 'maroon' ? 'text-ctu-maroon' : 'text-ctu-gold'
-                      )}>
-                        <Layers size={32} />
+                {!selectedDeck ? (
+                  <div className="space-y-6">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                      <div>
+                        <h2 className="text-4xl font-display font-black tracking-tight">Your Flashcard Decks</h2>
+                        <p className="text-base text-foreground/40 font-medium mt-2">Manage and study your topics.</p>
                       </div>
-                      <h3 className="font-bold text-foreground mb-1">{deck.title}</h3>
-                      <p className="text-xs text-foreground/40 font-bold uppercase tracking-widest">{deck.cards} Cards</p>
-                      <Button 
-                        onClick={() => startFlashcardSession(deck)}
-                        variant="ghost" 
-                        className="mt-6 w-full rounded-xl text-xs font-bold border border-foreground/5 shadow-sm"
-                      >
-                        Study Now
-                      </Button>
-                    </GlowCard>
-                  ))}
-                </div>
+                      <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                        <div className="relative flex-1 md:w-64">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/30" size={16} />
+                          <Input 
+                            placeholder="Search decks..." 
+                            className="pl-10 neumorphic-pressed border-none h-10 rounded-xl text-sm"
+                            value={deckSearchQuery}
+                            onChange={(e) => setDeckSearchQuery(e.target.value)}
+                          />
+                        </div>
+                        <Select value={deckSubjectFilter} onValueChange={setDeckSubjectFilter}>
+                          <SelectTrigger className="w-[140px] neumorphic-pressed border-none h-10 rounded-xl text-xs font-bold">
+                            <SelectValue placeholder="All Subjects" />
+                          </SelectTrigger>
+                          <SelectContent className="neumorphic-card border-none">
+                            <SelectItem value="all">All Subjects</SelectItem>
+                            {IE_SUBJECTS.map(s => (
+                              <SelectItem key={s.code} value={s.code}>{s.code}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Dialog open={isNewDeckModalOpen} onOpenChange={setIsNewDeckModalOpen}>
+                          <DialogTrigger 
+                            render={
+                              <Button className="rounded-xl bg-ctu-maroon text-white font-bold gap-2 h-10">
+                                <Plus size={16} /> New Deck
+                              </Button>
+                            }
+                          />
+                          <DialogContent className="sm:max-w-[425px] neumorphic-card border-none">
+                            <DialogHeader>
+                              <DialogTitle className="text-xl font-bold">Create New Deck</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-6 py-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="deck-name" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Deck Name</Label>
+                                <Input id="deck-name" value={newDeck.name} onChange={e => setNewDeck({...newDeck, name: e.target.value})} className="neumorphic-pressed border-none" placeholder="e.g., IE 101 Terminology" />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wider text-foreground/40">Subject (Optional)</Label>
+                                <Select value={newDeck.subjectId} onValueChange={(val) => setNewDeck({...newDeck, subjectId: val})}>
+                                  <SelectTrigger className="neumorphic-pressed border-none">
+                                    <SelectValue placeholder="Select Subject" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {IE_SUBJECTS.map(s => (
+                                      <SelectItem key={s.code} value={s.code}>{s.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="deck-desc" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Description</Label>
+                                <Textarea id="deck-desc" value={newDeck.description} onChange={e => setNewDeck({...newDeck, description: e.target.value})} className="neumorphic-pressed border-none" placeholder="What will you study in this deck?" />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wider text-foreground/40">Theme Color</Label>
+                                <div className="flex gap-3">
+                                  {['maroon', 'gold', 'blue', 'green'].map(c => (
+                                    <button
+                                      key={c}
+                                      onClick={() => setNewDeck({...newDeck, color: c})}
+                                      className={cn(
+                                        "w-8 h-8 rounded-full border-2 transition-all",
+                                        newDeck.color === c ? "border-foreground scale-110" : "border-transparent opacity-50 hover:opacity-100",
+                                        c === 'maroon' ? 'bg-ctu-maroon' : c === 'gold' ? 'bg-ctu-gold' : c === 'blue' ? 'bg-blue-500' : 'bg-green-500'
+                                      )}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button onClick={handleCreateDeck} className="bg-ctu-maroon text-white font-bold w-full rounded-xl">Create Deck</Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <AnimatePresence mode="popLayout">
+                        {filteredDecks.length > 0 ? filteredDecks.map((deck, i) => (
+                          <motion.div
+                            key={deck.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ delay: i * 0.05 }}
+                          >
+                            <GlowCard 
+                              className="p-6 text-center cursor-pointer hover:scale-[1.02] transition-all h-full" 
+                              glowColor={deck.color as any || 'maroon'}
+                              onClick={() => setSelectedDeck(deck)}
+                            >
+                              <div className={cn(
+                                "w-16 h-16 rounded-2xl neumorphic-pressed flex items-center justify-center mx-auto mb-6",
+                                deck.color === 'maroon' ? 'text-ctu-maroon' : 
+                                deck.color === 'gold' ? 'text-ctu-gold' :
+                                deck.color === 'blue' ? 'text-blue-500' : 'text-green-500'
+                              )}>
+                                <Layers size={32} />
+                              </div>
+                              <h3 className="font-bold text-foreground mb-1 line-clamp-1">{deck.name}</h3>
+                              {deck.subjectId && (
+                                <Badge variant="secondary" className="mb-2 text-[10px] h-4 font-bold bg-foreground/5 text-foreground/40">{deck.subjectId}</Badge>
+                              )}
+                              <p className="text-xs text-foreground/40 font-bold uppercase tracking-widest">{deck.cardCount || 0} Cards</p>
+                              <div className="mt-6 flex gap-2">
+                                <Button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startFlashcardSession(deck);
+                                  }}
+                                  variant="ghost" 
+                                  className="flex-1 rounded-xl text-xs font-bold border border-foreground/5 shadow-sm"
+                                >
+                                  Study
+                                </Button>
+                                <Button 
+                                  className="px-3 rounded-xl border border-foreground/5"
+                                  variant="ghost"
+                                >
+                                  <ChevronRight size={14} />
+                                </Button>
+                              </div>
+                            </GlowCard>
+                          </motion.div>
+                        )) : (
+                          <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            className="col-span-full py-20 text-center opacity-30"
+                          >
+                            <Layers size={48} className="mx-auto mb-4" />
+                            <p className="font-bold">No decks found. {deckSearchQuery || deckSubjectFilter !== 'all' ? "Try adjusting your filters." : "Start by creating one!"}</p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div className="flex items-center gap-6">
+                          <Button 
+                            variant="ghost" 
+                            onClick={() => {
+                              setSelectedDeck(null);
+                              setCardSearchQuery('');
+                            }}
+                            className="p-3 h-auto rounded-xl hover:bg-foreground/5 neumorphic-raised"
+                          >
+                             <ChevronLeft size={24} />
+                          </Button>
+                          <div>
+                            <h2 className="text-4xl font-display font-black tracking-tight">{selectedDeck.name}</h2>
+                            <p className="text-lg text-foreground/40 font-medium mt-1 tracking-tight">{selectedDeck.description || 'No description provided.'}</p>
+                          </div>
+                        </div>
+                      
+                      <div className="flex flex-wrap gap-4 items-center">
+                        <div className="relative w-full md:w-64">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/30" size={16} />
+                          <Input 
+                            placeholder="Search cards..." 
+                            className="pl-10 neumorphic-pressed border-none h-10 rounded-xl text-sm"
+                            value={cardSearchQuery}
+                            onChange={(e) => setCardSearchQuery(e.target.value)}
+                          />
+                        </div>
+
+                        <div className="flex gap-4 neumorphic-card border-none px-4 py-2 items-center">
+                          <div className="text-center border-r border-foreground/5 pr-4">
+                            <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest leading-tight">Total</p>
+                            <p className="font-bold leading-tight">{deckCards.length}</p>
+                          </div>
+                          <div className="text-center border-r border-foreground/5 pr-4">
+                            <p className="text-[10px] font-bold text-green-500 uppercase tracking-widest leading-tight">Learned</p>
+                            <p className="font-bold leading-tight">{deckCards.filter(c => c.status === 'known').length}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-[10px] font-bold text-ctu-gold uppercase tracking-widest leading-tight">Due</p>
+                            <p className="font-bold leading-tight">
+                              {deckCards.filter(c => !c.nextReview || new Date(c.nextReview) <= new Date()).length}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Dialog open={isAddCardModalOpen} onOpenChange={setIsAddCardModalOpen}>
+                            <DialogTrigger 
+                              render={
+                                <Button variant="outline" className="rounded-xl font-bold gap-2 neumorphic-raised border-none h-10 whitespace-nowrap">
+                                  <Plus size={16} /> Add Card
+                                </Button>
+                              }
+                            />
+                            <DialogContent className="sm:max-w-[425px] neumorphic-card border-none">
+                              <DialogHeader>
+                                <DialogTitle className="text-xl font-bold">Add Flashcard</DialogTitle>
+                              </DialogHeader>
+                              <div className="grid gap-6 py-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="card-front" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Front Content</Label>
+                                  <Textarea id="card-front" value={newCard.front} onChange={e => setNewCard({...newCard, front: e.target.value})} className="neumorphic-pressed border-none" placeholder="Question or term..." />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="card-back" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Back Content</Label>
+                                  <Textarea id="card-back" value={newCard.back} onChange={e => setNewCard({...newCard, back: e.target.value})} className="neumorphic-pressed border-none" placeholder="Answer or definition..." />
+                                </div>
+                              </div>
+                              <DialogFooter>
+                                <Button onClick={handleAddCard} className="bg-ctu-gold text-white font-bold w-full rounded-xl">Add Card</Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                          <Button 
+                            onClick={() => startFlashcardSession(selectedDeck)}
+                            className="rounded-xl bg-ctu-gold text-white font-bold gap-2 px-6 h-10 whitespace-nowrap shadow-lg shadow-ctu-gold/20"
+                          >
+                            Study Now
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <AnimatePresence mode="popLayout">
+                        {filteredCards.length > 0 ? filteredCards.map((card, idx) => (
+                          <motion.div
+                            key={card.id}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ delay: idx * 0.05 }}
+                          >
+                            <Card className="neumorphic-card border-none p-6 relative group overflow-hidden h-full group">
+                              <div className="flex flex-col gap-4">
+                                <div className="flex justify-between items-start">
+                                  <Badge className={cn(
+                                    "text-[8px] font-bold uppercase",
+                                    card.status === 'known' ? "bg-green-500 text-white" : "bg-ctu-gold/20 text-ctu-gold"
+                                  )}>
+                                    {card.status || 'learning'}
+                                  </Badge>
+                                  {card.nextReview && (
+                                    <span className="text-[10px] font-bold text-foreground/30">
+                                      Due: {new Date(card.nextReview).toLocaleDateString()}
+                                    </span>
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-1">Front</p>
+                                  <p className="font-bold text-base leading-relaxed">{card.front}</p>
+                                </div>
+                                <div className="pt-4 border-t border-foreground/5">
+                                  <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-1">Back</p>
+                                  <p className="text-sm font-medium text-foreground/70">{card.back}</p>
+                                </div>
+                                {card.status !== 'known' && (
+                                  <Button 
+                                    onClick={() => handleMarkCardKnown(card.id)}
+                                    variant="ghost" 
+                                    className="mt-2 text-xs font-bold text-green-500 hover:text-green-600 p-0 h-auto self-start group-hover:translate-x-1 transition-transform"
+                                  >
+                                    Mark as Learned →
+                                  </Button>
+                                )}
+                              </div>
+                            </Card>
+                          </motion.div>
+                        )) : (
+                          <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            className="col-span-full py-20 text-center opacity-30 border-2 border-dashed border-foreground/10 rounded-3xl"
+                          >
+                            <Plus size={32} className="mx-auto mb-4" />
+                            <p className="font-bold text-sm">No cards found in this deck.</p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
               
               <TabsContent value="quizzes" className="mt-0">

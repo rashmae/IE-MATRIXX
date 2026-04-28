@@ -177,10 +177,13 @@ export default function Dashboard() {
             </div>
 
             <div>
-              <h1 className="text-4xl frosted-header font-bold tracking-tight">
+              <h1 
+                className="text-6xl md:text-7xl frosted-header font-black tracking-tighter transition-all duration-300 hover:[text-shadow:_0_1px_30px_rgba(146,93,252,0.4)]"
+                style={{ color: '#1a0808' }}
+              >
                 {getGreeting()}, {profile.fullName.split(' ')[0]} 👋
               </h1>
-              <p className="text-foreground/60 mt-1 text-sm font-medium">Navigate your IE journey. One subject at a time.</p>
+              <p className="text-foreground/40 mt-3 text-lg font-medium tracking-tight">Navigate your IE journey. One subject at a time.</p>
             </div>
           </motion.div>
 
@@ -309,8 +312,8 @@ export default function Dashboard() {
             </div>
 
             {/* Year Progress Grid */}
-            <motion.div variants={itemVariants} className="neumorphic-card p-8">
-              <h3 className="text-sm font-bold text-ctu-gold uppercase tracking-[2px] mb-8">Year Level Progress</h3>
+            <motion.div variants={itemVariants} className="neumorphic-card p-10">
+              <h3 className="text-lg font-display font-black text-ctu-gold uppercase tracking-[0.2em] mb-10 b-2 border-b border-foreground/5 pb-4">Year Level Progress</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[
                   { 
@@ -382,7 +385,7 @@ export default function Dashboard() {
             {/* Dynamic Results Area */}
             <motion.div variants={itemVariants} className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-display font-bold">
+                <h3 className="text-3xl font-display font-black tracking-tight frosted-header">
                   {isFilterActive ? `Search Results (${filteredSubjects.length})` : 'Recommended for You'}
                 </h3>
                 <div className="flex gap-2">
@@ -487,9 +490,9 @@ export default function Dashboard() {
             {/* Calendar Widget */}
             <motion.div variants={itemVariants}>
               <Card className="neumorphic-card border-none">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg flex items-center gap-2 font-bold">
-                    <CalendarDays size={20} className="text-ctu-gold" />
+                <CardHeader className="pb-6 border-b border-foreground/5 mb-4">
+                  <CardTitle className="text-xl flex items-center gap-2 font-black uppercase tracking-tight">
+                    <CalendarDays size={24} className="text-ctu-gold" />
                     Upcoming Events
                   </CardTitle>
                 </CardHeader>
@@ -517,8 +520,8 @@ export default function Dashboard() {
             {/* Announcements */}
             <motion.div variants={itemVariants}>
               <Card className="neumorphic-card border-none">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-sm font-bold text-ctu-gold uppercase tracking-[2px]">
+                <CardHeader className="pb-6 border-b border-foreground/5 mb-4">
+                  <CardTitle className="text-xl font-black text-ctu-gold uppercase tracking-[0.2em]">
                     Campus Bulletin
                   </CardTitle>
                 </CardHeader>

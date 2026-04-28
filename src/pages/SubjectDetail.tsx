@@ -371,8 +371,8 @@ export default function SubjectDetail() {
                 <Badge className="neumorphic-pressed text-foreground/60 border-none px-4 py-1 rounded-full text-[10px] font-bold uppercase">{subject.units} Units</Badge>
               </div>
               
-              <h1 className="text-5xl frosted-header font-bold mb-4 tracking-tight leading-tight">{subject.name}</h1>
-              <p className="text-ctu-gold font-bold text-2xl mb-8 tracking-wider">{subject.code}</p>
+              <h1 className="text-6xl md:text-7xl frosted-header font-black mb-4 tracking-tighter leading-[1.1]">{subject.name}</h1>
+              <p className="text-ctu-gold font-black text-3xl mb-10 tracking-[0.2em]">{subject.code}</p>
 
               <div className="flex flex-wrap items-center gap-8 p-6 neumorphic-card w-fit">
                 <div className="flex items-center gap-3">
@@ -431,7 +431,7 @@ export default function SubjectDetail() {
 
             {/* Description */}
             <section className="space-y-6">
-              <h2 className="text-2xl font-bold text-foreground">Description</h2>
+              <h2 className="text-4xl font-display font-black text-foreground tracking-tight">Description</h2>
               <div className="neumorphic-card p-8">
                 <p className="text-foreground/70 leading-relaxed text-lg font-medium">
                   {subject.description}
@@ -459,7 +459,7 @@ export default function SubjectDetail() {
 
             {/* Prerequisite Chain */}
             <section className="space-y-6">
-              <h2 className="text-2xl font-bold text-foreground">Prerequisite Chain</h2>
+              <h2 className="text-4xl font-display font-black text-foreground tracking-tight">Prerequisite Chain</h2>
               {prerequisites.length > 0 ? (
                 <div className="flex flex-wrap items-center gap-6">
                   {prerequisites.map((prereq, i) => (
@@ -491,9 +491,9 @@ export default function SubjectDetail() {
             </section>
 
             {/* Syllabus */}
-            <section className="space-y-6">
+            <section className="space-y-8">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-foreground">Syllabus</h2>
+                <h2 className="text-4xl font-display font-black text-foreground tracking-tight">Syllabus</h2>
                 <div className="flex items-center gap-3">
                   {isAdmin && (
                     <button 
@@ -545,7 +545,7 @@ export default function SubjectDetail() {
             {/* Study Resources */}
             <section className="space-y-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-foreground">Resources</h2>
+                <h2 className="text-4xl font-display font-black text-foreground tracking-tight">Resources</h2>
                 <div className="flex items-center gap-2">
                   <input 
                     type="file" 
@@ -635,7 +635,7 @@ export default function SubjectDetail() {
 
             {/* Ratings Summary */}
             <section className="space-y-6">
-              <h2 className="text-2xl font-bold text-foreground">Ratings</h2>
+              <h2 className="text-4xl font-display font-black text-foreground tracking-tight">Ratings</h2>
               <Card className="neumorphic-card border-none">
                 <CardContent className="p-8">
                   {ratings.length > 0 ? (

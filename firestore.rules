@@ -175,6 +175,27 @@ service cloud.firestore {
              data.createdAt == request.time;
     }
 
+    function isValidFlashcardDeck(data) {
+      return data.keys().hasAll(['userId', 'name', 'createdAt', 'updatedAt', 'cardCount']) &&
+             data.userId == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.cardCount is number &&
+             data.createdAt == request.time &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidFlashcard(data) {
+      return data.keys().hasAll(['deckId', 'userId', 'front', 'back', 'status', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.front is string && data.front.size() > 0 && data.front.size() < 1000 &&
+             data.back is string && data.back.size() > 0 && data.back.size() < 1000 &&
+             data.status in ['learning', 'known'] &&
+             (data.keys().contains('interval') ? data.interval is number : true) &&
+             (data.keys().contains('easeFactor') ? data.easeFactor is number : true) &&
+             (data.keys().contains('repetitions') ? data.repetitions is number : true) &&
+             data.createdAt == request.time;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -207,6 +228,25 @@ service cloud.firestore {
         allow read: if isAuthenticated() && (get(/databases/$(database)/documents/notebooks/$(notebookId)).data.userId == request.auth.uid || isAdmin());
         allow create: if isAuthenticated() && isValidId(messageId) && isValidNotebookMessage(request.resource.data);
         allow update, delete: if isAuthenticated() && (get(/databases/$(database)/documents/notebooks/$(notebookId)).data.userId == request.auth.uid || isAdmin());
+      }
+    }
+
+    match /flashcardDecks/{deckId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidId(deckId) && isValidFlashcardDeck(request.resource.data);
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'description', 'color', 'cardCount', 'updatedAt']) &&
+        request.resource.data.updatedAt == request.time
+      ) || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+
+      match /cards/{cardId} {
+        allow read: if isAuthenticated() && (get(/databases/$(database)/documents/flashcardDecks/$(deckId)).data.userId == request.auth.uid || isAdmin());
+        allow create: if isAuthenticated() && isValidId(cardId) && isValidFlashcard(request.resource.data);
+        allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid && (
+          request.resource.data.diff(resource.data).affectedKeys().hasAny(['front', 'back', 'status', 'interval', 'easeFactor', 'repetitions', 'nextReview'])
+        ) || isAdmin());
+        allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       }
     }
 

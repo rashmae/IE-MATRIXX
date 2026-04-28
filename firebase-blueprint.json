@@ -122,6 +122,40 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["subjectCode", "subjectName"]
+    },
+    "FlashcardDeck": {
+      "title": "Flashcard Deck",
+      "description": "A collection of flashcards for a specific subject or topic.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "color": { "type": "string" },
+        "cardCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "createdAt"]
+    },
+    "Flashcard": {
+      "title": "Flashcard",
+      "description": "An individual flashcard with front and back content.",
+      "type": "object",
+      "properties": {
+        "deckId": { "type": "string" },
+        "userId": { "type": "string" },
+        "front": { "type": "string" },
+        "back": { "type": "string" },
+        "status": { "type": "string", "enum": ["learning", "known"], "description": "Study status for the card" },
+        "interval": { "type": "number", "description": "Interval in days until next review" },
+        "easeFactor": { "type": "number", "description": "Ease factor for the card (SM-2 algorithm)" },
+        "repetitions": { "type": "number", "description": "Number of successful repetitions" },
+        "nextReview": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["deckId", "userId", "front", "back", "createdAt"]
     }
   },
   "firestore": {
@@ -156,6 +190,14 @@
     "/notebooks/{notebookId}/messages/{messageId}": {
       "schema": "NotebookMessage",
       "description": "Chat messages within a notebook."
+    },
+    "/flashcardDecks/{deckId}": {
+      "schema": "FlashcardDeck",
+      "description": "User created flashcard decks."
+    },
+    "/flashcardDecks/{deckId}/cards/{cardId}": {
+      "schema": "Flashcard",
+      "description": "Individual flashcards within a deck."
     }
   }
 }

@@ -3,7 +3,7 @@ import React, { useEffect, useRef, ReactNode } from 'react';
 interface GlowCardProps {
   children: ReactNode;
   className?: string;
-  glowColor?: 'blue' | 'purple' | 'green' | 'red' | 'orange';
+  glowColor?: 'blue' | 'purple' | 'green' | 'red' | 'orange' | 'maroon' | 'gold';
   size?: 'sm' | 'md' | 'lg';
   width?: string | number;
   height?: string | number;
@@ -16,7 +16,9 @@ const glowColorMap = {
   purple: { base: 280, spread: 300 },
   green: { base: 120, spread: 200 },
   red: { base: 0, spread: 200 },
-  orange: { base: 30, spread: 200 }
+  orange: { base: 30, spread: 200 },
+  maroon: { base: 352, spread: 200 },
+  gold: { base: 40, spread: 200 }
 };
 
 const sizeMap = {
@@ -54,7 +56,8 @@ const GlowCard: React.FC<GlowCardProps> = ({
     return () => document.removeEventListener('pointermove', syncPointer);
   }, []);
 
-  const { base, spread } = glowColorMap[glowColor];
+  const config = glowColorMap[glowColor as keyof typeof glowColorMap] || glowColorMap.blue;
+  const { base, spread } = config;
 
   // Determine sizing
   const getSizeClasses = () => {
