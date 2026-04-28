@@ -459,35 +459,89 @@ export default function SubjectDetail() {
 
             {/* Prerequisite Chain */}
             <section className="space-y-6">
-              <h2 className="text-4xl font-display font-black text-foreground tracking-tight">Prerequisite Chain</h2>
-              {prerequisites.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-6">
-                  {prerequisites.map((prereq, i) => (
-                    <React.Fragment key={prereq.id}>
-                      <Link to={`/catalog/${prereq.id}`}>
-                        <Card className="neumorphic-card border-none hover:scale-[1.02] transition-all cursor-pointer group">
-                          <CardContent className="p-6">
-                            <p className="text-[10px] font-bold text-ctu-gold mb-1 uppercase tracking-widest">{prereq.code}</p>
-                            <p className="text-sm font-bold text-foreground group-hover:text-ctu-gold transition-colors">{prereq.name}</p>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                      {i < prerequisites.length - 1 && <ChevronRight className="text-foreground/20" />}
-                    </React.Fragment>
-                  ))}
-                  <ChevronRight className="text-foreground/20" />
-                  <Card className="neumorphic-pressed border-none bg-ctu-maroon/5">
-                    <CardContent className="p-6">
-                      <p className="text-[10px] font-bold text-ctu-gold mb-1 uppercase tracking-widest">{subject.code}</p>
-                      <p className="text-sm font-bold text-foreground">{subject.name}</p>
-                    </CardContent>
-                  </Card>
-                </div>
-              ) : (
-                <div className="p-8 neumorphic-pressed rounded-3xl text-foreground/40 italic font-medium">
-                  No prerequisites required for this subject.
-                </div>
-              )}
+              <h2 className="text-4xl font-display font-black text-foreground tracking-tight">Prerequisite Flow</h2>
+              <div className="p-8 neumorphic-card rounded-[2.5rem] bg-foreground/[0.02]">
+                {prerequisites.length > 0 ? (
+                  <div className="flex flex-col md:flex-row flex-wrap items-center gap-8 md:gap-4">
+                    {prerequisites.map((prereq, i) => {
+                      const preStatus = progressMap[prereq.id]?.status || 'not_yet';
+                      return (
+                        <React.Fragment key={prereq.id}>
+                          <Link to={`/catalog/${prereq.id}`} className="w-full md:w-auto">
+                            <motion.div
+                              whileHover={{ scale: 1.05 }}
+                              className={cn(
+                                "relative p-1 rounded-3xl transition-all duration-500",
+                                preStatus === 'done' ? "bg-green-500/20 shadow-[0_0_20px_rgba(34,197,94,0.1)]" : 
+                                preStatus === 'in_progress' ? "bg-ctu-gold/20 shadow-[0_0_20px_rgba(212,160,23,0.1)]" : 
+                                "bg-foreground/5"
+                              )}
+                            >
+                              <div className="bg-background rounded-[1.4rem] p-5 neumorphic-raised border border-white/10 flex items-center gap-4 min-w-[220px]">
+                                <div className={cn(
+                                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors shadow-sm",
+                                  preStatus === 'done' ? "bg-green-500 text-white" : 
+                                  preStatus === 'in_progress' ? "bg-ctu-gold text-white" : 
+                                  "bg-foreground/5 text-foreground/20"
+                                )}>
+                                  {preStatus === 'done' ? <CheckCircle2 size={20} /> : 
+                                   preStatus === 'in_progress' ? <Clock size={20} /> : 
+                                   <Circle size={20} />}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                                    <p className={cn(
+                                      "text-[10px] font-bold uppercase tracking-widest",
+                                      preStatus === 'done' ? "text-green-500" : 
+                                      preStatus === 'in_progress' ? "text-ctu-gold" : 
+                                      "text-foreground/40"
+                                    )}>
+                                      {prereq.code}
+                                    </p>
+                                    <Badge variant="ghost" className={cn(
+                                      "text-[8px] px-1.5 py-0 h-4 rounded-full font-black uppercase tracking-tighter",
+                                      preStatus === 'done' ? "bg-green-500/10 text-green-600" : 
+                                      preStatus === 'in_progress' ? "bg-ctu-gold/10 text-ctu-gold" : 
+                                      "bg-foreground/10 text-foreground/40"
+                                    )}>
+                                      {preStatus.replace('_', ' ')}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm font-bold text-foreground truncate max-w-[140px]">{prereq.name}</p>
+                                </div>
+                              </div>
+                            </motion.div>
+                          </Link>
+                          <div className="flex md:block items-center justify-center">
+                            <ChevronRight className="text-foreground/10 rotate-90 md:rotate-0" size={24} />
+                          </div>
+                        </React.Fragment>
+                      );
+                    })}
+                    
+                    <motion.div
+                      animate={{ scale: [1, 1.02, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                      className="p-1 rounded-3xl bg-ctu-maroon/20 shadow-[0_0_25px_rgba(146,18,34,0.15)] w-full md:w-auto"
+                    >
+                      <div className="bg-background rounded-[1.4rem] p-5 neumorphic-pressed border-2 border-ctu-maroon/10 flex items-center gap-4 min-w-[220px]">
+                        <div className="w-10 h-10 rounded-xl bg-ctu-maroon text-white flex items-center justify-center shrink-0 shadow-lg shadow-ctu-maroon/20">
+                          <Star size={20} className="fill-white" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-bold text-ctu-maroon mb-0.5 uppercase tracking-widest">Current Subject</p>
+                          <p className="text-sm font-bold text-foreground truncate max-w-[140px]">{subject.name}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </div>
+                ) : (
+                  <div className="p-8 text-center text-foreground/40 italic font-medium">
+                    <p className="text-lg">No direct prerequisites required for this course.</p>
+                    <p className="text-xs mt-2 uppercase tracking-widest text-ctu-gold font-bold">You can start this subject immediately!</p>
+                  </div>
+                )}
+              </div>
             </section>
 
             {/* Syllabus */}
