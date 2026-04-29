@@ -548,49 +548,108 @@ export default function SubjectDetail() {
             <section className="space-y-8">
               <div className="flex items-center justify-between pb-6 border-b border-foreground/5">
                 <h2 className="text-4xl font-display font-black text-foreground tracking-tight border-b-4 border-blue-500 pb-4 w-fit">Curriculum Syllabus</h2>
-                <div className="flex items-center gap-3">
-                  {isAdmin && (
-                    <button 
-                      onClick={handleOpenSyllabusDialog}
-                      className="px-4 py-3 border border-ctu-gold/20 hover:bg-ctu-gold/5 rounded-2xl flex items-center gap-2 text-ctu-gold font-bold text-xs uppercase tracking-widest transition-all"
-                    >
-                      <UploadIcon size={16} />
-                      Update Syllabus
-                    </button>
-                  )}
-                  {subject.isAvailable && subject.syllabusUrl ? (
-                    <button 
-                      onClick={() => window.open(subject.syllabusUrl!, '_blank')}
-                      className="px-6 py-3 neumorphic-raised hover:neumorphic-pressed rounded-2xl flex items-center gap-2 text-foreground font-bold text-sm transition-all"
-                    >
-                      <Download size={18} className="text-ctu-gold" />
-                      Download PDF
-                    </button>
-                  ) : (
-                    <div className="flex flex-col items-end">
-                      <button 
-                        disabled
-                        className="px-6 py-3 neumorphic-pressed rounded-2xl flex items-center gap-2 text-foreground/20 font-bold text-sm cursor-not-allowed"
-                      >
-                        <Download size={18} />
-                        Syllabus Coming Soon
-                      </button>
-                      <span className="text-[10px] font-bold text-foreground/40 mt-1 mr-2 uppercase tracking-widest">PDF not yet available</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="aspect-video neumorphic-pressed rounded-3xl flex flex-col items-center justify-center text-foreground/20">
-                <FileText size={64} className="mb-4 opacity-10" />
-                <p className="font-bold uppercase tracking-widest text-xs">
-                  {subject.isAvailable ? "PDF syllabus is available for download" : "PDF Preview Not Available"}
-                </p>
-                {subject.updatedAt && (
-                  <p className="text-[10px] mt-2 font-bold uppercase tracking-widest">
-                    Last Updated: {(subject.updatedAt as any)?.toDate?.()?.toLocaleDateString() || 'Recently'}
-                  </p>
+                {isAdmin && (
+                  <button 
+                    onClick={handleOpenSyllabusDialog}
+                    className="px-4 py-3 border border-ctu-gold/20 hover:bg-ctu-gold/5 rounded-2xl flex items-center gap-2 text-ctu-gold font-bold text-xs uppercase tracking-widest transition-all"
+                  >
+                    <UploadIcon size={16} />
+                    Update Syllabus
+                  </button>
                 )}
               </div>
+
+              {subject.isAvailable && subject.syllabusUrl ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                  <motion.div 
+                    whileHover={{ scale: 1.02 }}
+                    className="relative aspect-[3/4] max-w-[320px] mx-auto md:mx-0 neumorphic-card overflow-hidden group cursor-pointer"
+                    onClick={() => window.open(subject.syllabusUrl!, '_blank')}
+                  >
+                    {/* Stylized Document Preview */}
+                    <div className="absolute inset-0 bg-white p-8">
+                      <div className="w-full h-full border-2 border-slate-100 rounded-lg p-6 flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                          <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center">
+                            <FileText size={32} className="text-blue-500" />
+                          </div>
+                          <div className="text-right">
+                            <div className="h-3 w-20 bg-slate-100 rounded ml-auto mb-2" />
+                            <div className="h-2 w-12 bg-slate-50 rounded ml-auto" />
+                          </div>
+                        </div>
+                        <div className="space-y-2 mt-4">
+                          <div className="h-4 w-full bg-slate-200 rounded" />
+                          <div className="h-4 w-3/4 bg-slate-200 rounded" />
+                        </div>
+                        <div className="space-y-2 mt-4">
+                          <div className="h-2 w-full bg-slate-50 rounded" />
+                          <div className="h-2 w-full bg-slate-50 rounded" />
+                          <div className="h-2 w-full bg-slate-50 rounded" />
+                          <div className="h-2 w-2/3 bg-slate-50 rounded" />
+                        </div>
+                        <div className="mt-auto space-y-2">
+                          <div className="h-3 w-1/2 bg-slate-100 rounded" />
+                          <div className="h-2 w-1/3 bg-slate-50 rounded" />
+                        </div>
+                      </div>
+                    </div>
+                    {/* Overlay with Action */}
+                    <div className="absolute inset-0 bg-blue-900/0 group-hover:bg-blue-900/40 transition-all duration-300 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                        <div className="bg-white text-blue-600 px-6 py-3 rounded-full font-bold shadow-xl flex items-center gap-2">
+                          <Download size={18} />
+                          Open Document
+                        </div>
+                      </div>
+                    </div>
+                    {/* Ribbon */}
+                    <div className="absolute top-4 right-[-35px] rotate-45 bg-blue-500 text-white px-10 py-1 text-[10px] font-black uppercase tracking-widest shadow-lg">
+                      Official
+                    </div>
+                  </motion.div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <Badge className="bg-blue-500/10 text-blue-600 border-none px-3 py-1 mb-3 text-[10px] font-bold uppercase">Syllabus Available</Badge>
+                      <h3 className="text-2xl font-bold mb-2">Subject Mastery Curriculum</h3>
+                      <p className="text-foreground/60 leading-relaxed font-medium">
+                        The full syllabus for {subject.name} ({subject.code}) is ready for extraction. Download the official PDF to view detailed modules, grading systems, and weekly schedules.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                      <button 
+                        onClick={() => window.open(subject.syllabusUrl!, '_blank')}
+                        className="w-full md:w-fit px-8 py-4 bg-blue-600 text-white rounded-2xl flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+                      >
+                        <Download size={20} />
+                        Download Syllabus (PDF)
+                      </button>
+                      
+                      {subject.updatedAt && (
+                        <p className="text-[10px] font-bold text-foreground/20 uppercase tracking-widest flex items-center gap-2">
+                          <Clock size={12} />
+                          Final Revision: {(subject.updatedAt as any)?.toDate?.()?.toLocaleDateString() || 'Recently'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="aspect-video neumorphic-pressed rounded-[2.5rem] flex flex-col items-center justify-center text-foreground/20 p-8 text-center">
+                  <div className="w-24 h-24 rounded-3xl bg-foreground/5 flex items-center justify-center mb-6 relative">
+                     <FileText size={48} className="opacity-20" />
+                     <div className="absolute bottom-[-5px] right-[-5px] w-10 h-10 bg-ctu-maroon/10 rounded-full flex items-center justify-center">
+                        <AlertCircle size={20} className="text-ctu-maroon" />
+                     </div>
+                  </div>
+                  <h3 className="text-xl font-bold text-foreground/40 mb-2">Syllabus In Progress</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-widest max-w-[280px]">
+                    Technical details for this course are currently being digitized by the IE department.
+                  </p>
+                </div>
+              )}
             </section>
           </div>
 
