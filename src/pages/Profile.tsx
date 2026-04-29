@@ -191,8 +191,8 @@ export default function Profile() {
       
       <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
         <div className="mb-12">
-          <h1 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter leading-tight">Student Profile</h1>
-          <p className="text-foreground/40 mt-3 text-lg font-medium tracking-tight">Manage your account and application settings.</p>
+          <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Profile</h1>
+          <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Manage your account and application settings.</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">

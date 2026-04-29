@@ -379,8 +379,8 @@ export default function Catalog() {
         {/* Header & Search */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
-            <h1 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter leading-tight">Course Catalog</h1>
-            <p className="text-foreground/40 mt-3 text-lg font-medium tracking-tight">Explore the CTU Industrial Engineering curriculum.</p>
+            <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Catalog</h1>
+            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Explore the CTU Industrial Engineering curriculum.</p>
           </div>
 
           <div className="flex items-center gap-3">

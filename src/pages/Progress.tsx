@@ -146,8 +146,8 @@ export default function ProgressPage() {
       
       <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
         <div className="mb-12">
-          <h1 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter leading-tight">My Progress</h1>
-          <p className="text-foreground/40 mt-3 text-lg font-medium tracking-tight">Track your academic journey through the IE curriculum.</p>
+          <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">My Progress</h1>
+          <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Track your academic journey through the IE curriculum.</p>
         </div>
 
         {/* Overall Progress Header */}

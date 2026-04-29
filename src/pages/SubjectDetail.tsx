@@ -371,7 +371,7 @@ export default function SubjectDetail() {
                 <Badge className="neumorphic-pressed text-foreground/60 border-none px-4 py-1 rounded-full text-[10px] font-bold uppercase">{subject.units} Units</Badge>
               </div>
               
-              <h1 className="text-6xl md:text-7xl frosted-header font-black mb-4 tracking-tighter leading-[1.1]">{subject.name}</h1>
+              <h1 className="text-7xl md:text-8xl frosted-header font-black mb-4 tracking-tighter leading-[0.9] py-2">{subject.name}</h1>
               <p className="text-ctu-gold font-black text-3xl mb-10 tracking-[0.2em]">{subject.code}</p>
 
               <div className="flex flex-wrap items-center gap-8 p-6 neumorphic-card w-fit">

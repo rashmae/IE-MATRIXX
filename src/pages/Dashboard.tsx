@@ -178,12 +178,11 @@ export default function Dashboard() {
 
             <div>
               <h1 
-                className="text-6xl md:text-7xl frosted-header font-black tracking-tighter transition-all duration-300 hover:[text-shadow:_0_1px_30px_rgba(146,93,252,0.4)]"
-                style={{ color: '#1a0808' }}
+                className="text-6xl md:text-8xl frosted-header font-black tracking-tighter transition-all duration-300 hover:[text-shadow:_0_1px_40px_rgba(146,93,252,0.5)]"
               >
                 {getGreeting()}, {profile.fullName.split(' ')[0]} 👋
               </h1>
-              <p className="text-foreground/40 mt-3 text-lg font-medium tracking-tight">Navigate your IE journey. One subject at a time.</p>
+              <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Navigate your IE journey. One subject at a time.</p>
             </div>
           </motion.div>
 

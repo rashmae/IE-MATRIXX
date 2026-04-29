@@ -165,10 +165,20 @@
 
 .frosted-header {
   font-family: "Outfit", sans-serif;
-  background: linear-gradient(to right, hsl(var(--foreground)), #925dfc, #f064a3);
+  background: linear-gradient(to right, var(--color-foreground), #925dfc, #f064a3);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
   transition: all 0.3s ease;
+  display: inline-block;
+  line-height: 1.1;
+  padding-bottom: 0.1em;
+}
+
+.frosted-header:hover {
+  filter: brightness(1.2);
+  transform: translateY(-2px);
 }
 
 .ctu-gradient {

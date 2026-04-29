@@ -136,8 +136,8 @@ export default function AdminDashboard() {
               <ShieldCheck className="text-ctu-gold" size={24} />
               <span className="text-xs font-black text-ctu-gold uppercase tracking-[0.3em]">Command Center</span>
             </div>
-            <h1 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter leading-tight">Admin Console</h1>
-            <p className="text-foreground/40 mt-3 text-lg font-medium tracking-tight">Monitor all CTU students currently in the Matrix.</p>
+            <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Admin Console</h1>
+            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Monitor all CTU students currently in the Matrix.</p>
           </div>
           
           <div className="flex gap-3">

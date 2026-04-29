@@ -779,10 +779,10 @@ export default function StudyTools() {
       <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 lg:mb-12">
           <div>
-            <h1 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter flex items-center gap-3">
-              Study Hub <Sparkles className="text-ctu-gold" size={48} />
+            <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2 flex items-center gap-4">
+              Study Hub <Sparkles className="text-ctu-gold shrink-0 scale-125" size={56} />
             </h1>
-            <p className="text-foreground/40 mt-3 text-lg font-medium tracking-tight">Elevate your learning with AI guidance and community support.</p>
+            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Elevate your learning with AI guidance and community support.</p>
           </div>
         </div>
 
