@@ -18,6 +18,7 @@ import Resources from './pages/Resources';
 import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
 import SyllabusIngestion from './pages/SyllabusIngestion';
+import RatingsIngestion from './pages/RatingsIngestion';
 import SpotlightDemo from './pages/SpotlightDemo';
 import StudyTools from './pages/StudyTools';
 import AIAssistant from './components/AIAssistant';
@@ -46,6 +47,7 @@ export default function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/ingest" element={<SyllabusIngestion />} />
+            <Route path="/admin/ratings" element={<RatingsIngestion />} />
             <Route path="/demo" element={<SpotlightDemo />} />
             <Route path="/" element={<Navigate to="/login" replace />} />
           </Routes>

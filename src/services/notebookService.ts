@@ -40,7 +40,7 @@ export async function chatWithNotebook(
   const sourcesText = sources.map(s => `[ID: ${s.id}] Source: ${s.title}\nContent: ${s.content}`).join('\n\n---\n\n');
   
   const systemInstruction = `
-    You are an advanced AI study assistant for the CTU IE Matrix system, functioning like NotebookLM.
+    You are an advanced AI study assistant for the IE MATRIX system, functioning like NotebookLM.
     Your knowledge is strictly grounded in the provided sources for the notebook "${notebookName}".
     
     CURRENT SOURCES:

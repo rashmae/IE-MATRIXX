@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
+import Papa from 'papaparse';
 import { 
   ArrowLeft, 
   Star, 
@@ -133,13 +134,103 @@ export default function SubjectDetail() {
       const resourcesSnap = await getDocs(resourcesQuery);
       setResources(resourcesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Resource)));
 
-      const ratingsQuery = query(
-        collection(db, 'ratings'),
-        where('subjectId', '==', id),
-        orderBy('createdAt', 'desc')
-      );
-      const ratingsSnap = await getDocs(ratingsQuery);
-      setRatings(ratingsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const subjectCode = subSnap.exists() ? subSnap.data().code : (IE_SUBJECTS.find(s => s.id === id)?.code || id);
+      
+      // Construct possible IDs to search for in ratings
+      const possibleIds = [id];
+      if (subjectCode) possibleIds.push(subjectCode);
+      
+      // Add variations for robustness
+      if (id) {
+        possibleIds.push(id.toLowerCase());
+        possibleIds.push(id.toUpperCase());
+        possibleIds.push(id.replace(/[-\s]/g, '').toLowerCase());
+        possibleIds.push(id.replace(/[-\s]/g, '').toUpperCase());
+      }
+      if (subjectCode) {
+        possibleIds.push(subjectCode.toLowerCase());
+        possibleIds.push(subjectCode.toUpperCase());
+        possibleIds.push(subjectCode.replace(/[-\s]/g, '').toLowerCase());
+        possibleIds.push(subjectCode.replace(/[-\s]/g, '').toUpperCase());
+      }
+      
+      // Deduplicate
+      const finalIds = Array.from(new Set(possibleIds.filter(Boolean)));
+      console.log(`[DEBUG] Fetching ratings for ${id}. Possible IDs:`, finalIds);
+
+      try {
+        const ratingsQuery = query(
+          collection(db, 'ratings'),
+          where('subjectId', 'in', finalIds)
+        );
+        const ratingsSnap = await getDocs(ratingsQuery);
+        const localRatings = ratingsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Sort manually to avoid index requirement
+        localRatings.sort((a: any, b: any) => {
+          const dateA = a.createdAt?.toDate?.() || a.createdAt || 0;
+          const dateB = b.createdAt?.toDate?.() || b.createdAt || 0;
+          return Number(dateB) - Number(dateA);
+        });
+        setRatings(localRatings);
+      } catch (re) {
+        console.warn("Firestore ratings query failed (index?):", re);
+        // Fallback to empty to allow page to load
+      }
+
+      // Fetch Live Remote Ratings if configured (to allow automatic updates)
+      try {
+        const configDoc = await getDoc(doc(db, 'config', 'ratings'));
+        if (configDoc.exists()) {
+          const { sheetUrl } = configDoc.data();
+          if (sheetUrl) {
+            const currentSubCode = subSnap.exists() ? subSnap.data().code : (IE_SUBJECTS.find(s => s.id === id)?.code || id);
+            const response = await fetch(sheetUrl);
+            const csvText = await response.text();
+            Papa.parse(csvText, {
+              header: true,
+              complete: (results) => {
+                const remoteRatings = (results.data as any[])
+                  .filter((row: any) => {
+                    const keys = Object.keys(row);
+                    const subjectKey = keys.find(k => k.toLowerCase().includes('subject') || k.toLowerCase().includes('course') || k.toLowerCase().includes('code'));
+                    if (!subjectKey) return false;
+                    const val = String(row[subjectKey] || '').toUpperCase().replace(/[-\s]/g, '');
+                    const target = String(currentSubCode || id).toUpperCase().replace(/[-\s]/g, '');
+                    return val.includes(target) || target.includes(val);
+                  })
+                  .map((row: any, i: number) => {
+                    const keys = Object.keys(row);
+                    const ratingKey = keys.find(k => k.toLowerCase().includes('rate') || k.toLowerCase().includes('rating') || k.toLowerCase().includes('score')) || '';
+                    const feedbackKey = keys.find(k => k.toLowerCase().includes('comment') || k.toLowerCase().includes('feedback') || k.toLowerCase().includes('review') || k.toLowerCase().includes('why')) || '';
+                    const userKey = keys.find(k => k.toLowerCase().includes('name')) || keys.find(k => k.toLowerCase().includes('email')) || '';
+                    const dateKey = keys.find(k => k.toLowerCase().includes('timestamp') || k.toLowerCase().includes('date') || k.toLowerCase().includes('time')) || '';
+
+                    return {
+                      id: `live-${i}`,
+                      rating: Math.min(5, Math.max(1, parseInt(row[ratingKey]) || 5)),
+                      feedback: row[feedbackKey] || '',
+                      userName: String(row[userKey] || 'External Feedback').slice(0, 50),
+                      createdAt: row[dateKey] ? new Date(row[dateKey]) : new Date(),
+                      isLive: true
+                    };
+                  });
+                
+                if (remoteRatings.length > 0) {
+                  setRatings(prev => {
+                    // Avoid duplicates if already imported
+                    const filteredRemote = remoteRatings.filter(rr => 
+                      !prev.some(pr => (pr.feedback === rr.feedback || pr.review === rr.feedback) && pr.rating === rr.rating)
+                    );
+                    return [...prev, ...filteredRemote];
+                  });
+                }
+              }
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("Live ratings sync omitted or failed:", e);
+      }
 
     } catch (error) {
       console.error("Error fetching subject data:", error);
@@ -824,9 +915,11 @@ export default function SubjectDetail() {
                                   )}
                                 </div>
                                 <div>
-                                  <p className={cn("text-xs font-bold", review.userId === profile.uid ? "text-ctu-gold" : "text-foreground")}>
+                                  <p className={cn("text-xs font-bold flex items-center gap-2", review.userId === profile.uid ? "text-ctu-gold" : "text-foreground")}>
                                     {review.userName}
-                                    {review.userId === profile.uid && <span className="ml-2 text-[8px] uppercase tracking-widest text-ctu-gold/50">(You)</span>}
+                                    {review.userId === profile.uid && <span className="text-[8px] uppercase tracking-widest text-ctu-gold/50">(You)</span>}
+                                    {review.isLive && <Badge className="bg-blue-500/10 text-blue-500 border-none text-[8px] px-1.5 py-0 h-4 font-black uppercase">Live</Badge>}
+                                    {review.isImported && <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] px-1.5 py-0 h-4 font-black uppercase">Verified Source</Badge>}
                                   </p>
                                   <p className="text-[9px] text-foreground/40 font-bold uppercase tracking-widest">
                                     {(review.createdAt as any)?.toDate ? (review.createdAt as any).toDate().toLocaleDateString() : 'Just now'}

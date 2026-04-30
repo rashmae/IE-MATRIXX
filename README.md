@@ -1,16 +1,15 @@
-# CTU Curriculum Hub
+# IE MATRIX
 
-Official Academic Advisor and Learning Management System for Industrial Engineering students at **Cebu Technological University**.
+Portal and Learning Management System for Industrial Engineering students.
 
 ## Features
 - **Smart Study Roadmap**: Interactive visual guide through the IE curriculum.
-- **GWA Tracking**: Monitor academic performance with CTU-standard grading.
+- **GWA Tracking**: Monitor academic performance with academic grading standards.
 - **Collaborative Community**: Study groups and Q&A forums for peer-to-peer learning.
 - **AI Academic Advisor**: Personalized guidance powered by Gemini AI.
 
 ## Institution
-**Cebu Technological University**  
-Industrial Engineering Department
+**Industrial Engineering Department**
 
 ---
-© 2025 CTU Curriculum Hub. Built for IE Students.
+© 2026 IE MATRIX. Built for IE Students.

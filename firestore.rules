@@ -84,7 +84,8 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && (
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'student') == 'admin')
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'student') == 'admin') ||
+        request.auth.token.email == 'rashmae26@gmail.com'
       );
     }
 
@@ -121,10 +122,10 @@ service cloud.firestore {
     function isValidRating(data) {
       return data.keys().hasAll(['subjectId', 'userId', 'userName', 'rating', 'createdAt']) &&
              data.subjectId is string && data.subjectId.size() > 0 &&
-             data.userId == request.auth.uid &&
+             (data.userId == request.auth.uid || (isAdmin() && data.get('isImported', false) == true)) &&
              data.userName is string && data.userName.size() > 0 && data.userName.size() < 100 &&
              data.rating is number && data.rating >= 1 && data.rating <= 5 &&
-             data.createdAt == request.time;
+             (data.get('isImported', false) == true || data.createdAt == request.time);
     }
 
     function isValidQuestion(data) {
@@ -319,6 +320,11 @@ service cloud.firestore {
     }
 
     match /subjects/{subjectId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /config/{configId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }

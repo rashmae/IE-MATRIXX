@@ -18,7 +18,8 @@ import {
   ArrowUpDown,
   Calendar,
   Upload,
-  FileText
+  FileText,
+  Star
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
@@ -380,7 +381,7 @@ export default function Catalog() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Catalog</h1>
-            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Explore the CTU Industrial Engineering curriculum.</p>
+            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Explore the IE Industrial Engineering curriculum.</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -675,6 +676,13 @@ export default function Catalog() {
                                             <div className="flex flex-wrap gap-2">
                                               <Badge variant="outline" className="border-ctu-gold text-ctu-gold font-bold bg-ctu-gold/5 px-2 py-0.5">{subject.code}</Badge>
                                             </div>
+                                            {(subject.averageRating || 0) > 0 && (
+                                              <div className="flex items-center gap-1.5 bg-ctu-gold/10 px-2 py-0.5 rounded-lg">
+                                                <Star size={10} className="text-ctu-gold fill-ctu-gold" />
+                                                <span className="text-[10px] font-black text-ctu-gold">{subject.averageRating}</span>
+                                                <span className="text-[8px] font-bold text-ctu-gold/60">({subject.ratingCount})</span>
+                                              </div>
+                                            )}
                                           </div>
 
                           <h3 className="text-2xl font-display font-black text-foreground mb-3 group-hover:text-ctu-gold transition-colors leading-tight line-clamp-2 uppercase tracking-tighter italic">

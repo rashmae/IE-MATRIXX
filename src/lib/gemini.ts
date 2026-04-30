@@ -138,7 +138,7 @@ export async function getCurriculumAdvice(userProgress: any, subjects: any[]) {
   if (!client) return "I'm sorry, I couldn't generate advice at the moment.";
 
   const prompt = `
-    You are an academic advisor for Industrial Engineering students at Cebu Technological University (CTU).
+    You are an academic advisor for Industrial Engineering students. You power the IE MATRIX system.
     
     Current Curriculum: ${JSON.stringify(subjects.map(s => ({ code: s.code, name: s.name, year: s.yearLevel, sem: s.semester })))}
     User Progress: ${JSON.stringify(userProgress)}

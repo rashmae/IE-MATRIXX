@@ -166,7 +166,7 @@ export default function Dashboard() {
                     transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                     className="w-8 h-8 rounded-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)] flex items-center justify-center"
                     role="img"
-                    aria-label="Glowing AI Robot eye representing CTU Curriculum Hub intelligence"
+                    aria-label="Glowing AI Robot eye representing IE MATRIX intelligence"
                   >
                     <div className="w-4 h-4 rounded-full bg-navy-deep flex items-center justify-center">
                       <div className="w-1.5 h-1.5 rounded-full bg-ctu-gold animate-ping" />

@@ -137,7 +137,7 @@ export default function AdminDashboard() {
               <span className="text-xs font-black text-ctu-gold uppercase tracking-[0.3em]">Command Center</span>
             </div>
             <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Admin Console</h1>
-            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Monitor all CTU students currently in the Matrix.</p>
+            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Monitor all IE students currently in the Matrix.</p>
           </div>
           
           <div className="flex gap-3">
@@ -146,6 +146,12 @@ export default function AdminDashboard() {
               className="neumorphic-raised hover:neumorphic-pressed px-6 py-3 rounded-2xl text-foreground font-bold text-xs transition-all"
             >
               Syllabus Ingestion
+            </button>
+            <button 
+              onClick={() => navigate('/admin/ratings')}
+              className="neumorphic-raised hover:neumorphic-pressed px-6 py-3 rounded-2xl text-blue-500 font-bold text-xs transition-all"
+            >
+              Ratings Ingest
             </button>
             <button 
               onClick={seedSubjects}

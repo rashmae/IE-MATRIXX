@@ -82,9 +82,9 @@ export default function Sidebar({ user }: SidebarProps) {
           </div>
           <span 
             className="text-xl font-extrabold text-foreground tracking-tighter flex items-center"
-            style={{ height: '32px', width: '96.3125px', fontFamily: 'system-ui' }}
+            style={{ height: '32px', width: 'auto', fontFamily: 'system-ui' }}
           >
-            CTU HUB
+            IE MATRIX
           </span>
         </div>
         <ThemeToggle className="neumorphic-raised" />

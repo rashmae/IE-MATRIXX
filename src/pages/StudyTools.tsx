@@ -1110,18 +1110,20 @@ export default function StudyTools() {
                 </GlowCard>
               </TabsContent>
 
-              <TabsContent value="groups" className="mt-0 space-y-8">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <TabsContent value="groups" className="mt-0 space-y-8 lg:space-y-12">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                   <div>
-                    <h2 className="text-4xl font-display font-black tracking-tight">Active Study Groups</h2>
-                    <p className="text-base text-foreground/40 font-medium mt-2">Connect with peers and learn together.</p>
+                    <h2 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
+                       Active Groups
+                    </h2>
+                    <p className="text-xl text-foreground/40 font-medium mt-3 tracking-tight">Connect with peers and navigate the IE curriculum together.</p>
                   </div>
                   <div className="flex flex-wrap gap-4 w-full md:w-auto">
-                    <div className="relative flex-1 md:w-64">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/30" size={16} />
+                    <div className="relative flex-1 md:w-72">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/20" size={18} />
                       <Input 
                         placeholder="Search groups or subjects..." 
-                        className="pl-10 neumorphic-pressed border-none h-11 rounded-xl text-sm"
+                        className="pl-12 neumorphic-pressed border-none h-14 rounded-2xl text-sm font-medium focus:ring-ctu-gold/50"
                         value={groupSearchQuery}
                         onChange={(e) => setGroupSearchQuery(e.target.value)}
                       />
@@ -1129,122 +1131,170 @@ export default function StudyTools() {
                     <Dialog open={isNewGroupModalOpen} onOpenChange={setIsNewGroupModalOpen}>
                       <DialogTrigger 
                         render={
-                          <Button className="rounded-xl bg-ctu-maroon text-white font-black uppercase tracking-widest text-[10px] gap-2 h-11 px-6 shadow-lg shadow-ctu-maroon/20 hover:scale-105 transition-transform" />
+                          <Button className="rounded-2xl bg-ctu-maroon text-white font-black uppercase tracking-[0.2em] text-[11px] gap-3 h-14 px-8 shadow-xl shadow-ctu-maroon/20 hover:scale-105 active:scale-95 transition-all">
+                            <Plus size={18} /> Create Group
+                          </Button>
                         }
-                      >
-                        <Plus size={16} /> Create Group
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[425px] neumorphic-card border-none">
+                      />
+                      <DialogContent className="sm:max-w-[425px] neumorphic-card border-none p-8">
                         <DialogHeader>
-                          <DialogTitle className="text-xl font-bold">Create Study Group</DialogTitle>
+                          <DialogTitle className="text-2xl font-black italic tracking-tight">FORM NEW SQUAD</DialogTitle>
                         </DialogHeader>
                         <div className="grid gap-6 py-4">
                           <div className="space-y-2">
-                            <Label htmlFor="group-name" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Group Name</Label>
-                            <Input id="group-name" value={newGroup.name} onChange={e => setNewGroup({...newGroup, name: e.target.value})} className="neumorphic-pressed border-none" placeholder="e.g., OR-1 Mastermind" />
+                            <Label htmlFor="group-name" className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Squad Name</Label>
+                            <Input id="group-name" value={newGroup.name} onChange={e => setNewGroup({...newGroup, name: e.target.value})} className="neumorphic-pressed border-none h-12 rounded-xl" placeholder="e.g., OR-1 Mastermind" />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="subject-code" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Subject</Label>
+                            <Label htmlFor="subject-code" className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Target Subject</Label>
                             <Select onValueChange={(val: string) => setNewGroup({...newGroup, subjectCode: val})}>
-                              <SelectTrigger className="neumorphic-pressed border-none">
+                              <SelectTrigger className="neumorphic-pressed border-none h-12 rounded-xl">
                                 <SelectValue placeholder="Select a subject" />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="rounded-xl border-none shadow-2xl">
                                 {IE_SUBJECTS.map(s => <SelectItem key={s.id} value={s.code}>{s.code} - {s.name}</SelectItem>)}
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="group-desc" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Description</Label>
-                            <Textarea id="group-desc" value={newGroup.description} onChange={e => setNewGroup({...newGroup, description: e.target.value})} className="neumorphic-pressed border-none" placeholder="What's this group about?" />
+                            <Label htmlFor="group-desc" className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Mission Briefing</Label>
+                            <Textarea id="group-desc" value={newGroup.description} onChange={e => setNewGroup({...newGroup, description: e.target.value})} className="neumorphic-pressed border-none min-h-[100px] rounded-xl" placeholder="What's this group about?" />
                           </div>
                         </div>
                         <DialogFooter>
-                          <Button onClick={handleCreateGroup} className="bg-ctu-gold text-white font-bold w-full rounded-xl">Create Group Now</Button>
+                          <Button onClick={handleCreateGroup} className="bg-ctu-gold text-white font-black uppercase tracking-widest w-full h-14 rounded-2xl shadow-lg shadow-ctu-gold/20">Establish Group</Button>
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {filteredStudyGroups.length > 0 ? filteredStudyGroups.map((group, idx) => (
                     <motion.div
                       key={group.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.05 }}
                     >
-                      <GlowCard className="p-6 h-full flex flex-col justify-between" glowColor="blue">
+                      <GlowCard className="p-8 h-full flex flex-col justify-between group hover:border-ctu-gold/30 transition-all duration-300" glowColor="blue">
                         <div>
-                          <div className="flex items-center justify-between mb-4">
-                            <Badge variant="outline" className="border-ctu-gold text-ctu-gold text-[10px] font-bold">{group.subjectCode}</Badge>
-                            <div className="flex -space-x-2">
-                              {(group.members || []).slice(0, 3).map((mId: string, i: number) => (
-                                <div key={i} className="w-6 h-6 rounded-full border-2 border-background bg-foreground/10 flex items-center justify-center text-[8px] font-bold">
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                               <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                                 <Users size={20} />
+                               </div>
+                               <Badge className="bg-foreground/[0.03] text-foreground/40 border-none text-[10px] font-black uppercase tracking-widest">{group.subjectCode}</Badge>
+                            </div>
+                            <div className="flex -space-x-2.5">
+                              {(group.members || []).slice(0, 4).map((mId: string, i: number) => (
+                                <div key={i} className="w-8 h-8 rounded-full border-2 border-background bg-foreground/5 flex items-center justify-center text-[10px] font-bold ring-2 ring-transparent group-hover:ring-blue-500/20 transition-all">
                                   {mId.slice(0, 2).toUpperCase()}
                                 </div>
                               ))}
-                              {(group.members || []).length > 3 && (
-                                <div className="w-6 h-6 rounded-full border-2 border-background bg-ctu-gold flex items-center justify-center text-[8px] font-bold text-white">
-                                  +{(group.members || []).length - 3}
+                              {(group.members || []).length > 4 && (
+                                <div className="w-8 h-8 rounded-full border-2 border-background bg-ctu-gold flex items-center justify-center text-[10px] font-black text-white shadow-lg">
+                                  +{(group.members || []).length - 4}
                                 </div>
                               )}
                             </div>
                           </div>
-                          <h3 className="text-lg font-bold text-foreground mb-2">{group.name}</h3>
-                          <p className="text-xs text-foreground/40 line-clamp-2">{group.description}</p>
+                          <h3 className="text-2xl font-bold text-foreground mb-4 leading-tight group-hover:text-blue-500 transition-colors uppercase tracking-tighter">{group.name}</h3>
+                          <p className="text-sm font-medium text-foreground/40 leading-relaxed line-clamp-3 mb-6">{group.description || "No description provided for this squadron mission."}</p>
                         </div>
                         
-                        <div className="mt-6 pt-4 border-t border-foreground/5 flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-foreground/30 uppercase tracking-widest">{(group.members || []).length} Members</span>
+                        <div className="mt-auto pt-6 border-t border-foreground/5 flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-foreground/20 uppercase tracking-widest">Active Members</span>
+                            <span className="text-sm font-bold text-foreground/60 tracking-tight">{(group.members || []).length} / 50</span>
+                          </div>
                           <div className="flex gap-2">
-                            {group.members?.includes(user.uid) && (
+                            {group.members?.includes(user.uid) ? (
                               <Button 
                                 onClick={() => setActiveChatGroup(group)}
-                                variant="ghost"
-                                className="text-xs font-bold text-ctu-maroon h-auto p-0 hover:bg-transparent"
+                                className="bg-blue-500 text-white rounded-xl h-11 px-5 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20 hover:bg-blue-600 transition-all"
                               >
-                                Message
+                                Join Chat
+                              </Button>
+                            ) : (
+                              <Button 
+                                onClick={() => handleJoinGroup(group.id)}
+                                className="neumorphic-raised hover:neumorphic-pressed text-ctu-gold rounded-xl h-11 px-6 font-black text-[10px] uppercase tracking-widest transition-all gap-2"
+                              >
+                                Join squad <ChevronRight size={14} />
                               </Button>
                             )}
-                            <Button 
-                              onClick={() => handleJoinGroup(group.id)}
-                              variant="ghost" 
-                              className="text-xs font-bold text-ctu-gold gap-2 p-0 h-auto hover:bg-transparent"
-                            >
-                              {group.members?.includes(user.uid) ? 'View Room' : 'Join Room'} <ChevronRight size={14} />
-                            </Button>
                           </div>
                         </div>
                       </GlowCard>
                     </motion.div>
                   )) : (
-                    IE_SUBJECTS.slice(0, 6).map((sub, idx) => (
-                      <GlowCard key={idx} className="p-6 opacity-40 grayscale" glowColor="blue">
-                         <div className="h-40 flex items-center justify-center text-[10px] font-bold uppercase tracking-widest text-center">
-                           Connecting to Peer Network...
-                         </div>
-                      </GlowCard>
+                    Array.from({ length: 6 }).map((_, idx) => (
+                      <div key={idx} className="h-64 rounded-[2rem] border-2 border-dashed border-foreground/5 flex flex-col items-center justify-center text-center p-8">
+                         <Users className="text-foreground/10 mb-4" size={48} />
+                         <span className="text-[10px] font-black text-foreground/20 uppercase tracking-[0.3em]">Sector Empty</span>
+                         <p className="text-xs font-medium text-foreground/30 mt-2">Initialize your own study squad to connect with peers.</p>
+                      </div>
                     ))
                   )}
                 </div>
               </TabsContent>
 
-              <TabsContent value="qa" className="mt-0 space-y-8">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <TabsContent value="qa" className="mt-0 space-y-8 lg:space-y-12">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                   <div>
-                    <h2 className="text-4xl font-display font-black tracking-tight">Q&A Forum</h2>
-                    <p className="text-base text-foreground/40 font-medium mt-2">Ask questions and share knowledge with the community.</p>
+                    <h2 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
+                       Q&A Forum
+                    </h2>
+                    <p className="text-xl text-foreground/40 font-medium mt-3 tracking-tight">Rapid knowledge exchange with the IE community.</p>
                   </div>
+                  <Dialog open={isAskQuestionModalOpen} onOpenChange={setIsAskQuestionModalOpen}>
+                    <DialogTrigger 
+                      render={
+                        <Button className="h-14 px-8 rounded-2xl bg-ctu-maroon text-white font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-3 shadow-xl shadow-ctu-maroon/20 hover:scale-105 active:scale-95 transition-all">
+                          <Plus size={18} /> Ask Question
+                        </Button>
+                      }
+                    />
+                    <DialogContent className="sm:max-w-[425px] neumorphic-card border-none p-8">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl font-black italic tracking-tight">TRANSMIT INQUIRY</DialogTitle>
+                      </DialogHeader>
+                      <div className="grid gap-6 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="q-title" className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Question Headline</Label>
+                          <Input id="q-title" value={newQuestion.title} onChange={e => setNewQuestion({...newQuestion, title: e.target.value})} className="neumorphic-pressed border-none h-12 rounded-xl" placeholder="What are you struggling with?" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="q-subject" className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Target Topic</Label>
+                          <Select onValueChange={(val: string) => setNewQuestion({...newQuestion, subjectTag: val})}>
+                            <SelectTrigger className="neumorphic-pressed border-none h-12 rounded-xl">
+                              <SelectValue placeholder="Select topic" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-none shadow-2xl">
+                              {IE_SUBJECTS.map(s => <SelectItem key={s.id} value={s.code}>{s.code}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="q-content" className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Full Context</Label>
+                          <Textarea id="q-content" value={newQuestion.content} onChange={e => setNewQuestion({...newQuestion, content: e.target.value})} className="neumorphic-pressed border-none h-32 rounded-xl" placeholder="Provide context or specific examples..." />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={handleAskQuestion} className="bg-ctu-maroon text-white font-black uppercase tracking-widest w-full h-14 rounded-2xl shadow-lg shadow-ctu-maroon/20">Post Question</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
                 <div className="flex gap-4">
                   <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40" size={18} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/20" size={18} />
                     <Input 
                       placeholder="Search questions or ask anything..." 
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="bg-background border-none neumorphic-pressed pl-12 pr-12 h-14 rounded-2xl focus:ring-ctu-gold text-foreground placeholder:text-foreground/30"
+                      className="bg-background border-none neumorphic-pressed pl-12 pr-12 h-14 rounded-2xl focus:ring-ctu-gold text-foreground placeholder:text-foreground/30 font-medium"
                     />
                     {searchQuery && (
                       <button 
@@ -1255,44 +1305,6 @@ export default function StudyTools() {
                       </button>
                     )}
                   </div>
-                  <Dialog open={isAskQuestionModalOpen} onOpenChange={setIsAskQuestionModalOpen}>
-                    <DialogTrigger 
-                      render={
-                        <Button className="h-14 px-8 rounded-2xl bg-ctu-maroon text-white font-bold" />
-                      }
-                    >
-                      Ask Question
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px] neumorphic-card border-none">
-                      <DialogHeader>
-                        <DialogTitle className="text-xl font-bold">Post a Question</DialogTitle>
-                      </DialogHeader>
-                      <div className="grid gap-6 py-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="q-title" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Question Title</Label>
-                          <Input id="q-title" value={newQuestion.title} onChange={e => setNewQuestion({...newQuestion, title: e.target.value})} className="neumorphic-pressed border-none" placeholder="What are you struggling with?" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="q-subject" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Topic / Subject</Label>
-                          <Select onValueChange={(val: string) => setNewQuestion({...newQuestion, subjectTag: val})}>
-                            <SelectTrigger className="neumorphic-pressed border-none">
-                              <SelectValue placeholder="Select topic" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {IE_SUBJECTS.map(s => <SelectItem key={s.id} value={s.code}>{s.code}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="q-content" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Details</Label>
-                          <Textarea id="q-content" value={newQuestion.content} onChange={e => setNewQuestion({...newQuestion, content: e.target.value})} className="neumorphic-pressed border-none h-32" placeholder="Provide context or specific examples..." />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button onClick={handleAskQuestion} className="bg-ctu-maroon text-white font-bold w-full rounded-xl">Post Question</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
                 </div>
 
                 <div className="space-y-4">
@@ -1357,93 +1369,98 @@ export default function StudyTools() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="flashcards" className="mt-0">
+              <TabsContent value="flashcards" className="mt-0 space-y-8 lg:space-y-12">
                 {!selectedDeck ? (
-                  <div className="space-y-6">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                  <div className="space-y-8 lg:space-y-12">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                       <div>
-                        <h2 className="text-4xl font-display font-black tracking-tight">Your Flashcard Decks</h2>
-                        <p className="text-base text-foreground/40 font-medium mt-2">Manage and study your topics.</p>
+                        <h2 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
+                           Flash Decks
+                        </h2>
+                        <p className="text-xl text-foreground/40 font-medium mt-3 tracking-tight">Accelerate mastery through strategic retention cycles.</p>
                       </div>
-                      <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                        <div className="relative flex-1 md:w-64">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/30" size={16} />
-                          <Input 
-                            placeholder="Search decks..." 
-                            className="pl-10 neumorphic-pressed border-none h-10 rounded-xl text-sm"
-                            value={deckSearchQuery}
-                            onChange={(e) => setDeckSearchQuery(e.target.value)}
-                          />
-                        </div>
-                        <Select value={deckSubjectFilter} onValueChange={setDeckSubjectFilter}>
-                          <SelectTrigger className="w-[140px] neumorphic-pressed border-none h-10 rounded-xl text-xs font-bold">
-                            <SelectValue placeholder="All Subjects" />
-                          </SelectTrigger>
-                          <SelectContent className="neumorphic-card border-none">
-                            <SelectItem value="all">All Subjects</SelectItem>
-                            {IE_SUBJECTS.map(s => (
-                              <SelectItem key={s.code} value={s.code}>{s.code}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="flex flex-wrap gap-3 w-full md:w-auto">
                         <Dialog open={isNewDeckModalOpen} onOpenChange={setIsNewDeckModalOpen}>
                           <DialogTrigger 
                             render={
-                              <Button className="rounded-xl bg-ctu-maroon text-white font-bold gap-2 h-10">
-                                <Plus size={16} /> New Deck
+                              <Button className="h-14 px-8 rounded-2xl bg-ctu-maroon text-white font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-3 shadow-xl shadow-ctu-maroon/20 hover:scale-105 active:scale-95 transition-all">
+                                <Plus size={18} /> New Deck
                               </Button>
                             }
                           />
-                          <DialogContent className="sm:max-w-[425px] neumorphic-card border-none">
-                            <DialogHeader>
-                              <DialogTitle className="text-xl font-bold">Create New Deck</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-6 py-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="deck-name" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Deck Name</Label>
-                                <Input id="deck-name" value={newDeck.name} onChange={e => setNewDeck({...newDeck, name: e.target.value})} className="neumorphic-pressed border-none" placeholder="e.g., IE 101 Terminology" />
-                              </div>
-                              <div className="space-y-2">
-                                <Label className="text-xs font-bold uppercase tracking-wider text-foreground/40">Subject (Optional)</Label>
-                                <Select value={newDeck.subjectId} onValueChange={(val) => setNewDeck({...newDeck, subjectId: val})}>
-                                  <SelectTrigger className="neumorphic-pressed border-none">
-                                    <SelectValue placeholder="Select Subject" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {IE_SUBJECTS.map(s => (
-                                      <SelectItem key={s.code} value={s.code}>{s.name}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="deck-desc" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Description</Label>
-                                <Textarea id="deck-desc" value={newDeck.description} onChange={e => setNewDeck({...newDeck, description: e.target.value})} className="neumorphic-pressed border-none" placeholder="What will you study in this deck?" />
-                              </div>
-                              <div className="space-y-2">
-                                <Label className="text-xs font-bold uppercase tracking-wider text-foreground/40">Theme Color</Label>
-                                <div className="flex gap-3">
-                                  {['maroon', 'gold', 'blue', 'green'].map(c => (
-                                    <button
-                                      key={c}
-                                      onClick={() => setNewDeck({...newDeck, color: c})}
-                                      className={cn(
-                                        "w-8 h-8 rounded-full border-2 transition-all",
-                                        newDeck.color === c ? "border-foreground scale-110" : "border-transparent opacity-50 hover:opacity-100",
-                                        c === 'maroon' ? 'bg-ctu-maroon' : c === 'gold' ? 'bg-ctu-gold' : c === 'blue' ? 'bg-blue-500' : 'bg-green-500'
-                                      )}
-                                    />
+                          <DialogContent className="sm:max-w-[425px] neumorphic-card border-none p-8">
+                          <DialogHeader>
+                            <DialogTitle className="text-2xl font-black italic tracking-tight">INITIALIZE DECK</DialogTitle>
+                          </DialogHeader>
+                          <div className="grid gap-6 py-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="deck-name" className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Deck Codename</Label>
+                              <Input id="deck-name" value={newDeck.name} onChange={e => setNewDeck({...newDeck, name: e.target.value})} className="neumorphic-pressed border-none h-12 rounded-xl" placeholder="e.g., Ergonomics Mastery" />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Target Subject</Label>
+                              <Select value={newDeck.subjectId} onValueChange={(val) => setNewDeck({...newDeck, subjectId: val})}>
+                                <SelectTrigger className="neumorphic-pressed border-none h-12 rounded-xl">
+                                  <SelectValue placeholder="Select Subject" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-none shadow-2xl">
+                                  {IE_SUBJECTS.map(s => (
+                                    <SelectItem key={s.code} value={s.code}>{s.name}</SelectItem>
                                   ))}
-                                </div>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="deck-desc" className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Intelligence Summary</Label>
+                              <Textarea id="deck-desc" value={newDeck.description} onChange={e => setNewDeck({...newDeck, description: e.target.value})} className="neumorphic-pressed border-none min-h-[80px] rounded-xl" placeholder="What will you study in this deck?" />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Visual ID (Theme)</Label>
+                              <div className="flex gap-4">
+                                {['maroon', 'gold', 'blue', 'green'].map(c => (
+                                  <button
+                                    key={c}
+                                    onClick={() => setNewDeck({...newDeck, color: c})}
+                                    className={cn(
+                                      "w-10 h-10 rounded-full border-4 transition-all shadow-lg",
+                                      newDeck.color === c ? "border-foreground scale-110 shadow-foreground/10" : "border-transparent opacity-40 hover:opacity-100",
+                                      c === 'maroon' ? 'bg-ctu-maroon' : c === 'gold' ? 'bg-ctu-gold' : c === 'blue' ? 'bg-blue-500' : 'bg-green-500'
+                                    )}
+                                  />
+                                ))}
                               </div>
                             </div>
-                            <DialogFooter>
-                              <Button onClick={handleCreateDeck} className="bg-ctu-maroon text-white font-bold w-full rounded-xl">Create Deck</Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
+                          </div>
+                          <DialogFooter>
+                            <Button onClick={handleCreateDeck} className="bg-ctu-maroon text-white font-black uppercase tracking-widest w-full h-14 rounded-2xl shadow-xl shadow-ctu-maroon/20">Forge Deck</Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                     </div>
+                  </div>
+
+                  <div className="flex flex-col md:flex-row gap-4 mb-8">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/20" size={18} />
+                      <Input 
+                        placeholder="Search decks..." 
+                        className="pl-12 neumorphic-pressed border-none h-14 rounded-2xl text-sm font-medium focus:ring-blue-500/30"
+                        value={deckSearchQuery}
+                        onChange={(e) => setDeckSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    <Select value={deckSubjectFilter} onValueChange={setDeckSubjectFilter}>
+                      <SelectTrigger className="w-[180px] neumorphic-pressed border-none h-14 rounded-2xl text-[10px] font-black uppercase tracking-widest">
+                        <SelectValue placeholder="All Subjects" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-none shadow-2xl">
+                        <SelectItem value="all">ALL SECTORS</SelectItem>
+                        {IE_SUBJECTS.map(s => (
+                          <SelectItem key={s.code} value={s.code}>{s.code}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                       <AnimatePresence mode="popLayout">

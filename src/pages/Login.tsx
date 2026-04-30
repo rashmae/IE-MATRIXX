@@ -32,7 +32,7 @@ export default function Login() {
   const navigate = useNavigate();
 
   const slogans = [
-    "CTU INDUSTRIAL ENGINEERING PORTAL",
+    "IE INDUSTRIAL ENGINEERING PORTAL",
     "71 CORE IE SUBJECTS CATALOGED",
     "OPTIMIZE YOUR ACADEMIC PLAN",
     "THE MATRIX OF IE EXCELLENCE",
@@ -83,7 +83,7 @@ export default function Login() {
 
       await setDoc(userRef, userData, { merge: true }).catch(err => handleFirestoreError(err, 'write', `users/${authUser.uid}`));
 
-      toast.success('Welcome to CTU Curriculum Hub!');
+      toast.success('Welcome to IE MATRIX!');
       navigate('/dashboard');
     } catch (error: any) {
       console.error("Login error:", error);
@@ -219,7 +219,7 @@ export default function Login() {
               <div className="p-1.5 bg-foreground/10 rounded-lg text-foreground">
                 <Shield size={14} />
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-tighter">CTU Official</span>
+              <span className="text-[10px] font-bold uppercase tracking-tighter">IE Official</span>
             </motion.div>
           </div>
 
@@ -336,7 +336,7 @@ export default function Login() {
                Academic Year 2025-2026
             </p>
             <p className="mt-4 text-[9px] font-bold uppercase tracking-widest text-foreground/10">
-              © 2026 CTU Curriculum Hub · Cebu Technological University · Industrial Engineering Department
+              © 2026 IE MATRIX · Industrial Engineering Department
             </p>
           </div>
         </motion.div>

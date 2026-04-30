@@ -29,6 +29,8 @@ export interface Subject {
   department?: string;
   rating?: number;
   reviewCount?: number;
+  averageRating?: number;
+  ratingCount?: number;
   slotsAvailable?: number;
   totalSlots?: number;
   isFavorite?: boolean;
