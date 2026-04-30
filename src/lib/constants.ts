@@ -17,7 +17,7 @@ export const IE_SUBJECTS: Subject[] = [
     slotsAvailable: 15,
     totalSlots: 45,
     isFavorite: true,
-    professor: 'Dr. Sarah Smith'
+    professor: 'Dr. Elena Abad'
   },
   {
     id: 'echem',
@@ -33,7 +33,7 @@ export const IE_SUBJECTS: Subject[] = [
     reviewCount: 89,
     slotsAvailable: 5,
     totalSlots: 40,
-    professor: 'Dr. Michael Chen'
+    professor: 'Dr. Roberto Canoy'
   },
   {
     id: 'echeml',
@@ -49,7 +49,7 @@ export const IE_SUBJECTS: Subject[] = [
     reviewCount: 67,
     slotsAvailable: 2,
     totalSlots: 20,
-    professor: 'Prof. Alisha Jones'
+    professor: 'Prof. Juvy Alcantara'
   },
   {
     id: 'bes-cfp',
@@ -66,7 +66,7 @@ export const IE_SUBJECTS: Subject[] = [
     slotsAvailable: 0,
     totalSlots: 40,
     isFavorite: true,
-    professor: 'Engr. Robert Lee'
+    professor: 'Engr. Kenneth Almendras'
   },
   {
     id: 'ie-ipc-111',

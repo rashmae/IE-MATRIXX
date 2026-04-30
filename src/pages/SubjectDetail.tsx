@@ -128,35 +128,52 @@ export default function SubjectDetail() {
 
       const resourcesQuery = query(
         collection(db, 'resources'), 
-        where('subjectId', '==', id),
-        orderBy('createdAt', 'desc')
+        where('subjectId', '==', id)
       );
       const resourcesSnap = await getDocs(resourcesQuery);
-      setResources(resourcesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Resource)));
+      const resourcesData = resourcesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      
+      // Sort in memory to avoid index requirement
+      resourcesData.sort((a: any, b: any) => {
+        const timeA = a.createdAt?.toDate?.()?.getTime() || (a.createdAt instanceof Date ? a.createdAt.getTime() : 0) || new Date(a.createdAt).getTime() || 0;
+        const timeB = b.createdAt?.toDate?.()?.getTime() || (b.createdAt instanceof Date ? b.createdAt.getTime() : 0) || new Date(b.createdAt).getTime() || 0;
+        return timeB - timeA;
+      });
+      
+      setResources(resourcesData);
 
       const subjectCode = subSnap.exists() ? subSnap.data().code : (IE_SUBJECTS.find(s => s.id === id)?.code || id);
       
       // Construct possible IDs to search for in ratings
-      const possibleIds = [id];
+      const possibleIds: string[] = [id!];
       if (subjectCode) possibleIds.push(subjectCode);
       
-      // Add variations for robustness
-      if (id) {
-        possibleIds.push(id.toLowerCase());
-        possibleIds.push(id.toUpperCase());
-        possibleIds.push(id.replace(/[-\s]/g, '').toLowerCase());
-        possibleIds.push(id.replace(/[-\s]/g, '').toUpperCase());
-      }
+      // Add variations for robustness (case-insensitive and characters)
+      const clean = (s: string) => s.toUpperCase().replace(/[-\s]/g, '');
+      const rawId = id || '';
+      
+      possibleIds.push(rawId.toLowerCase());
+      possibleIds.push(rawId.toUpperCase());
+      possibleIds.push(clean(rawId));
+      
       if (subjectCode) {
         possibleIds.push(subjectCode.toLowerCase());
         possibleIds.push(subjectCode.toUpperCase());
-        possibleIds.push(subjectCode.replace(/[-\s]/g, '').toLowerCase());
-        possibleIds.push(subjectCode.replace(/[-\s]/g, '').toUpperCase());
+        possibleIds.push(clean(subjectCode));
+      }
+      
+      // Add ID from official list as fallback
+      const official = IE_SUBJECTS.find(s => s.id === id || s.code === id);
+      if (official) {
+        possibleIds.push(official.id);
+        possibleIds.push(official.code);
+        possibleIds.push(clean(official.id));
+        possibleIds.push(clean(official.code));
       }
       
       // Deduplicate
       const finalIds = Array.from(new Set(possibleIds.filter(Boolean)));
-      console.log(`[DEBUG] Fetching ratings for ${id}. Possible IDs:`, finalIds);
+      console.log(`[Ratings Debug] Subject ID: ${id}. Code: ${subjectCode}. Searching ratings with subjectId in:`, finalIds);
 
       try {
         const ratingsQuery = query(
@@ -164,17 +181,43 @@ export default function SubjectDetail() {
           where('subjectId', 'in', finalIds)
         );
         const ratingsSnap = await getDocs(ratingsQuery);
-        const localRatings = ratingsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Sort manually to avoid index requirement
-        localRatings.sort((a: any, b: any) => {
-          const dateA = a.createdAt?.toDate?.() || a.createdAt || 0;
-          const dateB = b.createdAt?.toDate?.() || b.createdAt || 0;
-          return Number(dateB) - Number(dateA);
+        console.log(`[Ratings Debug] SUCCESS: Found ${ratingsSnap.size} ratings in Firestore for ${id}`);
+        
+        const localRatings = ratingsSnap.docs.map(doc => {
+          const data = doc.data();
+          return { id: doc.id, ...data };
         });
+        
+        // Debug first rating if exists
+        if (localRatings.length > 0) {
+          console.log(`[Ratings Debug] Example rating found:`, localRatings[0]);
+        }
+        
+        // Robust Sort Helper
+        const getTime = (val: any) => {
+          if (!val) return 0;
+          if (typeof val.toMillis === 'function') return val.toMillis();
+          if (typeof val.toDate === 'function') return val.toDate().getTime();
+          if (val instanceof Date) return val.getTime();
+          if (typeof val === 'number') return val;
+          const d = new Date(val);
+          return isNaN(d.getTime()) ? 0 : d.getTime();
+        };
+
+        localRatings.sort((a: any, b: any) => getTime(b.createdAt) - getTime(a.createdAt));
         setRatings(localRatings);
-      } catch (re) {
-        console.warn("Firestore ratings query failed (index?):", re);
-        // Fallback to empty to allow page to load
+      } catch (re: any) {
+        console.warn("[Ratings Debug] Firestore query failed:", re);
+        // If "in" query fails (e.g. too many items), try a simpler one
+        if (finalIds.length > 0) {
+          try {
+             const fallbackQuery = query(collection(db, 'ratings'), where('subjectId', '==', id));
+             const fallbackSnap = await getDocs(fallbackQuery);
+             setRatings(fallbackSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+          } catch (e2) {
+             console.error("[Ratings Debug] Fallback query failed:", e2);
+          }
+        }
       }
 
       // Fetch Live Remote Ratings if configured (to allow automatic updates)

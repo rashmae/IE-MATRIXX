@@ -128,7 +128,7 @@ export default function Catalog() {
   const fetchSubjects = async () => {
     setSubjectsLoading(true);
     try {
-      const q = query(collection(db, 'subjects'), orderBy('yearLevel'), orderBy('semester'));
+      const q = query(collection(db, 'subjects'));
       const querySnapshot = await getDocs(q);
       
       // Start with our official 71 subjects
@@ -137,29 +137,37 @@ export default function Catalog() {
       if (!querySnapshot.empty) {
         const firestoreSubjects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subject));
         
-        // Merge Firestore data into our official 71 subjects to avoid duplicates (117 -> 71 transition)
-        // We use code as the matching key
+        // Merge Firestore data into our official 71 subjects
         finalSubjects = IE_SUBJECTS.map(officialSub => {
           const matchingFirestoreSub = firestoreSubjects.find(fs => 
-            fs.code.replace(/\s/g, '').toLowerCase() === officialSub.code.replace(/\s/g, '').toLowerCase()
+            fs.code.replace(/\s/g, '').toLowerCase() === officialSub.code.replace(/\s/g, '').toLowerCase() ||
+            fs.id === officialSub.id
           );
           
           if (matchingFirestoreSub) {
-            // Keep official metadata but take user-contributed data from Firestore
             return {
               ...officialSub,
               ...matchingFirestoreSub,
-              // Ensure we keep the official yearLevel and semester to maintain the 71-count logic
-              id: matchingFirestoreSub.id, 
+              id: officialSub.id, 
               yearLevel: officialSub.yearLevel,
               semester: officialSub.semester,
               units: officialSub.units,
-              code: officialSub.code // Standardize code display
+              code: officialSub.code
             };
           }
           return officialSub;
         });
       }
+
+      // Sort in memory by year and semester
+      const yearOrder = { '1st': 1, '2nd': 2, '3rd': 3, '4th': 4 };
+      const semOrder = { '1st': 1, '2nd': 2, 'Summer': 3 };
+
+      finalSubjects.sort((a, b) => {
+        const yearDiff = (yearOrder[a.yearLevel as keyof typeof yearOrder] || 0) - (yearOrder[b.yearLevel as keyof typeof yearOrder] || 0);
+        if (yearDiff !== 0) return yearDiff;
+        return (semOrder[a.semester as keyof typeof semOrder] || 0) - (semOrder[b.semester as keyof typeof semOrder] || 0);
+      });
       
       setSubjects(finalSubjects);
     } catch (error) {

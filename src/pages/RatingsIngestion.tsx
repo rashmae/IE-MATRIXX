@@ -127,92 +127,100 @@ export default function RatingsIngestion() {
   };
 
   const FILIPINO_NAMES = [
-    "Juan dela Cruz", "Maria Santos", "Rogelio Baguio", "Liza Soberano", "Enrique Gil", 
-    "Kathryn Bernardo", "Daniel Padilla", "Angel Locsin", "John Lloyd Cruz", "Piolo Pascual", 
-    "Marian Rivera", "Dingdong Dantes", "Anne Curtis", "Coco Martin", "Judy Ann Santos", 
-    "Sarah Geronimo", "Matteo Guidicelli", "Kim Chiu", "Gerald Anderson", "Bea Alonzo", 
-    "Janine Berdin", "Dodong Vic", "Inday Sara", "Manang Fe", "Teofilo Cebuano",
-    "Visitacion Rama", "Buenaventura Osmeña", "Eusebio Labella", "Narciso Garcia", "Restituto Mendoza",
-    "Simplicio Sanchez", "Vicente Sotto", "Zosima Ouano", "Maximina Cortes", "Pantaleon Del Rosario",
-    "Tranquilino Abellana", "Herminigildo Bacaltos", "Jacinta Cuenco", "Leocadio Cabahug", "Pilar Pilapil",
-    "Gaudencio Gaisano", "Estrella Sy", "Benigno Uy", "Corazon Go", "Ferdinand Tan", "Imelda Lim",
-    "Rodrigo Duterte", "Leni Robredo", "Grace Poe", "Isko Moreno", "Ping Lacson", "Manny Pacquiao",
-    "Inday Conching", "Dodong Marlo", "Manang Nene", "Manoy Berto", "Titing Gorio", "Lola Pasing",
-    "Tiyo Isko", "Narsing Dionaldo", "Poldo Labra", "Ching Abellana", "Vicky Pacaña", "Bebot Osmeña",
-    "Nonoy Zuñiga", "Daday Rama", "Titing Caballes", "Boyet Labrada", "Nene Patalinghug"
+    "Abad, Elena M.", "Abella, Roberto J.", "Alcantara, Juvy L.", "Almendras, Kenneth S.", "Ang, Stephanie G.",
+    "Aranas, Michael B.", "Bacalso, Jennifer R.", "Baguio, Christopher L.", "Baltero, Maria Luz", "Basubas, Jonathan P.",
+    "Beltran, Angelica S.", "Bentulan, Ricardo M.", "Bontia, Sheila G.", "Cabahug, Anthony D.", "Cañete, Mary Joy",
+    "Capuno, Mark A.", "Casquejo, Riza B.", "Chiu, Kevin L.", "Colina, Bernadette", "Costan, Frederick S.",
+    "Daclan, Analyn M.", "Deiparine, Joseph R.", "Del Rosario, Melba", "Diano, Francis L.", "Dumadag, Elena B.",
+    "Echavez, Gabriel S.", "Enad, Maricel P.", "Escario, Ronaldo M.", "Espina, Theresa G.", "Estenzo, Vincent",
+    "Flores, Rowena B.", "Gabison, Leonila M.", "Galeos, Armando R.", "Garcia, Evelyn S.", "Gaviola, Romulo",
+    "Gorgonio, Marina P.", "Guerwin, Paul M.", "Hernaez, Lilibeth", "Ibones, Raul B.", "Jaca, Merlinda S.",
+    "Juntilla, Danilo G.", "Kintanar, Grace M.", "Laborte, Arnold R.", "Labra, Cecilia S.", "Labrado, Wilfredo",
+    "Lanticse, Erlinda B.", "Laudiano, Ramon M.", "Legaspi, Myrna S.", "Lumapas, Felipa", "Mabano, Rodrigo G.",
+    "Magallanes, Lucia M.", "Mendoza, Corazon B.", "Nacua, Teodoro S.", "Navarro, Josefina", "Noel, Edgardo M.",
+    "Oporto, Luzviminda", "Patalinghug, Benjamen", "Penalosa, Victoria S.", "Quijano, Arturo B.", "Quintana, Remedios",
+    "Redulla, Simplicio S.", "Repollo, Zosima M.", "Salcedo, Florencio", "Sanchez, Maximina B.", "Senerpida, Tranquilino",
+    "Tabada, Herminigildo", "Tan, Leocadia M.", "Teves, Pilar S.", "Tudtud, Gaudencio", "Uy, Estrella B.",
+    "Velasquez, Benigno S.", "Villaver, Corazon", "Villordon, Avelina M.", "Yap, Romeo B.", "Young, Pacita",
+    "Zuñiga, Nonoy L.", "Abellana, Ching M.", "Osmeña, Rafael S."
   ];
 
   const FEEDBACK_LIST = [
+    "Grabe kaayo kalingaw ang subject!", "Lisod-lisod pero kaya ra gihapon.", "Maayo kaayo ang maestro, klaro kaayo mopasabot.",
     "Highly relevant to IE course.", "Excellent instruction and materials.", "Challenging but rewarding.",
     "The professor is very knowledgeable.", "Provides great industry insights.", "One of the best major subjects.",
     "Very heavy workload but learned a lot.", "Practical applications are clear.", "Good foundation for IE.",
     "The lab sessions are very helpful.", "Strategic thinking was enhanced.", "Loved the group projects.",
     "Exams are tough but fair.", "Resources provided are excellent.", "Great learning environment.",
     "Highly recommended elective.", "Core concepts are well-explained.", "Very useful for future career.",
-    "Engaging and interactive classes.", "Tough subject, definitely need to study hard.",
-    "The Case Studies were very interesting.", "Modern approaches to IE concepts.", "Excellent student support.",
-    "Practical learning at its best.", "Fundamental for board exams.", "Great balance of theory/lab.",
-    "Inspirational teaching style.", "Well-structured curriculum.", "Provides global perspective.",
-    "Essential for systems design.", "Deep dive into industrial processes.", "Good community discussions."
+    "Nindot kaayo pagka structure ang kurikulum.", "Daghan tag makat-onan diri sa CTU.", "Nindot ang dagan sa klase."
   ];
 
   const handleFillQuota = async () => {
-    const currentCount = typeof totalSynced === 'number' ? totalSynced : 0;
-    const targetCount = 100;
-    
-    if (currentCount >= targetCount) {
-      toast.info("Quota of 100 responders already reached or exceeded.");
-      return;
-    }
-
-    const needed = targetCount - currentCount;
     setFilling(true);
-    toast.info(`Generating ${needed} synthetic responders to reach quota...`);
+    const toastId = toast.loading(`Generating 78 realistic respondents with year-level constraints...`);
+
+    const yearLevelMap: Record<string, number> = {
+      '1st': 1,
+      '2nd': 2,
+      '3rd': 3,
+      '4th': 4
+    };
 
     try {
       const batch = writeBatch(db);
-      let feedbackCount = 0;
-      
-      // Keep track of which subjects we updated to update aggregates later
       const affectedSubjects: Record<string, { total: number, count: number }> = {};
       
-      for (let i = 0; i < needed; i++) {
-        // Pick a random subject
-        const randomSubject = IE_SUBJECTS[Math.floor(Math.random() * IE_SUBJECTS.length)];
-        // Pick a random name
-        const randomName = FILIPINO_NAMES[Math.floor(Math.random() * FILIPINO_NAMES.length)];
-        
-        // Random rating 3-5 to make it look realistic
-        const rating = Math.floor(Math.random() * 3) + 3;
-        
-        const needsFeedback = feedbackCount < 60 || Math.random() > 0.4;
-        const feedback = needsFeedback ? FEEDBACK_LIST[Math.floor(Math.random() * FEEDBACK_LIST.length)] : '';
-        if (needsFeedback) feedbackCount++;
+      const RESPONDENT_COUNT = 78;
+      
+      for (let i = 0; i < RESPONDENT_COUNT; i++) {
+        // Assign a year level to this respondent (1-4)
+        const studentYear = 1 + Math.floor(Math.random() * 4);
+        const userName = FILIPINO_NAMES[i % FILIPINO_NAMES.length];
+        const userId = `synthetic-student-${i}`;
 
-        if (!affectedSubjects[randomSubject.id]) {
-          affectedSubjects[randomSubject.id] = { total: 0, count: 0 };
-        }
-        affectedSubjects[randomSubject.id].total += rating;
-        affectedSubjects[randomSubject.id].count += 1;
+        // Filter subjects this student is allowed to rate
+        const eligibleSubjects = IE_SUBJECTS.filter(s => {
+          const subjectYear = yearLevelMap[s.yearLevel] || 1;
+          return subjectYear <= studentYear;
+        });
 
-        const ratingData = {
-          subjectId: randomSubject.id,
-          userId: 'synthetic-generator',
-          userName: randomName,
-          rating: rating,
-          feedback: feedback,
-          createdAt: new Date(Date.now() - Math.floor(Math.random() * 86400000 * 30)), // Random within last 30 days
-          isImported: true,
-          source: 'IE MATRIX Synthetic Gen'
-        };
+        // Each student rates between 3 to 8 subjects from their eligible pool
+        const subjectsToRateCount = Math.min(eligibleSubjects.length, 3 + Math.floor(Math.random() * 6));
+        const shuffled = [...eligibleSubjects].sort(() => 0.5 - Math.random());
+        const subjectsToRate = shuffled.slice(0, subjectsToRateCount);
 
-        const newDocRef = doc(collection(db, 'ratings'));
-        batch.set(newDocRef, ratingData);
+        subjectsToRate.forEach((subject) => {
+          const rating = 3 + Math.floor(Math.random() * 3); // 3-5 range
+          const feedback = FEEDBACK_LIST[Math.floor(Math.random() * FEEDBACK_LIST.length)];
+
+          if (!affectedSubjects[subject.id]) {
+            affectedSubjects[subject.id] = { total: 0, count: 0 };
+          }
+          affectedSubjects[subject.id].total += rating;
+          affectedSubjects[subject.id].count += 1;
+
+          const ratingId = `resp-${subject.id}-${i}`;
+          const ratingData = {
+            subjectId: subject.id,
+            userId: userId,
+            userName: userName,
+            studentYear: `${studentYear}${studentYear === 1 ? 'st' : studentYear === 2 ? 'nd' : studentYear === 3 ? 'rd' : 'th'} Year`,
+            rating: rating,
+            feedback: feedback,
+            createdAt: new Date(Date.now() - Math.floor(Math.random() * 86400000 * 30)),
+            isImported: true,
+            source: 'IE Matrix 78 Respondents'
+          };
+
+          batch.set(doc(db, 'ratings', ratingId), ratingData);
+        });
       }
 
+      console.log(`[Seeding] Committing ratings batch...`);
       await batch.commit();
       
-      // Update subject aggregates in Firestore
+      console.log(`[Seeding] Updating subject statistics...`);
       let subBatch = writeBatch(db);
       let sc = 0;
       for (const [sid, agg] of Object.entries(affectedSubjects)) {
@@ -230,18 +238,19 @@ export default function RatingsIngestion() {
       }
       if (sc > 0) await subBatch.commit();
 
-      const newTotal = currentCount + needed;
+      const totalRatingsCount = Object.values(affectedSubjects).reduce((sum, agg) => sum + agg.count, 0);
       await setDoc(doc(db, 'config', 'ratings'), {
-        totalRecords: newTotal,
-        lastSynced: new Date()
+        totalRecords: totalRatingsCount,
+        lastSynced: new Date(),
+        respondentCount: RESPONDENT_COUNT
       }, { merge: true });
 
-      setTotalSynced(newTotal);
+      setTotalSynced(totalRatingsCount);
       setLastSynced(new Date());
-      toast.success(`Successfully added ${needed} synthetic responders. Total is now ${newTotal}.`);
+      toast.success(`Generated data for ${RESPONDENT_COUNT} respondents (${totalRatingsCount} ratings)!`, { id: toastId });
     } catch (error) {
-      console.error("Fill quota error:", error);
-      toast.error("Failed to generate synthetic data.");
+      console.error("Seeding error:", error);
+      toast.error("Failed to generate respondents data.", { id: toastId });
     } finally {
       setFilling(false);
     }
@@ -480,7 +489,17 @@ export default function RatingsIngestion() {
                     const sIdClean = s.id.toUpperCase().replace(/[-\s]/g, '');
                     return hUpper.includes(sCodeClean) || hUpper.includes(sIdClean);
                   });
-                  const subjectId = foundOfficial ? foundOfficial.id : (subjectHeader.match(/([A-Z]{2,}(?:\s|-)[A-Z0-9]+)/i)?.[0].toUpperCase() || subjectHeader.slice(0, 20));
+                  
+                  let subjectId = foundOfficial ? foundOfficial.id : (subjectHeader.match(/([A-Z]{2,}(?:\s|-)[A-Z0-9]+)/i)?.[0].toUpperCase() || subjectHeader.trim());
+                  
+                  // Final safety check: if we didn't find official, try one more time with simple clean
+                  if (!foundOfficial) {
+                    const fallbackSearch = IE_SUBJECTS.find(s => 
+                      subjectHeader.toLowerCase().includes(s.name.toLowerCase()) || 
+                      s.name.toLowerCase().includes(subjectHeader.toLowerCase())
+                    );
+                    if (fallbackSearch) subjectId = fallbackSearch.id;
+                  }
                   
                   let feedback = '';
                   // Injected feedback if cell doesn't have it, to meet requirements
@@ -546,9 +565,24 @@ export default function RatingsIngestion() {
               const foundOfficial = IE_SUBJECTS.find(s => {
                 const sCodeClean = s.code.toUpperCase().replace(/[-\s]/g, '');
                 const sIdClean = s.id.toUpperCase().replace(/[-\s]/g, '');
-                return rawSubject.includes(sCodeClean) || rawSubject.includes(sIdClean) || rawSubject === sIdClean;
+                const sNameClean = s.name.toUpperCase().replace(/[-\s]/g, '');
+                return rawSubject.includes(sCodeClean) || 
+                       rawSubject.includes(sIdClean) || 
+                       rawSubject.includes(sNameClean) ||
+                       rawSubject === sIdClean;
               });
-              const subjectId = foundOfficial ? foundOfficial.id : String(row[subjectKey]).toUpperCase().slice(0, 30);
+              
+              let subjectId = foundOfficial ? foundOfficial.id : String(row[subjectKey]).trim();
+              
+              // Second pass for Standard Mode matching by name overlap
+              if (!foundOfficial) {
+                const rawLower = String(row[subjectKey]).toLowerCase();
+                const nameMatch = IE_SUBJECTS.find(s => 
+                  rawLower.includes(s.name.toLowerCase()) || 
+                  s.name.toLowerCase().includes(rawLower)
+                );
+                if (nameMatch) subjectId = nameMatch.id;
+              }
 
               processedRatings.push({
                 subjectId: subjectId,
@@ -857,7 +891,7 @@ export default function RatingsIngestion() {
                     )}
                   >
                     {filling ? <RefreshCw className="animate-spin" size={14} /> : <BarChart3 size={14} />}
-                    Fill Quota to 100
+                    Seed Initial Respondents (78)
                   </button>
                 </div>
               </CardContent>
