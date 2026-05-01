@@ -6,37 +6,37 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 let genAI: GoogleGenerativeAI | null = null;
 
 export const getGeminiClient = () => {
-  // Try to find ANY possible location for the key
-  const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || 
-                  import.meta.env.VITE_FIREBASE_API_KEY || 
-                  (window as any).process?.env?.VITE_GEMINI_API_KEY);
-  
-  // Strict check for "undefined" or "null" strings that might leak from environment
-  const isValidKey = apiKey && 
-    typeof apiKey === 'string' &&
-    apiKey !== 'undefined' && 
-    apiKey !== 'null' && 
-    apiKey.trim() !== '';
+  try {
+    // Try to find ANY possible location for the key
+    const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || 
+                    import.meta.env.VITE_FIREBASE_API_KEY || 
+                    (window as any).process?.env?.VITE_GEMINI_API_KEY);
+    
+    // Strict check for "undefined" or "null" strings that might leak from environment
+    const isValidKey = apiKey && 
+      typeof apiKey === 'string' &&
+      apiKey !== 'undefined' && 
+      apiKey !== 'null' && 
+      apiKey.trim() !== '';
 
-  if (!isValidKey) {
-    if (apiKey === undefined || apiKey === 'undefined') {
-      console.warn('[Gemini] API Key is UNDEFINED. Check your Vercel/Env configuration.');
-    } else {
-      console.warn('[Gemini] API key missing or invalid:', apiKey);
-    }
-    return null;
-  }
-
-  if (!genAI) {
-    try {
-      console.log('[Gemini] Initializing client...');
-      genAI = new GoogleGenerativeAI(apiKey);
-    } catch (error) {
-      console.error('[Gemini] Initialization failed:', error);
+    if (!isValidKey) {
+      if (apiKey === undefined || apiKey === 'undefined') {
+        console.warn('[Gemini] API Key is UNDEFINED. Check your Vercel/Env configuration.');
+      } else {
+        console.warn('[Gemini] API key missing or invalid:', apiKey);
+      }
       return null;
     }
+
+    if (!genAI) {
+      console.log('[Gemini] Initializing client...');
+      genAI = new GoogleGenerativeAI(apiKey);
+    }
+    return genAI;
+  } catch (error) {
+    console.error('[Gemini] Initialization failed:', error);
+    return null;
   }
-  return genAI;
 };
 
 const DEFAULT_MODEL = "gemini-1.5-flash";

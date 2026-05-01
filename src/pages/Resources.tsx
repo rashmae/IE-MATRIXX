@@ -30,7 +30,7 @@ import UploadResourceModal from '@/src/components/resources/UploadResourceModal'
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { db } from '@/src/lib/firebase';
-import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit, where } from 'firebase/firestore';
 
 import { useAuth } from '@/src/context/AuthContext';
 
@@ -49,21 +49,68 @@ export default function Resources() {
     } 
     
     if (user) {
-      // Real-time Firestore sync
-      const q = query(collection(db, 'resources'), orderBy('createdAt', 'desc'), limit(50));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const firestoreResources = snapshot.docs.map(doc => ({
+      // Real-time Firestore sync with two separate queries to handle permissions correctly
+      const publicQuery = query(
+        collection(db, 'resources'),
+        where('isPublic', '==', true),
+        orderBy('createdAt', 'desc'),
+        limit(50)
+      );
+      
+      const myQuery = query(
+        collection(db, 'resources'),
+        where('userId', '==', user.uid),
+        orderBy('createdAt', 'desc'),
+        limit(20)
+      );
+
+      const handleSnapshot = (snapshot: any, source: 'public' | 'mine') => {
+        const newResources = snapshot.docs.map((doc: any) => ({
           id: doc.id,
           ...doc.data()
         })) as Resource[];
-        
-        setResources(firestoreResources);
-      }, (error) => {
-        console.error("Firestore sync error:", error);
-        toast.error("Failed to sync resources.");
+
+        setResources(prev => {
+          // Merge with previous, keeping source distinction if needed, 
+          // but for the simple list, we just merge and dedup by id
+          const otherSourceResources = source === 'public' 
+            ? prev.filter(r => r.userId === user.uid && !r.isPublic) // Keep my private ones
+            : prev.filter(r => r.isPublic); // Keep public ones
+          
+          const combined = [...newResources, ...otherSourceResources];
+          
+          // Dedup by ID
+          const seen = new Set();
+          return combined.filter(r => {
+            if (seen.has(r.id)) return false;
+            seen.add(r.id);
+            return true;
+          }).sort((a, b) => {
+            const getT = (val: any) => {
+              if (!val) return 0;
+              if (typeof val.toMillis === 'function') return val.toMillis();
+              if (typeof val.toDate === 'function') return val.toDate().getTime();
+              if (val instanceof Date) return val.getTime();
+              const d = new Date(val);
+              return isNaN(d.getTime()) ? 0 : d.getTime();
+            };
+            return getT(b.createdAt) - getT(a.createdAt);
+          });
+        });
+      };
+
+      const unsubscribePublic = onSnapshot(publicQuery, (snapshot) => handleSnapshot(snapshot, 'public'), (error) => {
+        console.error("Public resources sync error:", error);
       });
 
-      return () => unsubscribe();
+      const unsubscribeMy = onSnapshot(myQuery, (snapshot) => handleSnapshot(snapshot, 'mine'), (error) => {
+        console.error("My resources sync error:", error);
+      });
+
+      return () => {
+        unsubscribePublic();
+        unsubscribeMy();
+      };
     }
   }, [user, authLoading, navigate]);
 

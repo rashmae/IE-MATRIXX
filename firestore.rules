@@ -82,11 +82,9 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuthenticated() && (
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'student') == 'admin') ||
-        request.auth.token.email == 'rashmae26@gmail.com'
-      );
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'student') == 'admin';
     }
 
     function isValidId(id) {
@@ -263,7 +261,16 @@ service cloud.firestore {
     match /ratings/{ratingId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isValidId(ratingId) && isValidRating(request.resource.data);
-      allow update, delete: if isAdmin();
+      allow update: if isAuthenticated() && (
+        // Like/unlike any review (only likes fields)
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'likedBy']) ||
+        // Edit own rating (only feedback/rating fields)
+        (resource.data.userId == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'feedback', 'isAnonymous', 'userName'])) ||
+        // Admin
+        isAdmin()
+      );
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     match /studyGroups/{groupId} {
@@ -304,6 +311,7 @@ service cloud.firestore {
 
     match /resources/{resourceId} {
       allow read: if isAuthenticated() && (resource.data.isPublic == true || resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isAuthenticated();
       allow create: if isAuthenticated() && isValidId(resourceId) && isValidResource(request.resource.data);
       allow update: if isAuthenticated() && isValidId(resourceId) && (resource.data.userId == request.auth.uid && isValidResource(request.resource.data) || isAdmin());
       allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());

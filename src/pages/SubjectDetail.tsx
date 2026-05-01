@@ -420,9 +420,7 @@ export default function SubjectDetail() {
   };
 
   const handleUpload = (newResource: Resource) => {
-    if (subject && newResource.subjectId === subject.id) {
-      setResources(prev => [newResource, ...prev]);
-    }
+    fetchSubjectData(); // refresh everything to ensure sync with Firestore
     toast.success('Resource shared successfully!');
     setIsUploadModalOpen(false);
     setSelectedFile(null);
