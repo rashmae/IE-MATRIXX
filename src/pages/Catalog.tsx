@@ -140,7 +140,7 @@ export default function Catalog() {
         // Merge Firestore data into our official 71 subjects
         finalSubjects = IE_SUBJECTS.map(officialSub => {
           const matchingFirestoreSub = firestoreSubjects.find(fs => 
-            fs.code.replace(/\s/g, '').toLowerCase() === officialSub.code.replace(/\s/g, '').toLowerCase() ||
+            (fs.code && fs.code.replace(/\s/g, '').toLowerCase() === officialSub.code.replace(/\s/g, '').toLowerCase()) ||
             fs.id === officialSub.id
           );
           

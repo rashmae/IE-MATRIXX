@@ -51,12 +51,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribeAuth();
   }, []);
 
-  const value = {
+  const value = React.useMemo(() => ({
     user,
     profile,
     loading,
     isAdmin: profile?.role === 'admin' || user?.email === 'rashmae26@gmail.com'
-  };
+  }), [user, profile, loading]);
 
   return (
     <AuthContext.Provider value={value}>

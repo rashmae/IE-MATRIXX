@@ -66,7 +66,8 @@ import {
   doc,
   getDoc,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  onSnapshot
 } from 'firebase/firestore';
 
 export default function SubjectDetail() {
@@ -97,22 +98,34 @@ export default function SubjectDetail() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!authLoading && !profile) {
+    if (authLoading) return;
+    
+    if (!profile) {
       navigate('/login');
       return;
     }
 
-    if (profile && id) {
-      // 1. Fetch Subject Info
+    if (id) {
+      // 1. Reset state on ID change to avoid flicker and show loader
+      setLoading(true);
+      setSubject(null);
+      setResources([]);
+      setRatings([]);
+
+      let isMounted = true;
+
+      // 2. Fetch Subject Info
       const fetchSubject = async () => {
         try {
           const subRef = doc(db, 'subjects', id);
           const subSnap = await getDoc(subRef);
           
+          if (!isMounted) return;
+
           if (subSnap.exists()) {
             setSubject({ id: subSnap.id, ...subSnap.data() } as Subject);
           } else {
-            const foundSubject = IE_SUBJECTS.find(s => s.id === id);
+            const foundSubject = IE_SUBJECTS.find(s => s.id === id || s.code === id);
             if (foundSubject) {
               setSubject(foundSubject);
             } else {
@@ -122,14 +135,16 @@ export default function SubjectDetail() {
           }
         } catch (err) {
           console.error("Error fetching subject info:", err);
+          if (isMounted) {
+            const fallback = IE_SUBJECTS.find(s => s.id === id || s.code === id);
+            if (fallback) setSubject(fallback);
+          }
         }
       };
       
       fetchSubject();
 
-      // 2. Real-time Resources (Vault)
-      // We still need the subject code for the variations if needed, 
-      // but standard is subjectId == id
+      // 3. Real-time Resources (Vault)
       const publicResQuery = query(
         collection(db, 'resources'), 
         where('subjectId', '==', id),
@@ -143,6 +158,7 @@ export default function SubjectDetail() {
       );
 
       const handleResSnapshot = (snapshot: any, source: 'public' | 'mine') => {
+        if (!isMounted) return;
         const fetched = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
         setResources(prev => {
           const others = source === 'public' 
@@ -170,20 +186,16 @@ export default function SubjectDetail() {
       const unsubPublicRes = onSnapshot(publicResQuery, (s) => handleResSnapshot(s, 'public'), (e) => console.warn("Vault public sync error:", e));
       const unsubMyRes = onSnapshot(myResQuery, (s) => handleResSnapshot(s, 'mine'), (e) => console.warn("Vault my sync error:", e));
 
-      // 3. Real-time Ratings
-      // Calculate possible IDs for robust matching (e.g. if code was used as ID)
+      // 4. Real-time Ratings
       const fallbackSubject = IE_SUBJECTS.find(s => s.id === id || s.code === id);
       const subjectCode = fallbackSubject?.code || id;
       const possibleIds = [id];
       if (subjectCode) possibleIds.push(subjectCode);
-      
-      // Add variations
       const clean = (s: string) => s.toUpperCase().replace(/[-\s]/g, '');
       possibleIds.push(id.toLowerCase(), id.toUpperCase(), clean(id));
       if (subjectCode) {
         possibleIds.push(subjectCode.toLowerCase(), subjectCode.toUpperCase(), clean(subjectCode));
       }
-      
       const finalIds = Array.from(new Set(possibleIds.filter(Boolean)));
       
       const ratingsQuery = query(
@@ -192,9 +204,8 @@ export default function SubjectDetail() {
       );
 
       const unsubRatings = onSnapshot(ratingsQuery, (snapshot) => {
+        if (!isMounted) return;
         const localRatings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        // Sorting in memory
         const getTime = (val: any) => {
           if (!val) return 0;
           if (typeof val.toMillis === 'function') return val.toMillis();
@@ -207,10 +218,11 @@ export default function SubjectDetail() {
         setLoading(false);
       }, (error) => {
         console.warn("Ratings real-time sync error:", error);
-        setLoading(false);
+        if (isMounted) setLoading(false);
       });
 
       return () => {
+        isMounted = false;
         unsubPublicRes();
         unsubMyRes();
         unsubRatings();
