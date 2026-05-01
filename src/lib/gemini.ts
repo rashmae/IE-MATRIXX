@@ -1,49 +1,31 @@
 
-console.log('--- GEMINI MODULE INITIALIZED [v1.0.2] ---');
+import { GoogleGenAI } from "@google/genai";
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+let aiClient: GoogleGenAI | null = null;
 
-let genAI: GoogleGenerativeAI | null = null;
+export const DEFAULT_MODEL = "gemini-3-flash-preview";
 
 export const getGeminiClient = () => {
-  try {
-    // Try to find ANY possible location for the key
-    const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || 
-                    import.meta.env.VITE_FIREBASE_API_KEY || 
-                    (window as any).process?.env?.VITE_GEMINI_API_KEY);
-    
-    // Strict check for "undefined" or "null" strings that might leak from environment
-    const isValidKey = apiKey && 
-      typeof apiKey === 'string' &&
-      apiKey !== 'undefined' && 
-      apiKey !== 'null' && 
-      apiKey.trim() !== '';
+  if (aiClient) return aiClient;
 
-    if (!isValidKey) {
-      if (apiKey === undefined || apiKey === 'undefined') {
-        console.warn('[Gemini] API Key is UNDEFINED. Check your Vercel/Env configuration.');
-      } else {
-        console.warn('[Gemini] API key missing or invalid:', apiKey);
-      }
-      return null;
-    }
+  // Following skill guidelines: Always use process.env.GEMINI_API_KEY for Gemini API in AI Studio
+  // We include a fallback for local development if needed, but prioritize the required pattern.
+  const apiKey = (process as any).env?.GEMINI_API_KEY || 
+                 (import.meta as any).env?.VITE_GEMINI_API_KEY ||
+                 (import.meta as any).env?.VITE_FIREBASE_API_KEY;
 
-    if (!genAI) {
-      console.log('[Gemini] Initializing client...');
-      genAI = new GoogleGenerativeAI(apiKey);
-    }
-    return genAI;
-  } catch (error) {
-    console.error('[Gemini] Initialization failed:', error);
+  if (!apiKey || apiKey === 'undefined' || apiKey === 'null') {
+    console.warn('[Gemini] API Key is missing. Batch ingestion and AI features will fail.');
     return null;
   }
+
+  aiClient = new GoogleGenAI({ apiKey });
+  return aiClient;
 };
 
-const DEFAULT_MODEL = "gemini-1.5-flash";
-
 export async function generateStudyPlan(currentProgress: any, subjects: any[]) {
-  const client = getGeminiClient();
-  if (!client) return [];
+  const ai = getGeminiClient();
+  if (!ai) return [];
 
   const prompt = `
     You are an expert Industrial Engineering Academic Advisor.
@@ -52,35 +34,32 @@ export async function generateStudyPlan(currentProgress: any, subjects: any[]) {
     Student Progress: ${JSON.stringify(currentProgress)}
     Curriculum: ${JSON.stringify(subjects.map(s => ({ id: s.id, code: s.code, name: s.name, prerequisites: s.prerequisiteIds })))}
     
-    Return a JSON array of steps. Each step should include:
+    Return a JSON array of objects. Each step should include:
     - title: String (e.g., "Master the Fundamentals")
     - description: String
     - subjects: Array of strings (subject codes)
     - difficulty: "easy" | "medium" | "hard"
-    
-    Focus on prerequisite satisfaction and logical learning flow.
   `;
 
   try {
-    const model = client.getGenerativeModel({ model: DEFAULT_MODEL });
-    const response = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
+    const response = await ai.models.generateContent({
+      model: DEFAULT_MODEL,
+      contents: prompt,
+      config: {
         responseMimeType: "application/json"
       }
     });
 
-    const text = response.response.text() || "[]";
-    return JSON.parse(text);
+    return JSON.parse(response.text || "[]");
   } catch (error) {
-    console.error("Gemini Error:", error);
+    console.error("Gemini Study Plan Error:", error);
     return [];
   }
 }
 
 export async function askQuestion(question: string, context: string) {
-  const client = getGeminiClient();
-  if (!client) return "AI Assistant is currently unavailable.";
+  const ai = getGeminiClient();
+  if (!ai) return "AI Assistant is currently unavailable.";
 
   const prompt = `
     You are an IE Matrix AI Tutor. 
@@ -91,20 +70,20 @@ export async function askQuestion(question: string, context: string) {
   `;
   
   try {
-    const model = client.getGenerativeModel({ model: DEFAULT_MODEL });
-    const response = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    const response = await ai.models.generateContent({
+      model: DEFAULT_MODEL,
+      contents: prompt
     });
-    return response.response.text() || "Sorry, I couldn't process your request.";
+    return response.text || "Sorry, I couldn't process your request.";
   } catch (error) {
-    console.error("Gemini Error:", error);
+    console.error("Gemini QA Error:", error);
     return "Sorry, I couldn't process your request.";
   }
 }
 
 export async function generateQuiz(subjectName: string) {
-  const client = getGeminiClient();
-  if (!client) return [];
+  const ai = getGeminiClient();
+  if (!ai) return [];
 
   const prompt = `
     Create a 5-question multiple choice quiz for the subject: ${subjectName}.
@@ -118,15 +97,14 @@ export async function generateQuiz(subjectName: string) {
   `;
   
   try {
-    const model = client.getGenerativeModel({ model: DEFAULT_MODEL });
-    const response = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
+    const response = await ai.models.generateContent({
+      model: DEFAULT_MODEL,
+      contents: prompt,
+      config: {
         responseMimeType: "application/json"
       }
     });
-    const text = response.response.text() || "[]";
-    return JSON.parse(text);
+    return JSON.parse(response.text || "[]");
   } catch (error) {
     console.error("Gemini Quiz Error:", error);
     return [];
@@ -134,8 +112,8 @@ export async function generateQuiz(subjectName: string) {
 }
 
 export async function getCurriculumAdvice(userProgress: any, subjects: any[]) {
-  const client = getGeminiClient();
-  if (!client) return "I'm sorry, I couldn't generate advice at the moment.";
+  const ai = getGeminiClient();
+  if (!ai) return "I'm sorry, I couldn't generate advice at the moment.";
 
   const prompt = `
     You are an academic advisor for Industrial Engineering students. You power the IE MATRIX system.
@@ -152,11 +130,11 @@ export async function getCurriculumAdvice(userProgress: any, subjects: any[]) {
   `;
 
   try {
-    const model = client.getGenerativeModel({ model: DEFAULT_MODEL });
-    const response = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    const response = await ai.models.generateContent({
+      model: DEFAULT_MODEL,
+      contents: prompt
     });
-    return response.response.text() || "I'm sorry, I couldn't generate advice at the moment.";
+    return response.text || "I'm sorry, I couldn't generate advice at the moment.";
   } catch (error) {
     console.error("Gemini Advice Error:", error);
     return "I'm sorry, I couldn't generate advice at the moment. Please try again later.";

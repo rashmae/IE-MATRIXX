@@ -44,6 +44,32 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
+  // Proxy endpoint for Google Drive PDFs
+  app.get("/api/proxy-drive", async (req, res) => {
+    const fileId = req.query.id;
+    if (!fileId) return res.status(400).json({ error: "Missing file ID" });
+
+    try {
+      const driveUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+      const response = await fetch(driveUrl);
+      
+      if (!response.ok) {
+        return res.status(response.status).json({ error: `Drive error: ${response.statusText}` });
+      }
+
+      // Proxy headers
+      const contentType = response.headers.get("content-type");
+      if (contentType) res.setHeader("Content-Type", contentType);
+      
+      // Stream the response
+      const arrayBuffer = await response.arrayBuffer();
+      res.send(Buffer.from(arrayBuffer));
+    } catch (error) {
+      console.error("Proxy error:", error);
+      res.status(500).json({ error: "Proxy failed to fetch from Drive" });
+    }
+  });
+
   // Example Admin Route
   app.get("/api/admin/check", (req, res) => {
     const admin = initAdmin();

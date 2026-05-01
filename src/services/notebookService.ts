@@ -1,11 +1,9 @@
 import { NotebookSource } from "../types";
-import { getGeminiClient } from "../lib/gemini";
-
-const DEFAULT_MODEL = "gemini-1.5-flash";
+import { getGeminiClient, DEFAULT_MODEL } from "../lib/gemini";
 
 export async function generateNotebookSummary(name: string, sources: NotebookSource[]) {
-  const client = getGeminiClient();
-  if (!client) return "AI Summary is currently unavailable.";
+  const ai = getGeminiClient();
+  if (!ai) return "AI Summary is currently unavailable.";
 
   const sourcesText = sources.map(s => `Source: ${s.title}\nContent: ${s.content}`).join('\n\n---\n\n');
   
@@ -19,9 +17,11 @@ export async function generateNotebookSummary(name: string, sources: NotebookSou
   `;
 
   try {
-    const model = client.getGenerativeModel({ model: DEFAULT_MODEL });
-    const response = await model.generateContent(prompt);
-    return response.response.text();
+    const response = await ai.models.generateContent({
+      model: DEFAULT_MODEL,
+      contents: prompt
+    });
+    return response.text;
   } catch (error) {
     console.error("Summary Error:", error);
     return "Failed to generate summary.";
@@ -34,8 +34,8 @@ export async function chatWithNotebook(
   history: { role: 'user' | 'model', parts: { text: string }[] }[],
   userMessage: string
 ) {
-  const client = getGeminiClient();
-  if (!client) return "AI Chat is currently unavailable.";
+  const ai = getGeminiClient();
+  if (!ai) return "AI Chat is currently unavailable.";
 
   const sourcesText = sources.map(s => `[ID: ${s.id}] Source: ${s.title}\nContent: ${s.content}`).join('\n\n---\n\n');
   
@@ -55,18 +55,15 @@ export async function chatWithNotebook(
   `;
 
   try {
-    const model = client.getGenerativeModel({ 
+    const response = await ai.models.generateContent({
       model: DEFAULT_MODEL,
-      systemInstruction: {
-        role: "system",
-        parts: [{ text: systemInstruction }]
+      contents: history.map(h => ({ role: h.role, parts: h.parts })).concat([{ role: 'user', parts: [{ text: userMessage }] }]),
+      config: {
+        systemInstruction: systemInstruction
       }
     });
-    const response = await model.generateContent({
-      contents: [...history, { role: 'user', parts: [{ text: userMessage }] }]
-    });
 
-    return response.response.text();
+    return response.text;
   } catch (error) {
     console.error("Notebook Chat Error:", error);
     return "I encounterered an error while processing your request.";
@@ -74,8 +71,8 @@ export async function chatWithNotebook(
 }
 
 export async function searchExternalResources(query: string) {
-  const client = getGeminiClient();
-  if (!client) return [];
+  const ai = getGeminiClient();
+  if (!ai) return [];
 
   const prompt = `
     Find high-quality academic and educational resources (articles, papers, study guides) related to: "${query}".
@@ -85,14 +82,14 @@ export async function searchExternalResources(query: string) {
   `;
 
   try {
-    const model = client.getGenerativeModel({ 
+    const response = await ai.models.generateContent({ 
       model: DEFAULT_MODEL,
-      generationConfig: {
+      contents: prompt,
+      config: {
         responseMimeType: "application/json"
       }
     });
-    const response = await model.generateContent(prompt);
-    return JSON.parse(response.response.text());
+    return JSON.parse(response.text || "[]");
   } catch (e) {
     console.error("Failed to parse search results:", e);
     return [];

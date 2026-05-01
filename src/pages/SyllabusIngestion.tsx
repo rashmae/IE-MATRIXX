@@ -120,8 +120,8 @@ export default function SyllabusIngestion() {
     updateResult(fileId, { status: 'processing', message: 'Downloading PDF...' });
     
     try {
-      // 1. Download PDF (via direct Google Drive link)
-      const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+      // 1. Download PDF (via local proxy to bypass CORS)
+      const downloadUrl = `/api/proxy-drive?id=${fileId}`;
       const res = await fetch(downloadUrl);
       if (!res.ok) throw new Error('Failed to download PDF');
       const blob = await res.blob();
@@ -140,10 +140,9 @@ export default function SyllabusIngestion() {
       updateResult(fileId, { message: 'Extracting data with AI...' });
 
       // 3. Extract with Gemini
-      const client = getGeminiClient();
-      if (!client) throw new Error('AI Assistant is not configured. Please set VITE_GEMINI_API_KEY.');
+      const ai = getGeminiClient();
+      if (!ai) throw new Error('AI Assistant is not configured. Please set GEMINI_API_KEY.');
       
-      const modelName = "gemini-1.5-flash";
       const prompt = `Extract academic information from this syllabus PDF. Return JSON.
       Fields:
       - subjectCode (The catalog code, e.g. "IE-PC 212")
@@ -157,16 +156,9 @@ export default function SyllabusIngestion() {
       - courseOutcomes (array of strings)
       - topics (array of strings)`;
 
-      const model = client.getGenerativeModel({ 
-        model: modelName,
-        generationConfig: {
-          responseMimeType: "application/json"
-        }
-      });
-
-      const aiResponse = await model.generateContent({
-        contents: [{
-          role: 'user',
+      const aiResponse = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: {
           parts: [
             { text: prompt },
             {
@@ -176,21 +168,35 @@ export default function SyllabusIngestion() {
               }
             }
           ]
-        }]
+        },
+        config: {
+          responseMimeType: "application/json"
+        }
       });
 
-      const responseText = aiResponse.response.text();
-      const info = JSON.parse(responseText);
+      const responseText = aiResponse.text;
+      if (!responseText) throw new Error("No response from AI");
+      const cleanJson = responseText.replace(/```json|```/g, '').trim();
+      const info = JSON.parse(cleanJson);
       updateResult(fileId, { subjectCode: info.subjectCode, message: 'Updating Firestore...' });
 
       // 4. Update Firestore
       const syllabusUrl = `https://drive.google.com/file/d/${fileId}/preview`;
       const subjectsRef = collection(db, 'subjects');
-      const q = query(subjectsRef, where('code', '==', info.subjectCode));
-      const querySnapshot = await getDocs(q);
+      
+      // Fetch all subjects for local matching to handle code variations
+      const querySnapshot = await getDocs(subjectsRef);
 
-      if (!querySnapshot.empty) {
-        const docRef = doc(db, 'subjects', querySnapshot.docs[0].id);
+      const normalize = (s: string) => (s || '').replace(/\s/g, '').toLowerCase();
+      const targetCode = normalize(info.subjectCode);
+
+      const matchingDoc = querySnapshot.docs.find(doc => {
+        const data = doc.data();
+        return normalize(data.code) === targetCode || doc.id === info.subjectCode || normalize(doc.id) === targetCode;
+      });
+
+      if (matchingDoc) {
+        const docRef = doc(db, 'subjects', matchingDoc.id);
         await updateDoc(docRef, {
           ...info,
           syllabusUrl,
