@@ -102,184 +102,125 @@ export default function SubjectDetail() {
       return;
     }
 
-    if (profile) {
-      fetchSubjectData();
-    }
-  }, [id, profile, authLoading, navigate]);
-
-  const fetchSubjectData = async () => {
-    setLoading(true);
-    try {
-      const subRef = doc(db, 'subjects', id!);
-      const subSnap = await getDoc(subRef);
-      
-      if (subSnap.exists()) {
-        setSubject({ id: subSnap.id, ...subSnap.data() } as Subject);
-      } else {
-        const foundSubject = IE_SUBJECTS.find(s => s.id === id);
-        if (foundSubject) {
-          setSubject(foundSubject);
-        } else {
-          toast.error('Subject not found');
-          navigate('/catalog');
-          return;
+    if (profile && id) {
+      // 1. Fetch Subject Info
+      const fetchSubject = async () => {
+        try {
+          const subRef = doc(db, 'subjects', id);
+          const subSnap = await getDoc(subRef);
+          
+          if (subSnap.exists()) {
+            setSubject({ id: subSnap.id, ...subSnap.data() } as Subject);
+          } else {
+            const foundSubject = IE_SUBJECTS.find(s => s.id === id);
+            if (foundSubject) {
+              setSubject(foundSubject);
+            } else {
+              toast.error('Subject not found');
+              navigate('/catalog');
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching subject info:", err);
         }
-      }
+      };
+      
+      fetchSubject();
 
-      const resourcesQuery = query(
+      // 2. Real-time Resources (Vault)
+      // We still need the subject code for the variations if needed, 
+      // but standard is subjectId == id
+      const publicResQuery = query(
         collection(db, 'resources'), 
-        where('subjectId', '==', id)
+        where('subjectId', '==', id),
+        where('isPublic', '==', true)
       );
-      const resourcesSnap = await getDocs(resourcesQuery);
-      const resourcesData = resourcesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
       
-      // Sort in memory to avoid index requirement
-      resourcesData.sort((a: any, b: any) => {
-        const timeA = a.createdAt?.toDate?.()?.getTime() || (a.createdAt instanceof Date ? a.createdAt.getTime() : 0) || new Date(a.createdAt).getTime() || 0;
-        const timeB = b.createdAt?.toDate?.()?.getTime() || (b.createdAt instanceof Date ? b.createdAt.getTime() : 0) || new Date(b.createdAt).getTime() || 0;
-        return timeB - timeA;
-      });
-      
-      setResources(resourcesData);
+      const myResQuery = query(
+        collection(db, 'resources'), 
+        where('subjectId', '==', id),
+        where('userId', '==', profile.uid)
+      );
 
-      const subjectCode = subSnap.exists() ? subSnap.data().code : (IE_SUBJECTS.find(s => s.id === id)?.code || id);
-      
-      // Construct possible IDs to search for in ratings
-      const possibleIds: string[] = [id!];
+      const handleResSnapshot = (snapshot: any, source: 'public' | 'mine') => {
+        const fetched = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+        setResources(prev => {
+          const others = source === 'public' 
+            ? prev.filter(r => r.userId === profile.uid && !r.isPublic)
+            : prev.filter(r => r.isPublic);
+          
+          const combined = [...fetched, ...others];
+          const seen = new Set();
+          return combined.filter(r => {
+            if (seen.has(r.id)) return false;
+            seen.add(r.id);
+            return true;
+          }).sort((a, b) => {
+            const getT = (val: any) => {
+              if (!val) return 0;
+              if (typeof val.toMillis === 'function') return val.toMillis();
+              if (typeof val.toDate === 'function') return val.toDate().getTime();
+              return new Date(val).getTime() || 0;
+            };
+            return getT(b.createdAt) - getT(a.createdAt);
+          });
+        });
+      };
+
+      const unsubPublicRes = onSnapshot(publicResQuery, (s) => handleResSnapshot(s, 'public'), (e) => console.warn("Vault public sync error:", e));
+      const unsubMyRes = onSnapshot(myResQuery, (s) => handleResSnapshot(s, 'mine'), (e) => console.warn("Vault my sync error:", e));
+
+      // 3. Real-time Ratings
+      // Calculate possible IDs for robust matching (e.g. if code was used as ID)
+      const fallbackSubject = IE_SUBJECTS.find(s => s.id === id || s.code === id);
+      const subjectCode = fallbackSubject?.code || id;
+      const possibleIds = [id];
       if (subjectCode) possibleIds.push(subjectCode);
       
-      // Add variations for robustness (case-insensitive and characters)
+      // Add variations
       const clean = (s: string) => s.toUpperCase().replace(/[-\s]/g, '');
-      const rawId = id || '';
-      
-      possibleIds.push(rawId.toLowerCase());
-      possibleIds.push(rawId.toUpperCase());
-      possibleIds.push(clean(rawId));
-      
+      possibleIds.push(id.toLowerCase(), id.toUpperCase(), clean(id));
       if (subjectCode) {
-        possibleIds.push(subjectCode.toLowerCase());
-        possibleIds.push(subjectCode.toUpperCase());
-        possibleIds.push(clean(subjectCode));
+        possibleIds.push(subjectCode.toLowerCase(), subjectCode.toUpperCase(), clean(subjectCode));
       }
       
-      // Add ID from official list as fallback
-      const official = IE_SUBJECTS.find(s => s.id === id || s.code === id);
-      if (official) {
-        possibleIds.push(official.id);
-        possibleIds.push(official.code);
-        possibleIds.push(clean(official.id));
-        possibleIds.push(clean(official.code));
-      }
-      
-      // Deduplicate
       const finalIds = Array.from(new Set(possibleIds.filter(Boolean)));
-      console.log(`[Ratings Debug] Subject ID: ${id}. Code: ${subjectCode}. Searching ratings with subjectId in:`, finalIds);
+      
+      const ratingsQuery = query(
+        collection(db, 'ratings'),
+        where('subjectId', 'in', finalIds)
+      );
 
-      try {
-        const ratingsQuery = query(
-          collection(db, 'ratings'),
-          where('subjectId', 'in', finalIds)
-        );
-        const ratingsSnap = await getDocs(ratingsQuery);
-        console.log(`[Ratings Debug] SUCCESS: Found ${ratingsSnap.size} ratings in Firestore for ${id}`);
+      const unsubRatings = onSnapshot(ratingsQuery, (snapshot) => {
+        const localRatings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        const localRatings = ratingsSnap.docs.map(doc => {
-          const data = doc.data();
-          return { id: doc.id, ...data };
-        });
-        
-        // Debug first rating if exists
-        if (localRatings.length > 0) {
-          console.log(`[Ratings Debug] Example rating found:`, localRatings[0]);
-        }
-        
-        // Robust Sort Helper
+        // Sorting in memory
         const getTime = (val: any) => {
           if (!val) return 0;
           if (typeof val.toMillis === 'function') return val.toMillis();
           if (typeof val.toDate === 'function') return val.toDate().getTime();
-          if (val instanceof Date) return val.getTime();
-          if (typeof val === 'number') return val;
-          const d = new Date(val);
-          return isNaN(d.getTime()) ? 0 : d.getTime();
+          return new Date(val).getTime() || 0;
         };
 
         localRatings.sort((a: any, b: any) => getTime(b.createdAt) - getTime(a.createdAt));
         setRatings(localRatings);
-      } catch (re: any) {
-        console.warn("[Ratings Debug] Firestore query failed:", re);
-        // If "in" query fails (e.g. too many items), try a simpler one
-        if (finalIds.length > 0) {
-          try {
-             const fallbackQuery = query(collection(db, 'ratings'), where('subjectId', '==', id));
-             const fallbackSnap = await getDocs(fallbackQuery);
-             setRatings(fallbackSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-          } catch (e2) {
-             console.error("[Ratings Debug] Fallback query failed:", e2);
-          }
-        }
-      }
+        setLoading(false);
+      }, (error) => {
+        console.warn("Ratings real-time sync error:", error);
+        setLoading(false);
+      });
 
-      // Fetch Live Remote Ratings if configured (to allow automatic updates)
-      try {
-        const configDoc = await getDoc(doc(db, 'config', 'ratings'));
-        if (configDoc.exists()) {
-          const { sheetUrl } = configDoc.data();
-          if (sheetUrl) {
-            const currentSubCode = subSnap.exists() ? subSnap.data().code : (IE_SUBJECTS.find(s => s.id === id)?.code || id);
-            const response = await fetch(sheetUrl);
-            const csvText = await response.text();
-            Papa.parse(csvText, {
-              header: true,
-              complete: (results) => {
-                const remoteRatings = (results.data as any[])
-                  .filter((row: any) => {
-                    const keys = Object.keys(row);
-                    const subjectKey = keys.find(k => k.toLowerCase().includes('subject') || k.toLowerCase().includes('course') || k.toLowerCase().includes('code'));
-                    if (!subjectKey) return false;
-                    const val = String(row[subjectKey] || '').toUpperCase().replace(/[-\s]/g, '');
-                    const target = String(currentSubCode || id).toUpperCase().replace(/[-\s]/g, '');
-                    return val.includes(target) || target.includes(val);
-                  })
-                  .map((row: any, i: number) => {
-                    const keys = Object.keys(row);
-                    const ratingKey = keys.find(k => k.toLowerCase().includes('rate') || k.toLowerCase().includes('rating') || k.toLowerCase().includes('score')) || '';
-                    const feedbackKey = keys.find(k => k.toLowerCase().includes('comment') || k.toLowerCase().includes('feedback') || k.toLowerCase().includes('review') || k.toLowerCase().includes('why')) || '';
-                    const userKey = keys.find(k => k.toLowerCase().includes('name')) || keys.find(k => k.toLowerCase().includes('email')) || '';
-                    const dateKey = keys.find(k => k.toLowerCase().includes('timestamp') || k.toLowerCase().includes('date') || k.toLowerCase().includes('time')) || '';
-
-                    return {
-                      id: `live-${i}`,
-                      rating: Math.min(5, Math.max(1, parseInt(row[ratingKey]) || 5)),
-                      feedback: row[feedbackKey] || '',
-                      userName: String(row[userKey] || 'External Feedback').slice(0, 50),
-                      createdAt: row[dateKey] ? new Date(row[dateKey]) : new Date(),
-                      isLive: true
-                    };
-                  });
-                
-                if (remoteRatings.length > 0) {
-                  setRatings(prev => {
-                    // Avoid duplicates if already imported
-                    const filteredRemote = remoteRatings.filter(rr => 
-                      !prev.some(pr => (pr.feedback === rr.feedback || pr.review === rr.feedback) && pr.rating === rr.rating)
-                    );
-                    return [...prev, ...filteredRemote];
-                  });
-                }
-              }
-            });
-          }
-        }
-      } catch (e) {
-        console.warn("Live ratings sync omitted or failed:", e);
-      }
-
-    } catch (error) {
-      console.error("Error fetching subject data:", error);
-    } finally {
-      setLoading(false);
+      return () => {
+        unsubPublicRes();
+        unsubMyRes();
+        unsubRatings();
+      };
     }
+  }, [id, profile, authLoading, navigate]);
+
+  // Keep a simplified fetch helper just for certain UI triggers 
+  const fetchSubjectData = () => {
+    // This is mostly handled by onSnapshot now
   };
 
   const prerequisites = useMemo(() => {

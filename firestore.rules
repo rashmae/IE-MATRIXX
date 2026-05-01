@@ -259,7 +259,7 @@ service cloud.firestore {
     }
 
     match /ratings/{ratingId} {
-      allow read: if isAuthenticated();
+      allow read, list: if isAuthenticated();
       allow create: if isAuthenticated() && isValidId(ratingId) && isValidRating(request.resource.data);
       allow update: if isAuthenticated() && (
         // Like/unlike any review (only likes fields)
