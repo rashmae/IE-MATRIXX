@@ -113,8 +113,16 @@ service cloud.firestore {
       return data.keys().hasAll(['uid', 'fullName', 'idNumber', 'role']) &&
              data.uid == request.auth.uid &&
              data.fullName is string && data.fullName.size() > 0 && data.fullName.size() < 100 &&
-             data.idNumber is string && data.idNumber.size() > 0 && data.idNumber.size() < 20 &&
-             data.role in ['student', 'admin'];
+             data.idNumber is string && data.idNumber.size() > 0 && data.idNumber.size() < 50 &&
+             data.role in ['student', 'admin'] &&
+             (data.keys().contains('yearLevel') ? data.yearLevel is string : true) &&
+             (data.keys().contains('email') ? data.email is string : true) &&
+             (data.keys().contains('photoURL') ? data.photoURL is string : true) &&
+             (data.keys().contains('lastLogin') ? data.lastLogin is timestamp : true);
+    }
+
+    function isBootstrapAdmin() {
+      return request.auth.token.email in ['rashmae26@gmail.com', 'rashmaeansay@gmail.com'];
     }
 
     function isValidRating(data) {
@@ -251,10 +259,10 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow create: if isAuthenticated() && isValidId(userId) && isValidUser(request.resource.data) && 
-                    (isOwner(userId) && request.resource.data.role == 'student' || isAdmin());
+                    (isOwner(userId) && (request.resource.data.role == 'student' || isBootstrapAdmin()) || isAdmin());
       allow update: if isAuthenticated() && isValidId(userId) && isValidUser(request.resource.data) &&
-                    ((isOwner(userId) && request.resource.data.role == resource.data.role && 
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fullName', 'idNumber', 'progress'])) || 
+                    ((isOwner(userId) && (request.resource.data.role == resource.data.role || isBootstrapAdmin()) && 
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'fullName', 'idNumber', 'progress', 'yearLevel', 'lastLogin', 'email', 'role', 'photoURL'])) || 
                      isAdmin());
     }
 

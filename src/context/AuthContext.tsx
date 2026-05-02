@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     profile,
     loading,
-    isAdmin: profile?.role === 'admin' || user?.email === 'rashmae26@gmail.com'
+    isAdmin: profile?.role === 'admin' || (user?.email ? ['rashmae26@gmail.com', 'rashmaeansay@gmail.com'].includes(user.email) : false)
   }), [user, profile, loading]);
 
   return (

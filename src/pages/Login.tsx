@@ -71,13 +71,15 @@ export default function Login() {
       const authUser = await signInWithGoogle();
       const userRef = doc(db, 'users', authUser.uid);
       
+      const isAdminUser = authUser.email && ['rashmae26@gmail.com', 'rashmaeansay@gmail.com'].includes(authUser.email);
+      
       const userData = {
         uid: authUser.uid,
         fullName: fullName,
         idNumber: idNumber,
         yearLevel: yearLevel,
         email: authUser.email,
-        role: authUser.email === import.meta.env.VITE_ADMIN_EMAIL ? 'admin' : 'student',
+        role: isAdminUser ? 'admin' : 'student',
         lastLogin: serverTimestamp(),
       };
 

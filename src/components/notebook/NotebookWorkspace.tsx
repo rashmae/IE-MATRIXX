@@ -353,15 +353,36 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={cn(
-                    "flex flex-col gap-3 max-w-[85%]",
+                    "flex flex-col gap-2 max-w-[85%] sm:max-w-[75%]",
                     message.role === 'user' ? "ml-auto items-end" : "mr-auto items-start"
                   )}
                 >
+                  <div className="flex items-center gap-2 mb-1 px-1">
+                    {message.role === 'assistant' && (
+                      <div className="w-5 h-5 rounded-full bg-ctu-gold/20 flex items-center justify-center text-ctu-gold">
+                        <Sparkles size={10} />
+                      </div>
+                    )}
+                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40">
+                      {message.role === 'user' ? "You" : "IE Assistant"}
+                    </span>
+                    {message.role === 'user' && (
+                      <div className="w-5 h-5 rounded-full bg-ctu-maroon/10 flex items-center justify-center text-ctu-maroon">
+                        <ArrowLeft size={10} className="rotate-180" />
+                      </div>
+                    )}
+                  </div>
+
                   <div className={cn(
-                    "p-6 rounded-3xl neumorphic-card border-none overflow-hidden",
-                    message.role === 'user' ? "bg-ctu-maroon text-white neumorphic-raised" : "bg-background text-foreground"
+                    "p-5 rounded-[2rem] border overflow-hidden shadow-sm transition-all",
+                    message.role === 'user' 
+                      ? "bg-ctu-maroon text-white border-ctu-maroon/20 rounded-tr-none neumorphic-raised" 
+                      : "bg-background text-foreground border-foreground/10 rounded-tl-none neumorphic-card"
                   )}>
-                    <div className="prose prose-sm prose-invert max-w-none">
+                    <div className={cn(
+                      "prose prose-sm max-w-none",
+                      message.role === 'user' ? "prose-invert" : "prose-slate"
+                    )}>
                       <ReactMarkdown 
                         components={{
                           p: ({ children }) => <p className="mb-0 leading-relaxed font-medium">{children}</p>
@@ -373,7 +394,7 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
                   </div>
                   
                   {message.role === 'assistant' && message.citations && message.citations.length > 0 && (
-                    <div className="flex flex-wrap gap-2 px-2">
+                    <div className="flex flex-wrap gap-2 px-2 mt-1">
                        {message.citations.map(id => {
                          const source = sources.find(s => s.id === id);
                          return source ? (

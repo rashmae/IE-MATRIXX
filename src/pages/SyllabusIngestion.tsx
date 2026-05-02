@@ -122,8 +122,15 @@ export default function SyllabusIngestion() {
     try {
       // 1. Download PDF (via local proxy to bypass CORS)
       const downloadUrl = `/api/proxy-drive?id=${fileId}`;
-      const res = await fetch(downloadUrl);
-      if (!res.ok) throw new Error('Failed to download PDF');
+      const res = await fetch(downloadUrl).catch(e => {
+        console.error("Batch Fetch Network Error:", e);
+        throw new Error('Network failure: Browser could not connect to the ingestion server.');
+      });
+      
+      if (!res.ok) {
+        const detail = await res.json().catch(() => ({}));
+        throw new Error(`Proxy error (${res.status}): ${detail.error || res.statusText}`);
+      }
       const blob = await res.blob();
       
       // 2. Base64 Encode

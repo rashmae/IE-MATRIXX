@@ -51,19 +51,24 @@ async function startServer() {
 
     try {
       const driveUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-      const response = await fetch(driveUrl);
+      const response = await fetch(driveUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
       
       if (!response.ok) {
+        // If it's a 403, it might be due to virus scan warning for large files.
+        // Try the preview link instead? No, that's HTML.
+        // Let's just return the status.
         return res.status(response.status).json({ error: `Drive error: ${response.statusText}` });
       }
 
-      // Proxy headers
       const contentType = response.headers.get("content-type");
       if (contentType) res.setHeader("Content-Type", contentType);
       
-      // Stream the response
-      const arrayBuffer = await response.arrayBuffer();
-      res.send(Buffer.from(arrayBuffer));
+      const buffer = await response.arrayBuffer();
+      res.send(Buffer.from(buffer));
     } catch (error) {
       console.error("Proxy error:", error);
       res.status(500).json({ error: "Proxy failed to fetch from Drive" });

@@ -282,6 +282,18 @@ export default function SubjectDetail() {
     }
   };
 
+  // Load existing rating if it exists when modal opens
+  useEffect(() => {
+    if (isRatingModalOpen && profile && ratings.length > 0) {
+      const myRating = ratings.find(r => r.userId === profile.uid);
+      if (myRating) {
+        setUserRating(myRating.rating);
+        setFeedback(myRating.feedback || '');
+        setIsAnonymous(myRating.isAnonymous || false);
+      }
+    }
+  }, [isRatingModalOpen, profile, ratings]);
+
   const handleSubmitRating = async () => {
     if (!subject || !profile) return;
     
@@ -292,20 +304,36 @@ export default function SubjectDetail() {
 
     setIsSubmittingRating(true);
     try {
-      await addDoc(collection(db, 'ratings'), {
-        subjectId: subject.id,
-        userId: profile.uid,
-        userName: isAnonymous ? 'Anonymous Student' : profile.fullName,
-        userAvatar: isAnonymous ? null : (profile.photoURL || null),
-        rating: userRating,
-        feedback: feedback || "",
-        isAnonymous: isAnonymous,
-        likes: 0,
-        likedBy: [],
-        createdAt: serverTimestamp()
-      });
+      const existingRating = ratings.find(r => r.userId === profile.uid);
       
-      toast.success('Thank you for your feedback!');
+      if (existingRating) {
+        // Update existing rating
+        await updateDoc(doc(db, 'ratings', existingRating.id), {
+          userName: isAnonymous ? 'Anonymous Student' : profile.fullName,
+          userAvatar: isAnonymous ? null : (profile.photoURL || null),
+          rating: userRating,
+          feedback: feedback || "",
+          isAnonymous: isAnonymous,
+          updatedAt: serverTimestamp()
+        }).catch(err => handleFirestoreError(err, 'write', `ratings/${existingRating.id}`));
+        toast.success('Review updated!');
+      } else {
+        // Create new rating
+        await addDoc(collection(db, 'ratings'), {
+          subjectId: subject.id,
+          userId: profile.uid,
+          userName: isAnonymous ? 'Anonymous Student' : profile.fullName,
+          userAvatar: isAnonymous ? null : (profile.photoURL || null),
+          rating: userRating,
+          feedback: feedback || "",
+          isAnonymous: isAnonymous,
+          likes: 0,
+          likedBy: [],
+          createdAt: serverTimestamp()
+        }).catch(err => handleFirestoreError(err, 'create', 'ratings'));
+        toast.success('Thank you for your feedback!');
+      }
+      
       setIsRatingModalOpen(false);
       setUserRating(0);
       setFeedback('');
@@ -313,7 +341,6 @@ export default function SubjectDetail() {
       fetchSubjectData();
     } catch (error) {
       console.error("Rating submission error:", error);
-      toast.error('Failed to submit rating. Please try again.');
     } finally {
       setIsSubmittingRating(false);
     }
