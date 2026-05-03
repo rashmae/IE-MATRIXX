@@ -80,7 +80,7 @@ export default function AdminDashboard() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const q = query(collection(db, 'users'), orderBy('lastLogin', sortOrder), limit(100));
+      const q = query(collection(db, 'users'), orderBy('lastLogin', 'desc'), limit(100));
       const querySnapshot = await getDocs(q);
       const fetchedUsers = querySnapshot.docs.map(doc => ({
         id: doc.id,
@@ -95,21 +95,25 @@ export default function AdminDashboard() {
     }
   };
 
-  useEffect(() => {
-    if (profile) {
-      fetchUsers();
-    }
-  }, [sortOrder]);
+  const toggleSort = () => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
 
-  const toggleSort = () => {
-    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-  };
-
-  const filteredUsers = users.filter(u => 
-    u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.idNumber?.includes(searchTerm) ||
-    u.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users
+    .filter(u =>
+      u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.idNumber?.includes(searchTerm) ||
+      u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      const getT = (val: any) => {
+        if (!val) return 0;
+        if (typeof val.toMillis === 'function') return val.toMillis();
+        if (typeof val.toDate === 'function') return val.toDate().getTime();
+        return new Date(val).getTime() || 0;
+      };
+      return sortOrder === 'desc'
+        ? getT(b.lastLogin) - getT(a.lastLogin)
+        : getT(a.lastLogin) - getT(b.lastLogin);
+    });
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return 'Never';
@@ -129,15 +133,15 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
       <Sidebar user={profile} />
       
-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-3">
               <ShieldCheck className="text-ctu-gold" size={24} />
               <span className="text-xs font-black text-ctu-gold uppercase tracking-[0.3em]">Command Center</span>
             </div>
-            <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Admin Console</h1>
-            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Monitor all IE students currently in the Matrix.</p>
+            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Admin Console</h1>
+            <p className="text-foreground/40 mt-3 text-base md:text-xl font-medium tracking-tight">Monitor all IE students currently in the Matrix.</p>
           </div>
           
           <div className="flex gap-3">

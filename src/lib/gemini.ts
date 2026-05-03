@@ -3,16 +3,14 @@ import { GoogleGenAI } from "@google/genai";
 
 let aiClient: GoogleGenAI | null = null;
 
-export const DEFAULT_MODEL = "gemini-3-flash-preview";
+export const DEFAULT_MODEL = "gemini-2.0-flash";
 
 export const getGeminiClient = () => {
   if (aiClient) return aiClient;
 
   // Following skill guidelines: Always use process.env.GEMINI_API_KEY for Gemini API in AI Studio
   // We include a fallback for local development if needed, but prioritize the required pattern.
-  const apiKey = (process as any).env?.GEMINI_API_KEY || 
-                 (import.meta as any).env?.VITE_GEMINI_API_KEY ||
-                 (import.meta as any).env?.VITE_FIREBASE_API_KEY;
+  const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
 
   if (!apiKey || apiKey === 'undefined' || apiKey === 'null') {
     console.warn('[Gemini] API Key is missing. Batch ingestion and AI features will fail.');
@@ -138,5 +136,24 @@ export async function getCurriculumAdvice(userProgress: any, subjects: any[]) {
   } catch (error) {
     console.error("Gemini Advice Error:", error);
     return "I'm sorry, I couldn't generate advice at the moment. Please try again later.";
+  }
+}
+
+export async function generateChatResponse(messages: { role: 'user' | 'ai'; content: string }[], systemContext: string) {
+  const ai = getGeminiClient();
+  if (!ai) return "AI Assistant is currently unavailable. Please check your VITE_GEMINI_API_KEY.";
+
+  const history = messages.map(m => `${m.role === 'user' ? 'Student' : 'Advisor'}: ${m.content}`).join('\n');
+  const fullPrompt = `${systemContext}\n\nConversation:\n${history}\n\nAdvisor:`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: DEFAULT_MODEL,
+      contents: fullPrompt,
+    });
+    return response.text || "Sorry, I couldn't process your request.";
+  } catch (error) {
+    console.error("Gemini Chat Error:", error);
+    return "Sorry, something went wrong. Please try again.";
   }
 }

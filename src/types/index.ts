@@ -11,7 +11,7 @@ export interface User {
   email?: string;
   yearLevel?: string;
   role?: 'student' | 'admin';
-  loginTime: string;
+  loginTime?: string;
   photoURL?: string;
 }
 

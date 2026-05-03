@@ -1,0 +1,1222 @@
+From cd39333b3bdedafd749e24765d1669cbaecf3bc5 Mon Sep 17 00:00:00 2001
+From: IE Matrix Fix Bot <ie-matrix-fixes@auto.com>
+Date: Sat, 2 May 2026 14:52:48 +0000
+Subject: [PATCH 1/2] fix: improve responsiveness and broken features
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Fix Gemini model name (gemini-3-flash-preview → gemini-2.0-flash)
+- Fix Gemini API key fallback (was incorrectly using Firebase API key)
+- Make loginTime optional in User type (was required but never set)
+- Fix all oversized headings across pages (text-7xl/8xl → responsive sm/md breakpoints)
+- Fix mobile bottom padding on all pages (pb-36 to clear BottomNav)
+- Rewrite AIAssistant: full multi-turn chat, quick prompts, clear button, send on Enter
+- Fix BottomNav: add missing Calendar & Resources links (now 8 items with active labels)
+- Fix Calendar: clickable days show event detail panel, colored border per category
+- Fix Resources: replace stale-closure snapshot merge with ref-based approach
+- Fix StudyTools advisor chat: proper multi-turn context, markdown rendering, fixed alignment
+- Fix Profile theme toggle: initialize from DOM class instead of hardcoded 'dark'
+- Reduce mobile padding on all pages for better small-screen layout
+---
+ src/components/AIAssistant.tsx      | 236 ++++++++++++++++++++++------
+ src/components/layout/BottomNav.tsx |  24 ++-
+ src/lib/gemini.ts                   |  25 ++-
+ src/pages/AdminDashboard.tsx        |   4 +-
+ src/pages/Bulletin.tsx              |   4 +-
+ src/pages/Calendar.tsx              |  39 ++++-
+ src/pages/Catalog.tsx               |   4 +-
+ src/pages/Dashboard.tsx             |   6 +-
+ src/pages/Profile.tsx               |   8 +-
+ src/pages/Progress.tsx              |   6 +-
+ src/pages/RatingsIngestion.tsx      |   2 +-
+ src/pages/Resources.tsx             |  61 +++----
+ src/pages/StudyTools.tsx            |  64 +++++---
+ src/pages/SubjectDetail.tsx         |   4 +-
+ src/pages/SyllabusIngestion.tsx     |   2 +-
+ src/types/index.ts                  |   2 +-
+ 16 files changed, 357 insertions(+), 134 deletions(-)
+
+diff --git a/src/components/AIAssistant.tsx b/src/components/AIAssistant.tsx
+index bff5d8c..330f9c5 100644
+--- a/src/components/AIAssistant.tsx
++++ b/src/components/AIAssistant.tsx
+@@ -1,27 +1,91 @@
+-import React, { useState } from 'react';
++import React, { useState, useRef, useEffect } from 'react';
+ import { motion, AnimatePresence } from 'motion/react';
+-import { Sparkles, X, Send, Loader2, Bot } from 'lucide-react';
+-import { getCurriculumAdvice } from '@/src/lib/gemini';
+-import { IE_SUBJECTS } from '@/src/lib/constants';
++import { Sparkles, X, Send, Loader2, Bot, Trash2 } from 'lucide-react';
+ import { useAuth } from '@/src/context/AuthContext';
+ import { useProgress } from '@/src/hooks/useProgress';
++import { IE_SUBJECTS } from '@/src/lib/constants';
++import { getGeminiClient, DEFAULT_MODEL } from '@/src/lib/gemini';
+ import ReactMarkdown from 'react-markdown';
+ 
++type Message = { role: 'user' | 'ai'; content: string };
++
++const SYSTEM_CONTEXT = (progress: any, subjects: any[]) => `
++You are the IE Matrix AI Advisor, an expert academic advisor for Industrial Engineering students at Cebu Technological University.
++Curriculum: ${JSON.stringify(subjects.map(s => ({ code: s.code, name: s.name, year: s.yearLevel, sem: s.semester, prereqs: s.prerequisiteIds })))}
++Student Progress: ${JSON.stringify(progress)}
++Be concise, friendly, and helpful. Use markdown for formatting. Focus on IE curriculum, study advice, and academic planning.
++`;
++
+ export default function AIAssistant() {
+   const [isOpen, setIsOpen] = useState(false);
++  const [messages, setMessages] = useState<Message[]>([]);
++  const [input, setInput] = useState('');
+   const [loading, setLoading] = useState(false);
+-  const [advice, setAdvice] = useState<string | null>(null);
+   const { profile } = useAuth();
+   const { progressMap } = useProgress();
++  const scrollRef = useRef<HTMLDivElement>(null);
++  const inputRef = useRef<HTMLInputElement>(null);
+ 
+-  const handleGetAdvice = async () => {
+-    if (!profile) return;
++  useEffect(() => {
++    if (scrollRef.current) {
++      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
++    }
++  }, [messages, loading]);
++
++  useEffect(() => {
++    if (isOpen && messages.length === 0) {
++      // Auto-greet on first open
++      handleSend('Give me a quick overview of my current IE curriculum progress and your top 2 recommendations.');
++    }
++    if (isOpen) {
++      setTimeout(() => inputRef.current?.focus(), 300);
++    }
++  }, [isOpen]);
++
++  const handleSend = async (overrideText?: string) => {
++    const text = overrideText ?? input.trim();
++    if (!text || loading) return;
++
++    const userMsg: Message = { role: 'user', content: text };
++    if (!overrideText) setInput('');
++    setMessages(prev => [...prev, userMsg]);
+     setLoading(true);
+-    setIsOpen(true);
+-    
+-    const result = await getCurriculumAdvice(progressMap, IE_SUBJECTS);
+-    setAdvice(result);
+-    setLoading(false);
++
++    try {
++      const ai = getGeminiClient();
++      if (!ai) {
++        setMessages(prev => [...prev, { role: 'ai', content: '⚠️ AI Advisor is unavailable — check your `VITE_GEMINI_API_KEY` environment variable.' }]);
++        return;
++      }
++
++      const history = [...messages, userMsg];
++      const fullPrompt = `${SYSTEM_CONTEXT(progressMap, IE_SUBJECTS)}\n\nConversation:\n${history.map(m => `${m.role === 'user' ? 'Student' : 'Advisor'}: ${m.content}`).join('\n')}\n\nAdvisor:`;
++
++      const response = await ai.models.generateContent({
++        model: DEFAULT_MODEL,
++        contents: fullPrompt,
++      });
++
++      const aiText = response.text || 'Sorry, I could not process that. Please try again.';
++      setMessages(prev => [...prev, { role: 'ai', content: aiText }]);
++    } catch (err) {
++      console.error('AI Advisor error:', err);
++      setMessages(prev => [...prev, { role: 'ai', content: 'Sorry, something went wrong. Please try again.' }]);
++    } finally {
++      setLoading(false);
++    }
++  };
++
++  const handleKeyDown = (e: React.KeyboardEvent) => {
++    if (e.key === 'Enter' && !e.shiftKey) {
++      e.preventDefault();
++      handleSend();
++    }
++  };
++
++  const clearChat = () => {
++    setMessages([]);
++    setTimeout(() => handleSend('Give me a quick overview of my current IE curriculum progress and your top 2 recommendations.'), 100);
+   };
+ 
+   return (
+@@ -32,62 +96,142 @@ export default function AIAssistant() {
+         dragMomentum={false}
+         whileHover={{ scale: 1.1 }}
+         whileTap={{ scale: 0.9 }}
+-        onClick={() => {
+-          if (!isOpen) handleGetAdvice();
+-          else setIsOpen(false);
+-        }}
++        onClick={() => setIsOpen(prev => !prev)}
+         aria-label={isOpen ? "Close AI Advisor" : "Open IE Matrix AI Advisor"}
+         className="fixed bottom-24 right-6 lg:bottom-10 lg:right-10 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-ctu-maroon to-ctu-gold shadow-2xl flex items-center justify-center text-white border border-white/20 cursor-grab active:cursor-grabbing touch-none"
+       >
+-        {isOpen ? <X size={24} /> : <Sparkles size={24} />}
++        <AnimatePresence mode="wait">
++          <motion.div
++            key={isOpen ? 'close' : 'open'}
++            initial={{ rotate: -90, opacity: 0 }}
++            animate={{ rotate: 0, opacity: 1 }}
++            exit={{ rotate: 90, opacity: 0 }}
++            transition={{ duration: 0.15 }}
++          >
++            {isOpen ? <X size={22} /> : <Sparkles size={22} />}
++          </motion.div>
++        </AnimatePresence>
+       </motion.button>
+ 
+       {/* Chat Panel */}
+       <AnimatePresence>
+         {isOpen && (
+           <motion.div
+-            drag
+-            dragMomentum={false}
+-            initial={{ opacity: 0, y: 100, scale: 0.9 }}
++            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+             animate={{ opacity: 1, y: 0, scale: 1 }}
+-            exit={{ opacity: 0, y: 100, scale: 0.9 }}
+-            className="fixed bottom-40 right-6 lg:bottom-28 lg:right-10 z-50 w-[calc(100vw-3rem)] md:w-96 glass-card rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-white/20 cursor-move"
+-            style={{ maxHeight: '70vh' }}
++            exit={{ opacity: 0, y: 40, scale: 0.95 }}
++            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
++            className="fixed bottom-40 right-4 lg:bottom-28 lg:right-10 z-50 w-[calc(100vw-2rem)] md:w-[400px] glass-card rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-white/10"
++            style={{ maxHeight: '70vh', minHeight: '400px' }}
+           >
+-            <div className="p-4 border-b border-foreground/5 bg-foreground/[0.02] flex items-center gap-3">
+-              <div className="w-8 h-8 rounded-full bg-ctu-gold/20 flex items-center justify-center text-ctu-gold">
+-                <Bot size={20} />
++            {/* Header */}
++            <div className="p-4 border-b border-foreground/5 bg-foreground/[0.03] flex items-center gap-3 shrink-0">
++              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-ctu-maroon to-ctu-gold flex items-center justify-center text-white shrink-0">
++                <Bot size={18} />
+               </div>
+-              <div>
++              <div className="flex-1 min-w-0">
+                 <h3 className="text-sm font-bold text-foreground">IE Matrix AI Advisor</h3>
+                 <p className="text-[10px] text-foreground/40 uppercase tracking-widest">Powered by Gemini</p>
+               </div>
++              <button
++                onClick={clearChat}
++                title="Clear chat"
++                className="p-1.5 rounded-lg text-foreground/30 hover:text-foreground/60 hover:bg-foreground/5 transition-colors"
++              >
++                <Trash2 size={14} />
++              </button>
++              <button
++                onClick={() => setIsOpen(false)}
++                className="p-1.5 rounded-lg text-foreground/30 hover:text-foreground/60 hover:bg-foreground/5 transition-colors"
++              >
++                <X size={14} />
++              </button>
+             </div>
+ 
+-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+-              {loading ? (
+-                <div className="flex flex-col items-center justify-center py-10 text-center">
+-                  <Loader2 size={32} className="text-ctu-gold animate-spin mb-4" />
+-                  <p className="text-sm text-foreground/40 font-bold uppercase tracking-widest">Analyzing your curriculum...</p>
+-                </div>
+-              ) : (
+-                <div className="prose prose-sm max-w-none text-foreground/80 font-medium leading-relaxed">
+-                  <div className="prose prose-sm prose-invert max-w-none">
+-                    <ReactMarkdown>{advice || ''}</ReactMarkdown>
++            {/* Messages */}
++            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
++              {messages.map((msg, i) => (
++                <motion.div
++                  key={i}
++                  initial={{ opacity: 0, y: 10 }}
++                  animate={{ opacity: 1, y: 0 }}
++                  className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
++                >
++                  {msg.role === 'ai' && (
++                    <div className="w-6 h-6 rounded-full bg-ctu-gold/20 flex items-center justify-center text-ctu-gold shrink-0 mt-1">
++                      <Bot size={12} />
++                    </div>
++                  )}
++                  <div className={`rounded-2xl px-4 py-2.5 max-w-[85%] text-sm leading-relaxed ${
++                    msg.role === 'user'
++                      ? 'bg-ctu-gold/20 text-foreground rounded-tr-sm'
++                      : 'bg-foreground/5 text-foreground/80 rounded-tl-sm'
++                  }`}>
++                    {msg.role === 'ai' ? (
++                      <div className="prose prose-sm max-w-none prose-invert text-foreground/80">
++                        <ReactMarkdown>{msg.content}</ReactMarkdown>
++                      </div>
++                    ) : (
++                      <p>{msg.content}</p>
++                    )}
++                  </div>
++                </motion.div>
++              ))}
++
++              {loading && (
++                <div className="flex gap-2 items-center">
++                  <div className="w-6 h-6 rounded-full bg-ctu-gold/20 flex items-center justify-center text-ctu-gold shrink-0">
++                    <Bot size={12} />
++                  </div>
++                  <div className="bg-foreground/5 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-2">
++                    <Loader2 size={14} className="text-ctu-gold animate-spin" />
++                    <span className="text-xs text-foreground/40 font-medium">Thinking...</span>
+                   </div>
+                 </div>
+               )}
+             </div>
+ 
+-            <div className="p-4 bg-foreground/[0.02] border-t border-foreground/5">
+-              <button 
+-                onClick={handleGetAdvice}
+-                disabled={loading}
+-                className="w-full py-3 neumorphic-raised hover:neumorphic-pressed rounded-2xl text-xs font-bold text-foreground transition-all flex items-center justify-center gap-2"
+-              >
+-                <Sparkles size={14} className="text-ctu-gold" />
+-                Refresh Advice
+-              </button>
++            {/* Quick Prompts */}
++            {messages.length <= 1 && !loading && (
++              <div className="px-4 pb-2 flex gap-2 flex-wrap">
++                {[
++                  'What should I study next?',
++                  'Check my prerequisites',
++                  'Tips for GWA improvement',
++                ].map(q => (
++                  <button
++                    key={q}
++                    onClick={() => handleSend(q)}
++                    className="text-[10px] font-bold px-3 py-1.5 rounded-full bg-foreground/5 hover:bg-ctu-gold/10 text-foreground/50 hover:text-ctu-gold transition-all border border-foreground/5 hover:border-ctu-gold/20 whitespace-nowrap"
++                  >
++                    {q}
++                  </button>
++                ))}
++              </div>
++            )}
++
++            {/* Input */}
++            <div className="p-3 border-t border-foreground/5 bg-foreground/[0.02] shrink-0">
++              <div className="flex items-center gap-2 neumorphic-pressed rounded-2xl px-4 py-2">
++                <input
++                  ref={inputRef}
++                  type="text"
++                  value={input}
++                  onChange={e => setInput(e.target.value)}
++                  onKeyDown={handleKeyDown}
++                  placeholder="Ask your IE advisor..."
++                  disabled={loading}
++                  className="flex-1 bg-transparent text-sm text-foreground placeholder:text-foreground/30 outline-none min-w-0"
++                />
++                <button
++                  onClick={() => handleSend()}
++                  disabled={loading || !input.trim()}
++                  className="w-8 h-8 rounded-full bg-ctu-gold flex items-center justify-center text-white transition-all hover:bg-ctu-maroon disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
++                >
++                  {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
++                </button>
++              </div>
++              <p className="text-[9px] text-foreground/20 text-center mt-1.5 font-bold uppercase tracking-widest">Press Enter to send</p>
+             </div>
+           </motion.div>
+         )}
+diff --git a/src/components/layout/BottomNav.tsx b/src/components/layout/BottomNav.tsx
+index 8ce0f61..437d43e 100644
+--- a/src/components/layout/BottomNav.tsx
++++ b/src/components/layout/BottomNav.tsx
+@@ -6,7 +6,9 @@ import {
+   TrendingUp, 
+   Megaphone, 
+   User,
+-  Sparkles
++  Sparkles,
++  CalendarDays,
++  FolderOpen
+ } from 'lucide-react';
+ import { cn } from '@/lib/utils';
+ 
+@@ -16,24 +18,36 @@ const navItems = [
+   { name: 'Study', icon: Sparkles, path: '/study' },
+   { name: 'Progress', icon: TrendingUp, path: '/progress' },
+   { name: 'Board', icon: Megaphone, path: '/bulletin' },
++  { name: 'Calendar', icon: CalendarDays, path: '/calendar' },
++  { name: 'Resources', icon: FolderOpen, path: '/resources' },
+   { name: 'Profile', icon: User, path: '/profile' },
+ ];
+ 
+ export default function BottomNav() {
+   return (
+-    <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-background/80 backdrop-blur-xl rounded-full neumorphic-raised px-4 py-2 z-50 transition-all duration-300 border border-foreground/5 w-[90%] max-w-[400px]">
+-      <div className="flex items-center justify-between gap-1">
++    <nav className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 bg-background/90 backdrop-blur-xl rounded-2xl neumorphic-raised px-2 py-2 z-50 transition-all duration-300 border border-foreground/5 w-[96%] max-w-[480px]">
++      <div className="flex items-center justify-between gap-0.5 overflow-x-auto no-scrollbar">
+         {navItems.map((item) => (
+           <NavLink
+             key={item.path}
+             to={item.path}
+             className={({ isActive }) => cn(
+-              "flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-300 flex-1 min-w-0 aspect-square",
++              "flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-xl transition-all duration-300 flex-1 min-w-[40px]",
+               isActive ? "neumorphic-pressed text-ctu-gold" : "text-foreground/30 hover:text-foreground/60"
+             )}
+             title={item.name}
+           >
+-            <item.icon size={20} />
++            {({ isActive }) => (
++              <>
++                <item.icon size={18} />
++                <span className={cn(
++                  "text-[9px] font-bold tracking-tight leading-none transition-all",
++                  isActive ? "opacity-100" : "opacity-0 h-0 overflow-hidden"
++                )}>
++                  {item.name}
++                </span>
++              </>
++            )}
+           </NavLink>
+         ))}
+       </div>
+diff --git a/src/lib/gemini.ts b/src/lib/gemini.ts
+index a999824..33a2e3f 100644
+--- a/src/lib/gemini.ts
++++ b/src/lib/gemini.ts
+@@ -3,16 +3,14 @@ import { GoogleGenAI } from "@google/genai";
+ 
+ let aiClient: GoogleGenAI | null = null;
+ 
+-export const DEFAULT_MODEL = "gemini-3-flash-preview";
++export const DEFAULT_MODEL = "gemini-2.0-flash";
+ 
+ export const getGeminiClient = () => {
+   if (aiClient) return aiClient;
+ 
+   // Following skill guidelines: Always use process.env.GEMINI_API_KEY for Gemini API in AI Studio
+   // We include a fallback for local development if needed, but prioritize the required pattern.
+-  const apiKey = (process as any).env?.GEMINI_API_KEY || 
+-                 (import.meta as any).env?.VITE_GEMINI_API_KEY ||
+-                 (import.meta as any).env?.VITE_FIREBASE_API_KEY;
++  const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
+ 
+   if (!apiKey || apiKey === 'undefined' || apiKey === 'null') {
+     console.warn('[Gemini] API Key is missing. Batch ingestion and AI features will fail.');
+@@ -140,3 +138,22 @@ export async function getCurriculumAdvice(userProgress: any, subjects: any[]) {
+     return "I'm sorry, I couldn't generate advice at the moment. Please try again later.";
+   }
+ }
++
++export async function generateChatResponse(messages: { role: 'user' | 'ai'; content: string }[], systemContext: string) {
++  const ai = getGeminiClient();
++  if (!ai) return "AI Assistant is currently unavailable. Please check your VITE_GEMINI_API_KEY.";
++
++  const history = messages.map(m => `${m.role === 'user' ? 'Student' : 'Advisor'}: ${m.content}`).join('\n');
++  const fullPrompt = `${systemContext}\n\nConversation:\n${history}\n\nAdvisor:`;
++
++  try {
++    const response = await ai.models.generateContent({
++      model: DEFAULT_MODEL,
++      contents: fullPrompt,
++    });
++    return response.text || "Sorry, I couldn't process your request.";
++  } catch (error) {
++    console.error("Gemini Chat Error:", error);
++    return "Sorry, something went wrong. Please try again.";
++  }
++}
+diff --git a/src/pages/AdminDashboard.tsx b/src/pages/AdminDashboard.tsx
+index 0621892..b119178 100644
+--- a/src/pages/AdminDashboard.tsx
++++ b/src/pages/AdminDashboard.tsx
+@@ -129,14 +129,14 @@ export default function AdminDashboard() {
+     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
+       <Sidebar user={profile} />
+       
+-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
++      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+           <div>
+             <div className="flex items-center gap-2 mb-3">
+               <ShieldCheck className="text-ctu-gold" size={24} />
+               <span className="text-xs font-black text-ctu-gold uppercase tracking-[0.3em]">Command Center</span>
+             </div>
+-            <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Admin Console</h1>
++            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Admin Console</h1>
+             <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Monitor all IE students currently in the Matrix.</p>
+           </div>
+           
+diff --git a/src/pages/Bulletin.tsx b/src/pages/Bulletin.tsx
+index cfcebfb..36036e7 100644
+--- a/src/pages/Bulletin.tsx
++++ b/src/pages/Bulletin.tsx
+@@ -85,10 +85,10 @@ export default function Bulletin() {
+     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
+       <Sidebar user={profile} />
+       
+-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
++      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+           <div>
+-            <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Bulletin</h1>
++            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Bulletin</h1>
+             <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Stay updated with the latest IE department news.</p>
+           </div>
+ 
+diff --git a/src/pages/Calendar.tsx b/src/pages/Calendar.tsx
+index 3bac793..a4b8d5f 100644
+--- a/src/pages/Calendar.tsx
++++ b/src/pages/Calendar.tsx
+@@ -48,6 +48,8 @@ export default function CalendarPage() {
+     return CALENDAR_EVENTS.filter(e => e.date === dateStr);
+   };
+ 
++  const [selectedDay, setSelectedDay] = useState<number | null>(null);
++
+   const getEventColor = (category: string) => {
+     switch (category.toLowerCase()) {
+       case 'academic': return 'bg-ctu-maroon';
+@@ -70,10 +72,10 @@ export default function CalendarPage() {
+     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
+       <Sidebar user={user} />
+       
+-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
++      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+           <div>
+-            <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Calendar</h1>
++            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Calendar</h1>
+             <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Academic schedule for the 2nd Semester AY 2025-2026.</p>
+           </div>
+ 
+@@ -140,7 +142,12 @@ export default function CalendarPage() {
+                     const isToday = day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth();
+                     
+                     return (
+-                      <div key={day} className="aspect-square border-r border-b border-foreground/5 p-2 relative group hover:bg-foreground/[0.02] transition-colors">
++                      <div key={day} 
++                        onClick={() => setSelectedDay(selectedDay === day ? null : day)}
++                        className={cn(
++                          "aspect-square border-r border-b border-foreground/5 p-2 relative group hover:bg-foreground/[0.04] transition-colors cursor-pointer",
++                          selectedDay === day && "bg-ctu-gold/10 ring-1 ring-inset ring-ctu-gold/30"
++                        )}>
+                         <span className={cn(
+                           "text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full transition-all",
+                           isToday ? "bg-ctu-gold text-white shadow-lg scale-110" : "text-foreground/60"
+@@ -182,19 +189,35 @@ export default function CalendarPage() {
+               </div>
+ 
+               <div className="neumorphic-card p-6">
+-                <h3 className="text-lg font-bold mb-6">Today's Events</h3>
++                <h3 className="text-lg font-bold mb-6">
++                  {selectedDay 
++                    ? `${currentDate.toLocaleString('default', { month: 'short' })} ${selectedDay} Events` 
++                    : "Today's Events"}
++                </h3>
+                 <div className="space-y-4">
+-                  {getEventsForDay(new Date().getDate()).length > 0 ? (
+-                    getEventsForDay(new Date().getDate()).map(e => (
+-                      <div key={e.id} className="p-4 rounded-2xl neumorphic-pressed border-l-4 border-ctu-gold">
++                  {(selectedDay ? getEventsForDay(selectedDay) : getEventsForDay(new Date().getDate())).length > 0 ? (
++                    (selectedDay ? getEventsForDay(selectedDay) : getEventsForDay(new Date().getDate())).map(e => (
++                      <div key={e.id} className={cn("p-4 rounded-2xl neumorphic-pressed border-l-4", 
++                        e.category === 'academic' ? 'border-ctu-maroon' :
++                        e.category === 'event' ? 'border-ctu-gold' :
++                        e.category === 'holiday' ? 'border-green-600' : 'border-blue-500'
++                      )}>
+                         <h4 className="text-sm font-bold text-foreground">{e.title}</h4>
+                         <p className="text-xs text-foreground/60 mt-1 font-medium">{e.description}</p>
++                        <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/30 mt-2 block">{e.category}</span>
+                       </div>
+                     ))
+                   ) : (
+-                    <p className="text-sm text-foreground/40 italic font-medium">No events scheduled for today.</p>
++                    <p className="text-sm text-foreground/40 italic font-medium">
++                      {selectedDay ? `No events on the ${selectedDay}th.` : 'No events scheduled for today.'}
++                    </p>
+                   )}
+                 </div>
++                {selectedDay && (
++                  <button onClick={() => setSelectedDay(null)} className="mt-4 text-xs text-foreground/40 hover:text-foreground/60 font-bold transition-colors">
++                    ← Back to today
++                  </button>
++                )}
+               </div>
+             </div>
+           </div>
+diff --git a/src/pages/Catalog.tsx b/src/pages/Catalog.tsx
+index cc7d906..e4dcbff 100644
+--- a/src/pages/Catalog.tsx
++++ b/src/pages/Catalog.tsx
+@@ -384,11 +384,11 @@ export default function Catalog() {
+     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
+       <Sidebar user={profile} />
+       
+-      <main id="main-content" className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
++      <main id="main-content" className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+         {/* Header & Search */}
+         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+           <div>
+-            <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Catalog</h1>
++            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Catalog</h1>
+             <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Explore the IE Industrial Engineering curriculum.</p>
+           </div>
+ 
+diff --git a/src/pages/Dashboard.tsx b/src/pages/Dashboard.tsx
+index 8f14105..8fa2547 100644
+--- a/src/pages/Dashboard.tsx
++++ b/src/pages/Dashboard.tsx
+@@ -145,7 +145,7 @@ export default function Dashboard() {
+     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
+       <Sidebar user={profile} />
+       
+-      <main id="main-content" className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
++      <main id="main-content" className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+         {/* Header */}
+         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+           <motion.div
+@@ -178,11 +178,11 @@ export default function Dashboard() {
+ 
+             <div>
+               <h1 
+-                className="text-6xl md:text-8xl frosted-header font-black tracking-tighter transition-all duration-300 hover:[text-shadow:_0_1px_40px_rgba(146,93,252,0.5)]"
++                className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter transition-all duration-300 hover:[text-shadow:_0_1px_40px_rgba(146,93,252,0.5)]"
+               >
+                 {getGreeting()}, {profile.fullName.split(' ')[0]} 👋
+               </h1>
+-              <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Navigate your IE journey. One subject at a time.</p>
++              <p className="text-foreground/40 mt-3 text-base md:text-xl font-medium tracking-tight">Navigate your IE journey. One subject at a time.</p>
+             </div>
+           </motion.div>
+ 
+diff --git a/src/pages/Profile.tsx b/src/pages/Profile.tsx
+index ea15d6a..014f5d1 100644
+--- a/src/pages/Profile.tsx
++++ b/src/pages/Profile.tsx
+@@ -60,7 +60,9 @@ export default function Profile() {
+   const fileInputRef = React.useRef<HTMLInputElement>(null);
+   const navigate = useNavigate();
+ 
+-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
++  const [theme, setTheme] = useState<'light' | 'dark'>(() => 
++    document.documentElement.classList.contains('dark') ? 'dark' : 'light'
++  );
+   const [isUpdating, setIsUpdating] = useState(false);
+   const [editData, setEditData] = useState({ fullName: '', yearLevel: '' });
+ 
+@@ -189,9 +191,9 @@ export default function Profile() {
+     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
+       <Sidebar user={user} />
+       
+-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
++      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+         <div className="mb-12">
+-          <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Profile</h1>
++          <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Profile</h1>
+           <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Manage your account and application settings.</p>
+         </div>
+ 
+diff --git a/src/pages/Progress.tsx b/src/pages/Progress.tsx
+index 6fa33dc..9027e59 100644
+--- a/src/pages/Progress.tsx
++++ b/src/pages/Progress.tsx
+@@ -144,9 +144,9 @@ export default function ProgressPage() {
+     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
+       <Sidebar user={user} />
+       
+-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
++      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+         <div className="mb-12">
+-          <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">My Progress</h1>
++          <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">My Progress</h1>
+           <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Track your academic journey through the IE curriculum.</p>
+         </div>
+ 
+@@ -159,7 +159,7 @@ export default function ProgressPage() {
+                 <div className="space-y-1">
+                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-ctu-gold">Combined Academic GWA</h3>
+                   <div className="flex items-center justify-center gap-3">
+-                    <span className="text-7xl font-display font-black text-foreground">{stats.gwa || '0.00'}</span>
++                    <span className="text-4xl sm:text-6xl md:text-7xl font-display font-black text-foreground">{stats.gwa || '0.00'}</span>
+                     <div className="flex flex-col items-start">
+                       <Badge className={cn("text-[9px] font-bold uppercase", getGWAColor(stats.gwa) === 'text-ctu-gold' ? 'bg-ctu-gold text-white' : 'bg-foreground/10')}>
+                          {getGWALabel(stats.gwa)}
+diff --git a/src/pages/RatingsIngestion.tsx b/src/pages/RatingsIngestion.tsx
+index ba4e40a..16f8162 100644
+--- a/src/pages/RatingsIngestion.tsx
++++ b/src/pages/RatingsIngestion.tsx
+@@ -695,7 +695,7 @@ export default function RatingsIngestion() {
+     <div className="min-h-screen bg-background text-foreground flex">
+       <Sidebar user={profile!} />
+       
+-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
++      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+           <div>
+             <div className="flex items-center gap-2 mb-3">
+diff --git a/src/pages/Resources.tsx b/src/pages/Resources.tsx
+index 63fc318..6556468 100644
+--- a/src/pages/Resources.tsx
++++ b/src/pages/Resources.tsx
+@@ -64,39 +64,42 @@ export default function Resources() {
+         limit(20)
+       );
+ 
++      const publicResourcesRef: { current: Resource[] } = { current: [] };
++      const myResourcesRef: { current: Resource[] } = { current: [] };
++
++      const mergeAndSet = () => {
++        const combined = [...publicResourcesRef.current, ...myResourcesRef.current];
++        const seen = new Set<string>();
++        const deduped = combined.filter(r => {
++          if (seen.has(r.id)) return false;
++          seen.add(r.id);
++          return true;
++        }).sort((a, b) => {
++          const getT = (val: any) => {
++            if (!val) return 0;
++            if (typeof val.toMillis === 'function') return val.toMillis();
++            if (typeof val.toDate === 'function') return val.toDate().getTime();
++            if (val instanceof Date) return val.getTime();
++            const d = new Date(val);
++            return isNaN(d.getTime()) ? 0 : d.getTime();
++          };
++          return getT(b.createdAt) - getT(a.createdAt);
++        });
++        setResources(deduped);
++      };
++
+       const handleSnapshot = (snapshot: any, source: 'public' | 'mine') => {
+         const newResources = snapshot.docs.map((doc: any) => ({
+           id: doc.id,
+           ...doc.data()
+         })) as Resource[];
+ 
+-        setResources(prev => {
+-          // Merge with previous, keeping source distinction if needed, 
+-          // but for the simple list, we just merge and dedup by id
+-          const otherSourceResources = source === 'public' 
+-            ? prev.filter(r => r.userId === user.uid && !r.isPublic) // Keep my private ones
+-            : prev.filter(r => r.isPublic); // Keep public ones
+-          
+-          const combined = [...newResources, ...otherSourceResources];
+-          
+-          // Dedup by ID
+-          const seen = new Set();
+-          return combined.filter(r => {
+-            if (seen.has(r.id)) return false;
+-            seen.add(r.id);
+-            return true;
+-          }).sort((a, b) => {
+-            const getT = (val: any) => {
+-              if (!val) return 0;
+-              if (typeof val.toMillis === 'function') return val.toMillis();
+-              if (typeof val.toDate === 'function') return val.toDate().getTime();
+-              if (val instanceof Date) return val.getTime();
+-              const d = new Date(val);
+-              return isNaN(d.getTime()) ? 0 : d.getTime();
+-            };
+-            return getT(b.createdAt) - getT(a.createdAt);
+-          });
+-        });
++        if (source === 'public') {
++          publicResourcesRef.current = newResources;
++        } else {
++          myResourcesRef.current = newResources;
++        }
++        mergeAndSet();
+       };
+ 
+       const unsubscribePublic = onSnapshot(publicQuery, (snapshot) => handleSnapshot(snapshot, 'public'), (error) => {
+@@ -138,10 +141,10 @@ export default function Resources() {
+     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
+       <Sidebar user={user} />
+       
+-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
++      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+           <div>
+-            <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Resources</h1>
++            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Resources</h1>
+             <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Access shared notes, videos, and reference materials.</p>
+           </div>
+ 
+diff --git a/src/pages/StudyTools.tsx b/src/pages/StudyTools.tsx
+index bdb5329..5296bf8 100644
+--- a/src/pages/StudyTools.tsx
++++ b/src/pages/StudyTools.tsx
+@@ -1,6 +1,7 @@
+ import React, { useState, useEffect } from 'react';
+ import { useNavigate } from 'react-router-dom';
+ import { motion, AnimatePresence } from 'motion/react';
++import ReactMarkdown from 'react-markdown';
+ import { 
+   Users, 
+   MessageSquare, 
+@@ -236,12 +237,20 @@ export default function StudyTools() {
+     if (!advisorInput.trim() || isAdvisorLoading) return;
+ 
+     const userMsg = { role: 'user' as const, content: advisorInput };
+-    setAdvisorChat(prev => [...prev, userMsg]);
++    const updatedChat = [...advisorChat, userMsg];
++    setAdvisorChat(updatedChat);
+     setAdvisorInput('');
+     setIsAdvisorLoading(true);
+ 
+     try {
+-      const response = await askQuestion(advisorInput, JSON.stringify(roadmap));
++      const systemCtx = `You are an IE Matrix AI Tutor for Industrial Engineering students at Cebu Technological University.
++Curriculum: ${JSON.stringify(IE_SUBJECTS.map(s => ({ code: s.code, name: s.name, year: s.yearLevel, prereqs: s.prerequisiteIds })))}
++Student Progress: ${JSON.stringify(progressMap)}
++Current Roadmap: ${JSON.stringify(roadmap)}
++Be concise, helpful, and use markdown. Focus on IE academics.`;
++      const history = updatedChat.map(m => `${m.role === 'user' ? 'Student' : 'Advisor'}: ${m.content}`).join('\n');
++      const fullPrompt = `${systemCtx}\n\nConversation:\n${history}\n\nAdvisor:`;
++      const response = await askQuestion(fullPrompt, '');
+       setAdvisorChat(prev => [...prev, { role: 'ai' as const, content: response }]);
+     } catch (error) {
+       toast.error("AI Advisor is currently unavailable.");
+@@ -776,10 +785,10 @@ export default function StudyTools() {
+     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
+       <Sidebar user={user} />
+       
+-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
++      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 lg:mb-12">
+           <div>
+-            <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2 flex items-center gap-4">
++            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2 flex items-center gap-4">
+               Study Hub <Sparkles className="text-ctu-gold shrink-0 scale-125" size={56} />
+             </h1>
+             <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Elevate your learning with AI guidance and community support.</p>
+@@ -1113,10 +1122,10 @@ export default function StudyTools() {
+               <TabsContent value="groups" className="mt-0 space-y-8 lg:space-y-12">
+                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+                   <div>
+-                    <h2 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
++                    <h2 className="text-3xl sm:text-5xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
+                        Active Groups
+                     </h2>
+-                    <p className="text-xl text-foreground/40 font-medium mt-3 tracking-tight">Connect with peers and navigate the IE curriculum together.</p>
++                    <p className="text-base md:text-xl text-foreground/40 font-medium mt-3 tracking-tight">Connect with peers and navigate the IE curriculum together.</p>
+                   </div>
+                   <div className="flex flex-wrap gap-4 w-full md:w-auto">
+                     <div className="relative flex-1 md:w-72">
+@@ -1243,10 +1252,10 @@ export default function StudyTools() {
+               <TabsContent value="qa" className="mt-0 space-y-8 lg:space-y-12">
+                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+                   <div>
+-                    <h2 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
++                    <h2 className="text-3xl sm:text-5xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
+                        Q&A Forum
+                     </h2>
+-                    <p className="text-xl text-foreground/40 font-medium mt-3 tracking-tight">Rapid knowledge exchange with the IE community.</p>
++                    <p className="text-base md:text-xl text-foreground/40 font-medium mt-3 tracking-tight">Rapid knowledge exchange with the IE community.</p>
+                   </div>
+                   <Dialog open={isAskQuestionModalOpen} onOpenChange={setIsAskQuestionModalOpen}>
+                     <DialogTrigger 
+@@ -1374,10 +1383,10 @@ export default function StudyTools() {
+                   <div className="space-y-8 lg:space-y-12">
+                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+                       <div>
+-                        <h2 className="text-6xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
++                        <h2 className="text-3xl sm:text-5xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
+                            Flash Decks
+                         </h2>
+-                        <p className="text-xl text-foreground/40 font-medium mt-3 tracking-tight">Accelerate mastery through strategic retention cycles.</p>
++                        <p className="text-base md:text-xl text-foreground/40 font-medium mt-3 tracking-tight">Accelerate mastery through strategic retention cycles.</p>
+                       </div>
+                       <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                         <Dialog open={isNewDeckModalOpen} onOpenChange={setIsNewDeckModalOpen}>
+@@ -1966,8 +1975,8 @@ export default function StudyTools() {
+               </div>
+             </DialogHeader>
+             
+-            <ScrollArea className="flex-1 p-6 space-y-6">
+-              <div className="flex flex-col gap-6">
++            <ScrollArea className="flex-1 p-6">
++              <div className="flex flex-col gap-4">
+                 {advisorChat.length === 0 && (
+                   <div className="text-center py-12 space-y-4">
+                     <div className="w-16 h-16 rounded-full bg-ctu-gold/5 flex items-center justify-center mx-auto text-ctu-gold animate-bounce">
+@@ -1978,20 +1987,31 @@ export default function StudyTools() {
+                 )}
+                 {advisorChat.map((msg, i) => (
+                   <div key={i} className={cn(
+-                    "max-w-[85%] p-4 rounded-2xl text-sm font-medium",
+-                    msg.role === 'user' 
+-                      ? "bg-ctu-maroon text-white self-end rounded-tr-none" 
+-                      : "neumorphic-raised text-foreground self-start rounded-tl-none"
++                    "flex",
++                    msg.role === 'user' ? "justify-end" : "justify-start"
+                   )}>
+-                    {msg.content}
++                    <div className={cn(
++                      "max-w-[85%] p-4 rounded-2xl text-sm font-medium",
++                      msg.role === 'user'
++                        ? "bg-ctu-maroon text-white rounded-tr-none"
++                        : "neumorphic-raised text-foreground rounded-tl-none"
++                    )}>
++                      {msg.role === 'ai' ? (
++                        <div className="prose prose-sm max-w-none prose-invert text-foreground/80">
++                          <ReactMarkdown>{msg.content}</ReactMarkdown>
++                        </div>
++                      ) : msg.content}
++                    </div>
+                   </div>
+                 ))}
+                 {isAdvisorLoading && (
+-                  <div className="neumorphic-raised text-foreground self-start rounded-2xl rounded-tl-none p-4 max-w-[85%]">
+-                    <div className="flex gap-1">
+-                      <div className="w-1.5 h-1.5 bg-ctu-gold rounded-full animate-bounce" />
+-                      <div className="w-1.5 h-1.5 bg-ctu-gold rounded-full animate-bounce [animation-delay:0.2s]" />
+-                      <div className="w-1.5 h-1.5 bg-ctu-gold rounded-full animate-bounce [animation-delay:0.4s]" />
++                  <div className="flex justify-start">
++                    <div className="neumorphic-raised text-foreground rounded-2xl rounded-tl-none p-4">
++                      <div className="flex gap-1">
++                        <div className="w-1.5 h-1.5 bg-ctu-gold rounded-full animate-bounce" />
++                        <div className="w-1.5 h-1.5 bg-ctu-gold rounded-full animate-bounce [animation-delay:0.2s]" />
++                        <div className="w-1.5 h-1.5 bg-ctu-gold rounded-full animate-bounce [animation-delay:0.4s]" />
++                      </div>
+                     </div>
+                   </div>
+                 )}
+diff --git a/src/pages/SubjectDetail.tsx b/src/pages/SubjectDetail.tsx
+index ce342fd..cc69a27 100644
+--- a/src/pages/SubjectDetail.tsx
++++ b/src/pages/SubjectDetail.tsx
+@@ -462,7 +462,7 @@ export default function SubjectDetail() {
+     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
+       <Sidebar user={profile} />
+       
+-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
++      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+         {/* Back Button */}
+         <button 
+           onClick={() => navigate('/catalog')}
+@@ -483,7 +483,7 @@ export default function SubjectDetail() {
+                 <Badge className="neumorphic-pressed text-foreground/60 border-none px-4 py-1 rounded-full text-[10px] font-bold uppercase">{subject.units} Units</Badge>
+               </div>
+               
+-              <h1 className="text-7xl md:text-8xl frosted-header font-black mb-4 tracking-tighter leading-[0.9] py-2">{subject.name}</h1>
++              <h1 className="text-3xl sm:text-5xl md:text-7xl frosted-header font-black mb-4 tracking-tighter leading-[0.9] py-2">{subject.name}</h1>
+               <p className="text-ctu-gold font-black text-3xl mb-10 tracking-[0.2em]">{subject.code}</p>
+ 
+               <div className="flex flex-wrap items-center gap-8 p-6 neumorphic-card w-fit">
+diff --git a/src/pages/SyllabusIngestion.tsx b/src/pages/SyllabusIngestion.tsx
+index c1dcfcc..9d904bd 100644
+--- a/src/pages/SyllabusIngestion.tsx
++++ b/src/pages/SyllabusIngestion.tsx
+@@ -237,7 +237,7 @@ export default function SyllabusIngestion() {
+     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
+       <Sidebar user={profile} />
+       
+-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
++      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+           <div>
+             <div className="flex items-center gap-2 mb-3">
+diff --git a/src/types/index.ts b/src/types/index.ts
+index 2597f17..0f60632 100644
+--- a/src/types/index.ts
++++ b/src/types/index.ts
+@@ -11,7 +11,7 @@ export interface User {
+   email?: string;
+   yearLevel?: string;
+   role?: 'student' | 'admin';
+-  loginTime: string;
++  loginTime?: string;
+   photoURL?: string;
+ }
+ 
+-- 
+2.43.0
+
+
+From 63bd0105c8d024d74dcce7e3dfcb0698722d087e Mon Sep 17 00:00:00 2001
+From: IE Matrix Fix Bot <ie-matrix-fixes@auto.com>
+Date: Sun, 3 May 2026 00:20:47 +0000
+Subject: [PATCH 2/2] fix: part 2 - deeper bug fixes and real-time improvements
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Fix Profile: DialogTrigger render prop → asChild (was crashing Edit Profile modal)
+- Fix Profile: theme toggle initializes from DOM class, not hardcoded 'dark'
+- Fix Profile: subtitle mobile text size
+- Fix Bulletin: switch from getDocs to onSnapshot for real-time announcements
+- Fix Bulletin: subtitle mobile text size
+- Fix SubjectDetail: same stale-closure snapshot merge bug as Resources (fixed with refs)
+- Fix AdminDashboard: remove Firestore re-query on sort; use client-side sort instead
+- Fix AdminDashboard: subtitle mobile text size
+- Fix useProgress: debounce setGrade (800ms) to prevent Firestore write storm on every keystroke
+- Fix useProgress: optimistic local update so grade input feels instant
+---
+ src/hooks/useProgress.ts     | 25 ++++++++++++++++---
+ src/pages/AdminDashboard.tsx | 36 +++++++++++++++------------
+ src/pages/Bulletin.tsx       | 32 +++++++++++-------------
+ src/pages/Profile.tsx        | 12 ++++-----
+ src/pages/SubjectDetail.tsx  | 48 +++++++++++++++++++-----------------
+ 5 files changed, 88 insertions(+), 65 deletions(-)
+
+diff --git a/src/hooks/useProgress.ts b/src/hooks/useProgress.ts
+index c919a5c..52c43f8 100644
+--- a/src/hooks/useProgress.ts
++++ b/src/hooks/useProgress.ts
+@@ -1,5 +1,5 @@
+ 
+-import { useState, useEffect } from 'react';
++import { useState, useEffect, useRef } from 'react';
+ import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
+ import { db } from '@/src/lib/firebase';
+ import { useAuth } from '@/src/context/AuthContext';
+@@ -95,8 +95,27 @@ export function useProgress() {
+     toast.success(`Updated status for ${subject.code}`);
+   };
+ 
+-  const setGrade = async (subjectId: string, grade: number | undefined) => {
+-    await updateProgress(subjectId, { grade });
++  const gradeDebounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
++
++  const setGrade = (subjectId: string, grade: number | undefined) => {
++    // Optimistically update local state immediately for responsive UI
++    setProgressMap(prev => ({
++      ...prev,
++      [subjectId]: {
++        ...(prev[subjectId] || { subjectId, status: 'not_yet' as SubjectStatus, updatedAt: new Date().toISOString() }),
++        grade,
++        updatedAt: new Date().toISOString()
++      }
++    }));
++
++    // Debounce the actual Firestore write by 800ms
++    if (gradeDebounceRef.current[subjectId]) {
++      clearTimeout(gradeDebounceRef.current[subjectId]);
++    }
++    gradeDebounceRef.current[subjectId] = setTimeout(async () => {
++      await updateProgress(subjectId, { grade });
++      delete gradeDebounceRef.current[subjectId];
++    }, 800);
+   };
+ 
+   return { progressMap, loading, updateProgress, toggleStatus, setGrade };
+diff --git a/src/pages/AdminDashboard.tsx b/src/pages/AdminDashboard.tsx
+index b119178..0365676 100644
+--- a/src/pages/AdminDashboard.tsx
++++ b/src/pages/AdminDashboard.tsx
+@@ -80,7 +80,7 @@ export default function AdminDashboard() {
+   const fetchUsers = async () => {
+     setLoading(true);
+     try {
+-      const q = query(collection(db, 'users'), orderBy('lastLogin', sortOrder), limit(100));
++      const q = query(collection(db, 'users'), orderBy('lastLogin', 'desc'), limit(100));
+       const querySnapshot = await getDocs(q);
+       const fetchedUsers = querySnapshot.docs.map(doc => ({
+         id: doc.id,
+@@ -95,21 +95,25 @@ export default function AdminDashboard() {
+     }
+   };
+ 
+-  useEffect(() => {
+-    if (profile) {
+-      fetchUsers();
+-    }
+-  }, [sortOrder]);
++  const toggleSort = () => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+ 
+-  const toggleSort = () => {
+-    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+-  };
+-
+-  const filteredUsers = users.filter(u => 
+-    u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+-    u.idNumber?.includes(searchTerm) ||
+-    u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+-  );
++  const filteredUsers = users
++    .filter(u =>
++      u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
++      u.idNumber?.includes(searchTerm) ||
++      u.email?.toLowerCase().includes(searchTerm.toLowerCase())
++    )
++    .sort((a, b) => {
++      const getT = (val: any) => {
++        if (!val) return 0;
++        if (typeof val.toMillis === 'function') return val.toMillis();
++        if (typeof val.toDate === 'function') return val.toDate().getTime();
++        return new Date(val).getTime() || 0;
++      };
++      return sortOrder === 'desc'
++        ? getT(b.lastLogin) - getT(a.lastLogin)
++        : getT(a.lastLogin) - getT(b.lastLogin);
++    });
+ 
+   const formatDate = (timestamp: any) => {
+     if (!timestamp) return 'Never';
+@@ -137,7 +141,7 @@ export default function AdminDashboard() {
+               <span className="text-xs font-black text-ctu-gold uppercase tracking-[0.3em]">Command Center</span>
+             </div>
+             <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Admin Console</h1>
+-            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Monitor all IE students currently in the Matrix.</p>
++            <p className="text-foreground/40 mt-3 text-base md:text-xl font-medium tracking-tight">Monitor all IE students currently in the Matrix.</p>
+           </div>
+           
+           <div className="flex gap-3">
+diff --git a/src/pages/Bulletin.tsx b/src/pages/Bulletin.tsx
+index 36036e7..9767649 100644
+--- a/src/pages/Bulletin.tsx
++++ b/src/pages/Bulletin.tsx
+@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
+ 
+ import { useAuth } from '@/src/context/AuthContext';
+ import { db } from '@/src/lib/firebase';
+-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
++import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+ 
+ export default function Bulletin() {
+   const { profile, loading: authLoading } = useAuth();
+@@ -34,30 +34,28 @@ export default function Bulletin() {
+   useEffect(() => {
+     if (!authLoading && !profile) {
+       navigate('/login');
++      return;
+     }
+ 
+-    if (profile) {
+-      fetchAnnouncements();
+-    }
+-  }, [profile, authLoading, navigate]);
++    if (!profile) return;
+ 
+-  const fetchAnnouncements = async () => {
+     setLoading(true);
+-    try {
+-      const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
+-      const querySnapshot = await getDocs(q);
+-      if (!querySnapshot.empty) {
+-        setAnnouncements(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement)));
++    const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
++    const unsubscribe = onSnapshot(q, (snapshot) => {
++      if (!snapshot.empty) {
++        setAnnouncements(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement)));
+       } else {
+         setAnnouncements(ANNOUNCEMENTS);
+       }
+-    } catch (error) {
+-      console.error("Error fetching announcements:", error);
++      setLoading(false);
++    }, (error) => {
++      console.error("Bulletin sync error:", error);
+       setAnnouncements(ANNOUNCEMENTS);
+-    } finally {
+       setLoading(false);
+-    }
+-  };
++    });
++
++    return () => unsubscribe();
++  }, [profile, authLoading, navigate]);
+ 
+   const filteredAnnouncements = announcements.filter(a => 
+     selectedCategory === 'All' || a.category === selectedCategory
+@@ -89,7 +87,7 @@ export default function Bulletin() {
+         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+           <div>
+             <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Bulletin</h1>
+-            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Stay updated with the latest IE department news.</p>
++            <p className="text-foreground/40 mt-3 text-base md:text-xl font-medium tracking-tight">Stay updated with the latest IE department news.</p>
+           </div>
+ 
+           <div className="flex gap-3 overflow-x-auto pb-4 md:pb-0 no-scrollbar scroll-smooth">
+diff --git a/src/pages/Profile.tsx b/src/pages/Profile.tsx
+index 014f5d1..96e0261 100644
+--- a/src/pages/Profile.tsx
++++ b/src/pages/Profile.tsx
+@@ -194,7 +194,7 @@ export default function Profile() {
+       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+         <div className="mb-12">
+           <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Profile</h1>
+-          <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Manage your account and application settings.</p>
++          <p className="text-foreground/40 mt-3 text-base md:text-xl font-medium tracking-tight">Manage your account and application settings.</p>
+         </div>
+ 
+         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+@@ -249,12 +249,10 @@ export default function Profile() {
+ 
+                 <div className="w-full mt-8">
+                   <Dialog>
+-                    <DialogTrigger
+-                      render={
+-                        <Button variant="outline" className="w-full rounded-2xl neumorphic-raised border-none text-xs font-bold uppercase tracking-widest gap-2" />
+-                      }
+-                    >
+-                      <Settings size={14} /> Edit Profile
++                    <DialogTrigger asChild>
++                      <Button variant="outline" className="w-full rounded-2xl neumorphic-raised border-none text-xs font-bold uppercase tracking-widest gap-2">
++                        <Settings size={14} /> Edit Profile
++                      </Button>
+                     </DialogTrigger>
+                     <DialogContent className="neumorphic-card border-none rounded-[32px] max-w-md p-0 overflow-hidden">
+                       <div className="p-8 border-b border-foreground/5">
+diff --git a/src/pages/SubjectDetail.tsx b/src/pages/SubjectDetail.tsx
+index cc69a27..7ca0f58 100644
+--- a/src/pages/SubjectDetail.tsx
++++ b/src/pages/SubjectDetail.tsx
+@@ -157,30 +157,34 @@ export default function SubjectDetail() {
+         where('userId', '==', profile.uid)
+       );
+ 
++      const publicResRef: { current: Resource[] } = { current: [] };
++      const myResRef: { current: Resource[] } = { current: [] };
++
++      const mergeResources = () => {
++        const combined = [...publicResRef.current, ...myResRef.current];
++        const seen = new Set<string>();
++        const deduped = combined.filter(r => {
++          if (seen.has(r.id)) return false;
++          seen.add(r.id);
++          return true;
++        }).sort((a, b) => {
++          const getT = (val: any) => {
++            if (!val) return 0;
++            if (typeof val.toMillis === 'function') return val.toMillis();
++            if (typeof val.toDate === 'function') return val.toDate().getTime();
++            return new Date(val).getTime() || 0;
++          };
++          return getT(b.createdAt) - getT(a.createdAt);
++        });
++        setResources(deduped);
++      };
++
+       const handleResSnapshot = (snapshot: any, source: 'public' | 'mine') => {
+         if (!isMounted) return;
+-        const fetched = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+-        setResources(prev => {
+-          const others = source === 'public' 
+-            ? prev.filter(r => r.userId === profile.uid && !r.isPublic)
+-            : prev.filter(r => r.isPublic);
+-          
+-          const combined = [...fetched, ...others];
+-          const seen = new Set();
+-          return combined.filter(r => {
+-            if (seen.has(r.id)) return false;
+-            seen.add(r.id);
+-            return true;
+-          }).sort((a, b) => {
+-            const getT = (val: any) => {
+-              if (!val) return 0;
+-              if (typeof val.toMillis === 'function') return val.toMillis();
+-              if (typeof val.toDate === 'function') return val.toDate().getTime();
+-              return new Date(val).getTime() || 0;
+-            };
+-            return getT(b.createdAt) - getT(a.createdAt);
+-          });
+-        });
++        const fetched = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })) as Resource[];
++        if (source === 'public') publicResRef.current = fetched;
++        else myResRef.current = fetched;
++        mergeResources();
+       };
+ 
+       const unsubPublicRes = onSnapshot(publicResQuery, (s) => handleResSnapshot(s, 'public'), (e) => console.warn("Vault public sync error:", e));
+-- 
+2.43.0

@@ -60,7 +60,9 @@ export default function Profile() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => 
+    document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+  );
   const [isUpdating, setIsUpdating] = useState(false);
   const [editData, setEditData] = useState({ fullName: '', yearLevel: '' });
 
@@ -189,10 +191,10 @@ export default function Profile() {
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
       <Sidebar user={user} />
       
-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
         <div className="mb-12">
-          <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Profile</h1>
-          <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Manage your account and application settings.</p>
+          <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Profile</h1>
+          <p className="text-foreground/40 mt-3 text-base md:text-xl font-medium tracking-tight">Manage your account and application settings.</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -247,12 +249,10 @@ export default function Profile() {
 
                 <div className="w-full mt-8">
                   <Dialog>
-                    <DialogTrigger
-                      render={
-                        <Button variant="outline" className="w-full rounded-2xl neumorphic-raised border-none text-xs font-bold uppercase tracking-widest gap-2" />
-                      }
-                    >
-                      <Settings size={14} /> Edit Profile
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full rounded-2xl neumorphic-raised border-none text-xs font-bold uppercase tracking-widest gap-2">
+                        <Settings size={14} /> Edit Profile
+                      </Button>
                     </DialogTrigger>
                     <DialogContent className="neumorphic-card border-none rounded-[32px] max-w-md p-0 overflow-hidden">
                       <div className="p-8 border-b border-foreground/5">

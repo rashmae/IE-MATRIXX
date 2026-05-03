@@ -145,7 +145,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
       <Sidebar user={profile} />
       
-      <main id="main-content" className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
+      <main id="main-content" className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
           <motion.div
@@ -178,11 +178,11 @@ export default function Dashboard() {
 
             <div>
               <h1 
-                className="text-6xl md:text-8xl frosted-header font-black tracking-tighter transition-all duration-300 hover:[text-shadow:_0_1px_40px_rgba(146,93,252,0.5)]"
+                className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter transition-all duration-300 hover:[text-shadow:_0_1px_40px_rgba(146,93,252,0.5)]"
               >
                 {getGreeting()}, {profile.fullName.split(' ')[0]} 👋
               </h1>
-              <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Navigate your IE journey. One subject at a time.</p>
+              <p className="text-foreground/40 mt-3 text-base md:text-xl font-medium tracking-tight">Navigate your IE journey. One subject at a time.</p>
             </div>
           </motion.div>
 

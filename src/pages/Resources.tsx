@@ -64,39 +64,42 @@ export default function Resources() {
         limit(20)
       );
 
+      const publicResourcesRef: { current: Resource[] } = { current: [] };
+      const myResourcesRef: { current: Resource[] } = { current: [] };
+
+      const mergeAndSet = () => {
+        const combined = [...publicResourcesRef.current, ...myResourcesRef.current];
+        const seen = new Set<string>();
+        const deduped = combined.filter(r => {
+          if (seen.has(r.id)) return false;
+          seen.add(r.id);
+          return true;
+        }).sort((a, b) => {
+          const getT = (val: any) => {
+            if (!val) return 0;
+            if (typeof val.toMillis === 'function') return val.toMillis();
+            if (typeof val.toDate === 'function') return val.toDate().getTime();
+            if (val instanceof Date) return val.getTime();
+            const d = new Date(val);
+            return isNaN(d.getTime()) ? 0 : d.getTime();
+          };
+          return getT(b.createdAt) - getT(a.createdAt);
+        });
+        setResources(deduped);
+      };
+
       const handleSnapshot = (snapshot: any, source: 'public' | 'mine') => {
         const newResources = snapshot.docs.map((doc: any) => ({
           id: doc.id,
           ...doc.data()
         })) as Resource[];
 
-        setResources(prev => {
-          // Merge with previous, keeping source distinction if needed, 
-          // but for the simple list, we just merge and dedup by id
-          const otherSourceResources = source === 'public' 
-            ? prev.filter(r => r.userId === user.uid && !r.isPublic) // Keep my private ones
-            : prev.filter(r => r.isPublic); // Keep public ones
-          
-          const combined = [...newResources, ...otherSourceResources];
-          
-          // Dedup by ID
-          const seen = new Set();
-          return combined.filter(r => {
-            if (seen.has(r.id)) return false;
-            seen.add(r.id);
-            return true;
-          }).sort((a, b) => {
-            const getT = (val: any) => {
-              if (!val) return 0;
-              if (typeof val.toMillis === 'function') return val.toMillis();
-              if (typeof val.toDate === 'function') return val.toDate().getTime();
-              if (val instanceof Date) return val.getTime();
-              const d = new Date(val);
-              return isNaN(d.getTime()) ? 0 : d.getTime();
-            };
-            return getT(b.createdAt) - getT(a.createdAt);
-          });
-        });
+        if (source === 'public') {
+          publicResourcesRef.current = newResources;
+        } else {
+          myResourcesRef.current = newResources;
+        }
+        mergeAndSet();
       };
 
       const unsubscribePublic = onSnapshot(publicQuery, (snapshot) => handleSnapshot(snapshot, 'public'), (error) => {
@@ -138,10 +141,10 @@ export default function Resources() {
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
       <Sidebar user={user} />
       
-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
           <div>
-            <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Resources</h1>
+            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Resources</h1>
             <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Access shared notes, videos, and reference materials.</p>
           </div>
 

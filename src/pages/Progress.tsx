@@ -144,9 +144,9 @@ export default function ProgressPage() {
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
       <Sidebar user={user} />
       
-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
         <div className="mb-12">
-          <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">My Progress</h1>
+          <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">My Progress</h1>
           <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Track your academic journey through the IE curriculum.</p>
         </div>
 
@@ -159,7 +159,7 @@ export default function ProgressPage() {
                 <div className="space-y-1">
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-ctu-gold">Combined Academic GWA</h3>
                   <div className="flex items-center justify-center gap-3">
-                    <span className="text-7xl font-display font-black text-foreground">{stats.gwa || '0.00'}</span>
+                    <span className="text-4xl sm:text-6xl md:text-7xl font-display font-black text-foreground">{stats.gwa || '0.00'}</span>
                     <div className="flex flex-col items-start">
                       <Badge className={cn("text-[9px] font-bold uppercase", getGWAColor(stats.gwa) === 'text-ctu-gold' ? 'bg-ctu-gold text-white' : 'bg-foreground/10')}>
                          {getGWALabel(stats.gwa)}

@@ -157,30 +157,34 @@ export default function SubjectDetail() {
         where('userId', '==', profile.uid)
       );
 
+      const publicResRef: { current: Resource[] } = { current: [] };
+      const myResRef: { current: Resource[] } = { current: [] };
+
+      const mergeResources = () => {
+        const combined = [...publicResRef.current, ...myResRef.current];
+        const seen = new Set<string>();
+        const deduped = combined.filter(r => {
+          if (seen.has(r.id)) return false;
+          seen.add(r.id);
+          return true;
+        }).sort((a, b) => {
+          const getT = (val: any) => {
+            if (!val) return 0;
+            if (typeof val.toMillis === 'function') return val.toMillis();
+            if (typeof val.toDate === 'function') return val.toDate().getTime();
+            return new Date(val).getTime() || 0;
+          };
+          return getT(b.createdAt) - getT(a.createdAt);
+        });
+        setResources(deduped);
+      };
+
       const handleResSnapshot = (snapshot: any, source: 'public' | 'mine') => {
         if (!isMounted) return;
-        const fetched = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
-        setResources(prev => {
-          const others = source === 'public' 
-            ? prev.filter(r => r.userId === profile.uid && !r.isPublic)
-            : prev.filter(r => r.isPublic);
-          
-          const combined = [...fetched, ...others];
-          const seen = new Set();
-          return combined.filter(r => {
-            if (seen.has(r.id)) return false;
-            seen.add(r.id);
-            return true;
-          }).sort((a, b) => {
-            const getT = (val: any) => {
-              if (!val) return 0;
-              if (typeof val.toMillis === 'function') return val.toMillis();
-              if (typeof val.toDate === 'function') return val.toDate().getTime();
-              return new Date(val).getTime() || 0;
-            };
-            return getT(b.createdAt) - getT(a.createdAt);
-          });
-        });
+        const fetched = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })) as Resource[];
+        if (source === 'public') publicResRef.current = fetched;
+        else myResRef.current = fetched;
+        mergeResources();
       };
 
       const unsubPublicRes = onSnapshot(publicResQuery, (s) => handleResSnapshot(s, 'public'), (e) => console.warn("Vault public sync error:", e));
@@ -462,7 +466,7 @@ export default function SubjectDetail() {
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
       <Sidebar user={profile} />
       
-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
         {/* Back Button */}
         <button 
           onClick={() => navigate('/catalog')}
@@ -483,7 +487,7 @@ export default function SubjectDetail() {
                 <Badge className="neumorphic-pressed text-foreground/60 border-none px-4 py-1 rounded-full text-[10px] font-bold uppercase">{subject.units} Units</Badge>
               </div>
               
-              <h1 className="text-7xl md:text-8xl frosted-header font-black mb-4 tracking-tighter leading-[0.9] py-2">{subject.name}</h1>
+              <h1 className="text-3xl sm:text-5xl md:text-7xl frosted-header font-black mb-4 tracking-tighter leading-[0.9] py-2">{subject.name}</h1>
               <p className="text-ctu-gold font-black text-3xl mb-10 tracking-[0.2em]">{subject.code}</p>
 
               <div className="flex flex-wrap items-center gap-8 p-6 neumorphic-card w-fit">

@@ -48,6 +48,8 @@ export default function CalendarPage() {
     return CALENDAR_EVENTS.filter(e => e.date === dateStr);
   };
 
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
   const getEventColor = (category: string) => {
     switch (category.toLowerCase()) {
       case 'academic': return 'bg-ctu-maroon';
@@ -70,10 +72,10 @@ export default function CalendarPage() {
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
       <Sidebar user={user} />
       
-      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
-            <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Calendar</h1>
+            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Calendar</h1>
             <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Academic schedule for the 2nd Semester AY 2025-2026.</p>
           </div>
 
@@ -140,7 +142,12 @@ export default function CalendarPage() {
                     const isToday = day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth();
                     
                     return (
-                      <div key={day} className="aspect-square border-r border-b border-foreground/5 p-2 relative group hover:bg-foreground/[0.02] transition-colors">
+                      <div key={day} 
+                        onClick={() => setSelectedDay(selectedDay === day ? null : day)}
+                        className={cn(
+                          "aspect-square border-r border-b border-foreground/5 p-2 relative group hover:bg-foreground/[0.04] transition-colors cursor-pointer",
+                          selectedDay === day && "bg-ctu-gold/10 ring-1 ring-inset ring-ctu-gold/30"
+                        )}>
                         <span className={cn(
                           "text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full transition-all",
                           isToday ? "bg-ctu-gold text-white shadow-lg scale-110" : "text-foreground/60"
@@ -182,19 +189,35 @@ export default function CalendarPage() {
               </div>
 
               <div className="neumorphic-card p-6">
-                <h3 className="text-lg font-bold mb-6">Today's Events</h3>
+                <h3 className="text-lg font-bold mb-6">
+                  {selectedDay 
+                    ? `${currentDate.toLocaleString('default', { month: 'short' })} ${selectedDay} Events` 
+                    : "Today's Events"}
+                </h3>
                 <div className="space-y-4">
-                  {getEventsForDay(new Date().getDate()).length > 0 ? (
-                    getEventsForDay(new Date().getDate()).map(e => (
-                      <div key={e.id} className="p-4 rounded-2xl neumorphic-pressed border-l-4 border-ctu-gold">
+                  {(selectedDay ? getEventsForDay(selectedDay) : getEventsForDay(new Date().getDate())).length > 0 ? (
+                    (selectedDay ? getEventsForDay(selectedDay) : getEventsForDay(new Date().getDate())).map(e => (
+                      <div key={e.id} className={cn("p-4 rounded-2xl neumorphic-pressed border-l-4", 
+                        e.category === 'academic' ? 'border-ctu-maroon' :
+                        e.category === 'event' ? 'border-ctu-gold' :
+                        e.category === 'holiday' ? 'border-green-600' : 'border-blue-500'
+                      )}>
                         <h4 className="text-sm font-bold text-foreground">{e.title}</h4>
                         <p className="text-xs text-foreground/60 mt-1 font-medium">{e.description}</p>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/30 mt-2 block">{e.category}</span>
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-foreground/40 italic font-medium">No events scheduled for today.</p>
+                    <p className="text-sm text-foreground/40 italic font-medium">
+                      {selectedDay ? `No events on the ${selectedDay}th.` : 'No events scheduled for today.'}
+                    </p>
                   )}
                 </div>
+                {selectedDay && (
+                  <button onClick={() => setSelectedDay(null)} className="mt-4 text-xs text-foreground/40 hover:text-foreground/60 font-bold transition-colors">
+                    ← Back to today
+                  </button>
+                )}
               </div>
             </div>
           </div>
