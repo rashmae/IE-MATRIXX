@@ -1,8 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ListItemSkeleton } from '@/src/components/SkeletonLoader';
-import { useDebounce } from '@/src/hooks/useDebounce';
 import { 
   FolderOpen, 
   Search, 
@@ -39,11 +37,9 @@ import { useAuth } from '@/src/context/AuthContext';
 export default function Resources() {
   const { profile: user, loading: authLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const debouncedSearch = useDebounce(searchQuery, 250);
   const [selectedType, setSelectedType] = useState<ResourceType | 'All'>('All');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [resources, setResources] = useState<Resource[]>([]);
-  const [resourcesLoading, setResourcesLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -104,7 +100,6 @@ export default function Resources() {
           myResourcesRef.current = newResources;
         }
         mergeAndSet();
-        setResourcesLoading(false);
       };
 
       const unsubscribePublic = onSnapshot(publicQuery, (snapshot) => handleSnapshot(snapshot, 'public'), (error) => {
@@ -128,24 +123,16 @@ export default function Resources() {
     setIsUploadModalOpen(false);
   };
 
-  const filteredResources = useMemo(() => resources.filter(r => {
-    const matchesSearch = r.title.toLowerCase().includes(debouncedSearch.toLowerCase());
+  const filteredResources = resources.filter(r => {
+    const matchesSearch = r.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = selectedType === 'All' || r.type === selectedType;
     return matchesSearch && matchesType;
-  }), [resources, debouncedSearch, selectedType]);
+  });
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex">
-        <Sidebar user={null} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-          <div className="mb-8 space-y-3">
-            <div className="skeleton h-14 w-40 rounded-xl" />
-            <div className="skeleton h-5 w-64 rounded-lg" />
-          </div>
-          <ListItemSkeleton count={5} />
-        </main>
-        <BottomNav />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="loader"></div>
       </div>
     );
   }
@@ -207,52 +194,27 @@ export default function Resources() {
           </div>
 
           <TabsContent value="all" className="mt-0">
-            {resourcesLoading ? (
-              <ListItemSkeleton count={6} />
-            ) : filteredResources.filter(r => r.isPublic).length === 0 ? (
-              <div className="text-center py-16 neumorphic-pressed rounded-3xl">
-                <FolderOpen size={40} className="text-foreground/20 mx-auto mb-4" />
-                <p className="text-foreground/40 font-bold text-sm">No public resources yet</p>
-                <p className="text-foreground/25 text-xs mt-1">Be the first to upload a resource!</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                <AnimatePresence mode="popLayout">
-                  {filteredResources.filter(r => r.isPublic).map((res) => (
-                    <div key={res.id}>
-                      <ResourceCard resource={res} />
-                    </div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <AnimatePresence mode="popLayout">
+                {filteredResources.filter(r => r.isPublic).map((res) => (
+                  <div key={res.id}>
+                    <ResourceCard resource={res} />
+                  </div>
+                ))}
+              </AnimatePresence>
+            </div>
           </TabsContent>
 
           <TabsContent value="mine" className="mt-0">
-            {resourcesLoading ? (
-              <ListItemSkeleton count={4} />
-            ) : filteredResources.filter(r => r.userId === user.uid).length === 0 ? (
-              <div className="text-center py-16 neumorphic-pressed rounded-3xl">
-                <Upload size={40} className="text-foreground/20 mx-auto mb-4" />
-                <p className="text-foreground/40 font-bold text-sm">You haven't uploaded anything yet</p>
-                <button
-                  onClick={() => setIsUploadModalOpen(true)}
-                  className="mt-4 bg-ctu-gold text-white font-bold px-5 py-2.5 rounded-xl text-sm tap-target"
-                >
-                  Upload your first resource
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                <AnimatePresence mode="popLayout">
-                  {filteredResources.filter(r => r.userId === user.uid).map((res) => (
-                    <div key={res.id}>
-                      <ResourceCard resource={res} />
-                    </div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <AnimatePresence mode="popLayout">
+                {filteredResources.filter(r => r.userId === user.uid).map((res) => (
+                  <div key={res.id}>
+                    <ResourceCard resource={res} />
+                  </div>
+                ))}
+              </AnimatePresence>
+            </div>
           </TabsContent>
         </Tabs>
       </main>

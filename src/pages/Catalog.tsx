@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { SubjectCardSkeleton } from '@/src/components/SkeletonLoader';
-import { useDebounce } from '@/src/hooks/useDebounce';
 import { 
   Search, 
   Filter, 
@@ -77,7 +75,6 @@ export default function Catalog() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectsLoading, setSubjectsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const debouncedSearch = useDebounce(searchQuery, 250);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   
@@ -184,9 +181,9 @@ export default function Catalog() {
   const filteredSubjects = useMemo(() => {
     let result = subjects.filter(s => {
       const matchesSearch = 
-        s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) || 
-        s.code.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        s.professor?.toLowerCase().includes(debouncedSearch.toLowerCase());
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        s.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.professor?.toLowerCase().includes(searchQuery.toLowerCase());
         
       const matchesYear = selectedYears.length === 0 || selectedYears.includes(s.yearLevel);
       const matchesSem = selectedSems.length === 0 || selectedSems.includes(s.semester);
@@ -212,7 +209,7 @@ export default function Catalog() {
     }
 
     return result;
-  }, [subjects, debouncedSearch, selectedYears, selectedSems, unitRange, sortBy]);
+  }, [subjects, searchQuery, selectedYears, selectedSems, unitRange, sortBy]);
 
   const clearAllFilters = () => {
     setSearchQuery('');
@@ -377,19 +374,8 @@ export default function Catalog() {
 
   if (authLoading || !profile) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex">
-        <Sidebar user={null} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-          <div className="mb-8 space-y-3">
-            <div className="skeleton h-14 w-36 rounded-xl" />
-            <div className="skeleton h-5 w-64 rounded-lg" />
-          </div>
-          <div className="skeleton h-12 w-full rounded-2xl mb-8" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 9 }).map((_, i) => <SubjectCardSkeleton key={i} />)}
-          </div>
-        </main>
-        <BottomNav />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="loader"></div>
       </div>
     );
   }
@@ -667,16 +653,13 @@ export default function Catalog() {
                             <div className="flex-1 h-px bg-foreground/10" />
                           </h3>
 
-                          <motion.div
+                          <motion.div 
                             layout
                             className={cn(
-                              "grid gap-6 sm:gap-8",
+                              "grid gap-8",
                               viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
                             )}
                           >
-                            {subjectsLoading ? (
-                              Array.from({ length: 6 }).map((_, i) => <SubjectCardSkeleton key={i} />)
-                            ) : (
                             <AnimatePresence mode="popLayout">
                               {semSubjects.map((subject, idx) => (
                                 <motion.div
@@ -777,7 +760,6 @@ export default function Catalog() {
                                 </motion.div>
                               ))}
                             </AnimatePresence>
-                            )}
                           </motion.div>
                         </div>
                       );

@@ -1,8 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ListItemSkeleton, StatCardSkeleton } from '@/src/components/SkeletonLoader';
-import { useDebounce } from '@/src/hooks/useDebounce';
 import { 
   TrendingUp, 
   CheckCircle2, 
@@ -72,27 +70,34 @@ export default function ProgressPage() {
   const { profile: user, loading: authLoading } = useAuth();
   const { progressMap, loading: progressLoading, updateProgress, toggleStatus, setGrade } = useProgress();
   const [searchQuery, setSearchQuery] = useState('');
-  const debouncedSearch = useDebounce(searchQuery, 250);
   const navigate = useNavigate();
 
-  React.useEffect(() => {
-    if (!authLoading && !user) navigate('/login');
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login');
+    }
   }, [user, authLoading, navigate]);
 
-  const getYearSubjects = (year: YearLevel) =>
-    IE_SUBJECTS.filter(s =>
-      s.yearLevel === year &&
-      (s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-       s.code.toLowerCase().includes(debouncedSearch.toLowerCase()))
-    );
-
-  const stats = useMemo(() => {
+  const getYearSubjects = (year: YearLevel) => {
+    return IE_SUBJECTS.filter(s => {
+      const matchesYear = s.yearLevel === year;
+      const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            s.code.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesYear && matchesSearch;
+    });
+  };
+  
+  const getStats = () => {
     const total = IE_SUBJECTS.length;
     const items = Object.values(progressMap);
     const done = items.filter(s => s.status === 'done').length;
     const inProgress = items.filter(s => s.status === 'in_progress').length;
     const percent = total > 0 ? Math.round((done / total) * 100) : 0;
-    let totalWeightedGrade = 0, totalUnits = 0;
+
+    // GWA Calculation: Sum(Grade * Units) / Sum(Units)
+    let totalWeightedGrade = 0;
+    let totalUnits = 0;
+    
     IE_SUBJECTS.forEach(s => {
       const p = progressMap[s.id];
       if (p?.status === 'done' && p.grade) {
@@ -100,34 +105,37 @@ export default function ProgressPage() {
         totalUnits += s.units;
       }
     });
+
     const gwa = totalUnits > 0 ? parseFloat((totalWeightedGrade / totalUnits).toFixed(2)) : 0;
+    
+    // Trend Data for Chart
     const trendData = (['1st', '2nd', '3rd', '4th'] as YearLevel[]).map(year => {
-      let yrWeighted = 0, yrUnits = 0;
+      let yrWeighted = 0;
+      let yrUnits = 0;
       IE_SUBJECTS.filter(s => s.yearLevel === year).forEach(s => {
         const p = progressMap[s.id];
-        if (p?.status === 'done' && p.grade) { yrWeighted += p.grade * s.units; yrUnits += s.units; }
+        if (p?.status === 'done' && p.grade) {
+          yrWeighted += p.grade * s.units;
+          yrUnits += s.units;
+        }
       });
-      return { name: `${year} Year`, gwa: yrUnits > 0 ? parseFloat((yrWeighted / yrUnits).toFixed(2)) : null };
+      return {
+        name: `${year} Year`,
+        gwa: yrUnits > 0 ? parseFloat((yrWeighted / yrUnits).toFixed(2)) : null
+      };
     }).filter(d => d.gwa !== null);
+
     const latinHonor = LATIN_HONORS.find(h => gwa >= h.min && gwa <= h.max);
+
     return { total, done, inProgress, percent, gwa, totalUnits, trendData, latinHonor };
-  }, [progressMap]);
+  };
+
+  const stats = getStats();
 
   if (authLoading || progressLoading || !user) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex">
-        <Sidebar user={null} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-          <div className="mb-8 space-y-3">
-            <div className="skeleton h-14 w-48 rounded-xl" />
-            <div className="skeleton h-5 w-72 rounded-lg" />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)}
-          </div>
-          <ListItemSkeleton count={6} />
-        </main>
-        <BottomNav />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="loader"></div>
       </div>
     );
   }
@@ -139,7 +147,7 @@ export default function ProgressPage() {
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
         <div className="mb-12">
           <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">My Progress</h1>
-          <p className="text-foreground/40 mt-3 text-base md:text-xl font-medium tracking-tight">Track your academic journey through the IE curriculum.</p>
+          <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Track your academic journey through the IE curriculum.</p>
         </div>
 
         {/* Overall Progress Header */}
@@ -392,34 +400,34 @@ export default function ProgressPage() {
                         
                         {status === 'done' && (
                           <div className="mt-3 flex items-center gap-3">
-                            <span className="text-[10px] uppercase font-bold text-foreground/30 tracking-widest hidden sm:block">Grade:</span>
-                            <div className="flex items-center gap-2">
-                              <Input
+                            <span className="text-[10px] uppercase font-bold text-foreground/30 tracking-widest">Entry Grade (1.0-5.0):</span>
+                            <div className="relative w-24">
+                              <Input 
                                 type="number"
-                                step="0.25"
+                                step="0.01"
                                 min="1.0"
                                 max="5.0"
-                                placeholder="1.0–5.0"
+                                placeholder="Grd"
                                 value={grade || ''}
                                 onChange={(e) => {
                                   const val = parseFloat(e.target.value);
-                                  if (!isNaN(val) && val >= 1.0 && val <= 5.0) {
+                                  if (!isNaN(val)) {
                                     setGrade(subject.id, val);
                                   } else if (e.target.value === '') {
                                     updateProgress(subject.id, { grade: undefined });
                                   }
                                 }}
-                                className="h-9 w-24 text-[12px] font-bold neumorphic-pressed border-none text-center bg-transparent focus:ring-ctu-gold tap-target"
+                                className="h-8 text-[11px] font-bold neumorphic-pressed border-none text-center bg-transparent focus:ring-ctu-gold pr-1"
                               />
-                              {grade !== undefined && grade !== null && (
-                                <Badge className={cn(
-                                  "text-[10px] font-bold border-none shrink-0",
-                                  grade <= 3.0 ? "bg-green-500/20 text-green-500" : "bg-ctu-maroon/20 text-ctu-maroon"
-                                )}>
-                                  {grade <= 1.5 ? "Excellent" : grade <= 2.0 ? "Good" : grade <= 3.0 ? "Passed" : "Failed"}
-                                </Badge>
-                              )}
                             </div>
+                            {grade !== undefined && grade !== null && (
+                              <Badge className={cn(
+                                "text-[10px] font-bold border-none",
+                                grade <= 3.0 ? "bg-green-500/20 text-green-500" : "bg-ctu-maroon/20 text-ctu-maroon"
+                              )}>
+                                {grade <= 3.0 ? "Passed" : "Failed"}
+                              </Badge>
+                            )}
                           </div>
                         )}
                       </div>
