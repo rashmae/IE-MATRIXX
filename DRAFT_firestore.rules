@@ -25,7 +25,7 @@ service cloud.firestore {
     }
     
     function isValidId(id) {
-      return id is string && id.size() > 0 && id.size() <= 128;
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
     
     function incoming() {
@@ -37,10 +37,7 @@ service cloud.firestore {
     }
 
     function isBootstrapAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == 'rashmae26@gmail.com' || 
-        request.auth.token.email == 'rashmaeansay@gmail.com'
-      );
+      return request.auth.token.email in ['rashmae26@gmail.com', 'rashmaeansay@gmail.com'];
     }
 
     function isAdmin() {
@@ -88,87 +85,28 @@ service cloud.firestore {
     function isValidRating(data) {
       return data.keys().hasAll(['subjectId', 'userId', 'userName', 'rating', 'createdAt']) &&
              data.subjectId is string &&
-             (data.userId == request.auth.uid || isAdmin()) &&
+             data.userId == request.auth.uid &&
              data.userName is string &&
              data.rating is number && data.rating >= 1 && data.rating <= 5 &&
-             (request.method == 'create' ? data.createdAt == request.time : true);
-    }
-
-    function isValidQuestion(data) {
-      return data.keys().hasAll(['title', 'userId', 'createdAt']) &&
-             data.title is string && data.title.size() > 0 && data.title.size() <= 255 &&
-             data.userId == request.auth.uid &&
-             (data.get('userName', '') is string) &&
-             (data.get('content', '') is string) &&
-             (data.get('subjectTag', '') is string) &&
-             (data.get('votes', 0) is number) &&
-             (data.get('answerCount', 0) is number) &&
-             (data.get('isFlagged', false) is bool) &&
-             (data.get('reportCount', 0) is number) &&
-             (data.keys().contains('latestAnswer') ? data.latestAnswer is map : true) &&
              data.createdAt == request.time;
-    }
-
-    function isValidStudyGroup(data) {
-      return data.keys().hasAll(['name', 'subjectCode', 'creatorId']) &&
-             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
-             data.subjectCode is string &&
-             data.creatorId is string &&
-             (data.get('description', '') is string) &&
-             (data.get('members', []) is list) &&
-             (data.keys().contains('createdAt') ? data.createdAt == request.time : true);
     }
 
     // ===============================================================
     // COLLECTION RULES
     // ===============================================================
 
+    // Connection Test
     match /test/connection {
       allow read: if true;
     }
 
-    match /studyGroups/{groupId} {
-      allow read, list: if isSignedIn();
-      allow create: if isEmailVerified() && isValidId(groupId) && isValidStudyGroup(incoming());
-      allow update: if isEmailVerified() && (
-        isAdmin() || (
-          // Allow joining (adding members)
-          (incoming().diff(existing()).affectedKeys().hasOnly(['members']) && isValidStudyGroup(incoming())) ||
-          // Allow creator to edit
-          (existing().creatorId == request.auth.uid && isValidStudyGroup(incoming()))
-        )
-      );
-      allow delete: if isEmailVerified() && (existing().creatorId == request.auth.uid || isAdmin());
-
-      match /messages/{messageId} {
-        allow read, list: if isSignedIn() && (
-          get(/databases/$(database)/documents/studyGroups/$(groupId)).data.members.hasAny([request.auth.uid]) ||
-          get(/databases/$(database)/documents/studyGroups/$(groupId)).data.creatorId == request.auth.uid ||
-          isAdmin()
-        );
-        allow create: if isEmailVerified() && incoming().userId == request.auth.uid;
-      }
-    }
-
-    match /questions/{questionId} {
-      allow read, list: if isSignedIn();
-      allow create: if isEmailVerified() && isValidId(questionId) && isValidQuestion(incoming());
-      allow update: if isEmailVerified() && (
-        isAdmin() || (
-          // Allow voting and answering for all verified users
-          (incoming().diff(existing()).affectedKeys().hasOnly(['votes', 'answerCount', 'latestAnswer', 'isFlagged', 'reportCount']) && isValidQuestion(incoming())) ||
-          // Allow owner to edit content
-          (existing().userId == request.auth.uid && isValidQuestion(incoming()))
-        )
-      );
-      allow delete: if isEmailVerified() && (existing().userId == request.auth.uid || isAdmin());
-    }
-
+    // Subjects (Admin-only write)
     match /subjects/{subjectId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
+    // Users
     match /users/{userId} {
       allow read: if isSignedIn() && (isOwner(userId) || isAdmin());
       
@@ -180,32 +118,35 @@ service cloud.firestore {
         isAdmin() || (
           isOwner(userId) && 
           isValidUser(incoming()) &&
-          (incoming().role == existing().role || isBootstrapAdmin()) &&
+          incoming().role == existing().role && // Prevent self-elevation
           incoming().diff(existing()).affectedKeys().hasOnly([
-            'fullName', 'idNumber', 'yearLevel', 'lastLogin', 'email', 'photoURL', 'progress', 'role', 'uid'
+            'fullName', 'idNumber', 'yearLevel', 'lastLogin', 'email', 'photoURL', 'progress'
           ])
         )
       );
     }
 
+    // User Progress (Legacy/Alternative storage)
     match /userProgress/{userId} {
       allow read: if isSignedIn() && (isOwner(userId) || isAdmin());
       allow write: if isEmailVerified() && isOwner(userId) && isValidUserProgress(incoming());
     }
 
+    // Ratings
     match /ratings/{ratingId} {
       allow read, list: if isSignedIn();
       allow create: if isEmailVerified() && isValidId(ratingId) && isValidRating(incoming());
       allow update: if isEmailVerified() && (
         isAdmin() || (
           existing().userId == request.auth.uid &&
-          incoming().diff(existing()).affectedKeys().hasOnly(['rating', 'feedback', 'userName', 'likes', 'likedBy']) &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['rating', 'feedback', 'userName']) &&
           isValidRating(incoming())
         )
       );
       allow delete: if isEmailVerified() && (existing().userId == request.auth.uid || isAdmin());
     }
 
+    // Resources
     match /resources/{resourceId} {
       allow read: if isSignedIn() && (existing().isPublic == true || existing().userId == request.auth.uid || isAdmin());
       allow create: if isEmailVerified() && isValidId(resourceId) && isValidResource(incoming());
@@ -213,22 +154,25 @@ service cloud.firestore {
         isAdmin() || (
           existing().userId == request.auth.uid &&
           isValidResource(incoming()) &&
-          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'isPublic', 'type', 'url', 'fileName'])
+          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'isPublic', 'type', 'url'])
         )
       );
       allow delete: if isEmailVerified() && (existing().userId == request.auth.uid || isAdmin());
     }
 
+    // Announcements
     match /announcements/{annId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
+    // Calendar Events
     match /calendarEvents/{eventId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
-
+    
+    // Notebooks
     match /notebooks/{notebookId} {
       allow read: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
       allow create: if isEmailVerified() && isValidId(notebookId) && incoming().userId == request.auth.uid;
@@ -246,6 +190,7 @@ service cloud.firestore {
       }
     }
 
+    // Flashcard Decks
     match /flashcardDecks/{deckId} {
       allow read: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
       allow create: if isEmailVerified() && isValidId(deckId) && incoming().userId == request.auth.uid;

@@ -27,6 +27,7 @@ import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
 import { User, Subject, SubjectStatus, Resource } from '@/src/types/index';
 import { IE_SUBJECTS } from '@/src/lib/constants';
+import { HeaderSkeleton, GridSkeleton } from '@/src/components/SkeletonLoader';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LiquidButton } from '@/components/ui/liquid-glass';
@@ -455,8 +456,13 @@ export default function SubjectDetail() {
 
   if (authLoading || loading || !profile || !subject) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="loader"></div>
+      <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
+        <Sidebar user={null} />
+        <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+          <HeaderSkeleton />
+          <GridSkeleton count={3} />
+        </main>
+        <BottomNav />
       </div>
     );
   }

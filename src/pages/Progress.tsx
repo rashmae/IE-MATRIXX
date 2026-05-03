@@ -24,11 +24,11 @@ import { IE_SUBJECTS } from '@/src/lib/constants';
 import { useDebounce } from '@/src/hooks/useDebounce';
 import { HeaderSkeleton, StatSkeleton, GridSkeleton } from '@/src/components/SkeletonLoader';
 import { 
-  getGWAEquivalent, 
   getGWALabel, 
   getGWAColor, 
   getGWAHexColor,
-  LATIN_HONORS
+  LATIN_HONORS,
+  gwaToPercent
 } from '@/src/lib/gradeUtils';
 import { 
   LineChart, 
@@ -45,6 +45,14 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import GradeConverter from '@/src/components/GradeConverter';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from '@/components/ui/dialog';
 import { 
   Tooltip,
   TooltipContent,
@@ -170,9 +178,27 @@ export default function ProgressPage() {
       <Sidebar user={user} />
       
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-        <div className="mb-12">
-          <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">My Progress</h1>
-          <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Track your academic journey through the IE curriculum.</p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+          <div>
+            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">My Progress</h1>
+            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Track your academic journey through the IE curriculum.</p>
+          </div>
+          
+          <Dialog>
+            <DialogTrigger 
+              render={
+                <button className="h-14 px-8 rounded-2xl neumorphic-raised hover:neumorphic-pressed text-ctu-gold transition-all tap-target flex items-center gap-3 font-bold group">
+                  <div className="p-2 rounded-lg bg-ctu-gold/10 group-hover:bg-ctu-gold text-ctu-gold group-hover:text-white transition-colors">
+                    <Calculator size={18} />
+                  </div>
+                  Grade Converter
+                </button>
+              }
+            />
+            <DialogContent className="max-w-md p-0 overflow-hidden border-none bg-transparent shadow-none">
+              <GradeConverter />
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Overall Progress Header */}
@@ -429,7 +455,7 @@ export default function ProgressPage() {
                             <div className="relative w-24">
                               <Input 
                                 type="number"
-                                step="0.01"
+                                step="0.25"
                                 min="1.0"
                                 max="5.0"
                                 placeholder="Grd"

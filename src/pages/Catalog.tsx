@@ -66,7 +66,7 @@ import { toast } from 'sonner';
 
 import { useAuth } from '@/src/context/AuthContext';
 import { useProgress } from '@/src/hooks/useProgress';
-import { getGWAEquivalent, getGWAColor } from '@/src/lib/gradeUtils';
+import { getGWAColor } from '@/src/lib/gradeUtils';
 import { db } from '@/src/lib/firebase';
 import { collection, getDocs, query, orderBy, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 
@@ -810,9 +810,9 @@ export default function Catalog() {
                                               {progressMap[subject.id]?.grade && (
                                                 <div className={cn(
                                                   "px-2 py-0.5 rounded-md text-[10px] font-black border-2 border-current",
-                                                  getGWAColor(getGWAEquivalent(progressMap[subject.id].grade!))
+                                                  getGWAColor(progressMap[subject.id].grade!)
                                                 )}>
-                                                  GWA {getGWAEquivalent(progressMap[subject.id].grade!).toFixed(1)}
+                                                  GWA {progressMap[subject.id].grade!.toFixed(1)}
                                                 </div>
                                               )}
                                               <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-md">

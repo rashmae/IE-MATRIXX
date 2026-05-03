@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@/src/context/AuthContext';
 import { useProgress } from '@/src/hooks/useProgress';
 import { useDebounce } from '@/src/hooks/useDebounce';
+import { useLocalStorage } from '@/src/hooks/useLocalStorage';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
 import { Subject, Announcement, CalendarEvent, YearLevel } from '@/src/types/index';
@@ -37,15 +38,9 @@ export default function Dashboard() {
   const { progressMap, loading: progressLoading } = useProgress();
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 300);
-  const [selectedYear, setSelectedYear] = useState<YearLevel | 'All'>(() => {
-    return (localStorage.getItem('dashboard-year-filter') as YearLevel | 'All') || 'All';
-  });
+  const [selectedYear, setSelectedYear] = useLocalStorage<YearLevel | 'All'>('dashboard-year-filter', 'All');
   const [showOnlyRemaining, setShowOnlyRemaining] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    localStorage.setItem('dashboard-year-filter', selectedYear);
-  }, [selectedYear]);
 
   useEffect(() => {
     if (!authLoading && !profile) {

@@ -21,28 +21,40 @@ export const CTU_GRADING_SCALE = [
 /**
  * Returns the GWA equivalent for a percentage grade.
  */
-export function getGWAEquivalent(percentageGrade: number): number {
+export function percentToGWA(percentageGrade: number): number {
   if (percentageGrade < 65) return 5.0;
+  if (percentageGrade >= 99) return 1.0;
   
   // Find the closest grade in the scale
   const match = CTU_GRADING_SCALE.find(item => item.grade === Math.round(percentageGrade));
   if (match) return match.gwa;
   
-  // Fallback for values between defined steps
-  if (percentageGrade >= 99) return 1.0;
-  
   return 3.0; // Default pass
 }
 
 /**
+ * Returns the estimated percentage for a GWA value.
+ */
+export function gwaToPercent(gwa: number): number {
+  if (gwa > 3.0) return 60;
+  if (gwa === 3.0) return 65;
+  if (gwa === 1.1) return 99;
+  if (gwa === 1.0) return 100;
+  
+  // Find closest from scale inverse
+  const match = CTU_GRADING_SCALE.find(item => item.gwa >= gwa);
+  return match ? match.grade : 65;
+}
+
+/**
  * Returns a standing label for a GWA.
+ * Labels: ≤1.5 Excellent, ≤2.25 Good, ≤3.0 Passed, >3.0 Failed.
  */
 export function getGWALabel(gwa: number): string {
   if (gwa === 0) return "Not Evaluated";
   if (gwa <= 1.5) return "Excellent";
-  if (gwa <= 2.0) return "Very Good";
-  if (gwa <= 2.5) return "Good";
-  if (gwa <= 3.0) return "Satisfactory";
+  if (gwa <= 2.25) return "Good";
+  if (gwa <= 3.0) return "Passed";
   return "Failed";
 }
 
@@ -50,12 +62,11 @@ export function getGWALabel(gwa: number): string {
  * Returns a Tailwind color class based on GWA standing.
  */
 export function getGWAColor(gwa: number): string {
-  if (gwa === 0) return "text-gray-400";
-  if (gwa <= 1.5) return "text-ctu-gold";
-  if (gwa <= 2.0) return "text-green-500";
-  if (gwa <= 2.5) return "text-blue-500";
-  if (gwa <= 3.0) return "text-amber-500";
-  return "text-red-500";
+  if (gwa === 0) return "text-foreground/20";
+  if (gwa <= 1.5) return "text-emerald-500";
+  if (gwa <= 2.25) return "text-blue-500";
+  if (gwa <= 3.0) return "text-ctu-gold";
+  return "text-ctu-maroon";
 }
 
 /**
@@ -63,11 +74,10 @@ export function getGWAColor(gwa: number): string {
  */
 export function getGWAHexColor(gwa: number): string {
   if (gwa === 0) return "#9ca3af";
-  if (gwa <= 1.5) return "#925dfc"; // CTU Gold/Purple
-  if (gwa <= 2.0) return "#22c55e"; // Green
-  if (gwa <= 2.5) return "#3b82f6"; // Blue
-  if (gwa <= 3.0) return "#f59e0b"; // Amber
-  return "#ef4444"; // Red
+  if (gwa <= 1.5) return "#10b981"; // Emerald
+  if (gwa <= 2.25) return "#3b82f6"; // Blue
+  if (gwa <= 3.0) return "#d4a017"; // Gold
+  return "#8d1222"; // Maroon
 }
 
 /**
