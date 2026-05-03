@@ -73,8 +73,16 @@ export default function Bulletin() {
 
   if (authLoading || loading || !profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="loader"></div>
+      <div className="min-h-screen bg-background text-foreground flex">
+        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+          <div className="skeleton h-16 w-48 rounded-xl mx-auto" />
+          <div className="skeleton h-5 w-64 rounded-lg mx-auto" />
+          <div className="mt-8 space-y-3 w-full max-w-lg px-8">
+            <div className="skeleton h-12 w-full rounded-2xl" />
+            <div className="skeleton h-12 w-full rounded-2xl" />
+            <div className="skeleton h-12 w-3/4 rounded-2xl" />
+          </div>
+        </div>
       </div>
     );
   }
