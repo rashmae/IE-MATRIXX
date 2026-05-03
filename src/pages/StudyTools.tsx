@@ -24,7 +24,8 @@ import {
   Trash2,
   AlertTriangle,
   ShieldAlert,
-  MoreVertical
+  MoreVertical,
+  FolderOpen
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
@@ -786,38 +787,47 @@ export default function StudyTools() {
       
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 lg:mb-12">
-          <div>
-            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2 flex items-center gap-4">
-              Study Hub <Sparkles className="text-ctu-gold shrink-0 scale-125" size={32} />
-            </h1>
-            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Elevate your learning with AI guidance and community support.</p>
-          </div>
+            <div>
+              <h1 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2 flex items-center gap-4">
+                Study Hub <Sparkles className="text-ctu-gold shrink-0 scale-125" size={32} />
+              </h1>
+              <p className="text-sm sm:text-base md:text-xl text-foreground/40 mt-3 font-medium tracking-tight">
+                Elevate your learning with AI guidance and community support.
+              </p>
+            </div>
         </div>
 
         <Tabs defaultValue="advisor" value={activeTab} onValueChange={setActiveTab} className="space-y-6 md:space-y-10">
-          <div className="sticky top-0 z-30 -mx-6 px-6 py-2 bg-background/80 backdrop-blur-md overflow-x-auto no-scrollbar border-b border-foreground/5">
-            <TabsList className="bg-transparent h-auto p-0 gap-3 md:gap-6 flex w-max">
+          <div className="sticky top-0 z-30 -mx-4 sm:-mx-6 px-3 sm:px-4 py-2 bg-background/90 backdrop-blur-xl overflow-x-auto no-scrollbar border-b border-foreground/5">
+            <TabsList className="bg-transparent h-auto p-0 gap-1.5 inline-flex min-w-max">
               {[
-                { id: 'advisor', label: 'AI Advisor', icon: BrainCircuit },
-                { id: 'map', label: 'Matrix Map', icon: BookOpen },
-                { id: 'groups', label: 'Study Groups', icon: Users },
-                { id: 'qa', label: 'Q&A Forum', icon: MessageSquare },
-                { id: 'flashcards', label: 'Flashcards', icon: Layers },
-                { id: 'quizzes', label: 'Practice Quiz', icon: Award },
-                { id: 'notebooks', label: 'AI Notebooks', icon: BookOpen },
-              ].map((tab) => (
+                { id: 'advisor', icon: BrainCircuit, label: 'Advisor', fullLabel: 'AI Advisor' },
+                { id: 'map', icon: Layers, label: 'Map', fullLabel: 'Matrix Map' },
+                { id: 'groups', icon: Users, label: 'Groups', fullLabel: 'Study Groups' },
+                { id: 'qa', icon: MessageSquare, label: 'Forum', fullLabel: 'Q&A Forum' },
+                { id: 'flashcards', icon: BookOpen, label: 'Cards', fullLabel: 'Flashcards' },
+                { id: 'quizzes', icon: Award, label: 'Quiz', fullLabel: 'Practice Quiz' },
+                { id: 'notebooks', icon: FolderOpen, label: 'Notes', fullLabel: 'AI Notebooks' },
+              ].map(tab => (
                 <TabsTrigger
                   key={tab.id}
                   value={tab.id}
                   className={cn(
-                    "flex items-center gap-2 px-5 py-3 rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all border-none whitespace-nowrap",
+                    "relative flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap tap-target border border-transparent",
                     activeTab === tab.id 
-                      ? "neumorphic-pressed text-ctu-gold translate-y-0.5" 
-                      : "neumorphic-raised text-foreground/40 hover:text-foreground hover:translate-y-[-2px]"
+                      ? "bg-gradient-to-r from-ctu-maroon to-ctu-gold text-white shadow-lg shadow-ctu-gold/20 scale-[1.02]" 
+                      : "bg-foreground/5 text-foreground/40 hover:bg-foreground/10 hover:text-foreground/70"
                   )}
                 >
-                  <tab.icon size={16} className={activeTab === tab.id ? "text-ctu-gold" : "text-foreground/20"} />
-                  {tab.label}
+                  <tab.icon size={12} />
+                  <span className="hidden sm:inline">{tab.fullLabel}</span>
+                  <span className="sm:hidden">{tab.label}</span>
+                  {activeTab === tab.id && (
+                    <motion.div 
+                      layoutId="tab-dot"
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-ctu-gold" 
+                    />
+                  )}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -861,138 +871,67 @@ export default function StudyTools() {
 
                     <div className="space-y-0 relative">
                       {roadmap.length > 0 ? (
-                        <div className="mt-8 space-y-16">
-                          {roadmap.map((step, idx) => (
-                            <motion.div 
-                              key={idx} 
-                              initial={{ opacity: 0, scale: 0.95 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: idx * 0.15 }}
-                              className="relative"
-                            >
-                              {/* Connector Line to Next Phase */}
-                              {idx < roadmap.length - 1 && (
-                                <div className="absolute left-1/2 -bottom-16 w-0.5 h-16 bg-gradient-to-b from-ctu-gold via-ctu-gold/20 to-transparent -translate-x-1/2 hidden md:block" />
-                              )}
-                              
-                              <div className="flex flex-col items-center">
-                                {/* Phase Header Node */}
-                                <div className="z-20 mb-8 w-full max-w-sm">
-                                  <div className={cn(
-                                    "p-4 rounded-2xl border flex items-center gap-4 shadow-xl transition-all duration-500",
-                                    step.difficulty === 'hard' 
-                                      ? "bg-ctu-maroon/10 border-ctu-maroon/30 shadow-ctu-maroon/5" 
-                                      : "bg-ctu-gold/10 border-ctu-gold/30 shadow-ctu-gold/5"
-                                  )}>
-                                    <div className={cn(
-                                      "w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg",
-                                      step.difficulty === 'hard' ? "bg-ctu-maroon text-white" : "bg-ctu-gold text-white"
-                                    )}>
+                          <div className="mt-8 space-y-12">
+                            {roadmap.map((step, idx) => (
+                              <motion.div 
+                                key={idx} 
+                                initial={{ opacity: 0, x: -20 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                transition={{ delay: idx * 0.1 }}
+                                className="relative group"
+                              >
+                                <Card 
+                                  className="relative p-5 sm:p-8 rounded-[2rem] border backdrop-blur-sm overflow-hidden"
+                                  style={{ background: 'linear-gradient(135deg, rgba(var(--color-ctu-gold)/0.03), rgba(var(--color-ctu-maroon)/0.01))' }}
+                                >
+                                  <span className="absolute -right-4 -top-4 text-[120px] font-black opacity-[0.03] select-none text-foreground rotate-12">{idx + 1}</span>
+                                  
+                                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative z-10">
+                                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shrink-0 bg-gradient-to-br from-ctu-gold to-ctu-maroon text-white shadow-xl shadow-ctu-gold/20">
                                       {idx + 1}
                                     </div>
-                                    <div>
-                                      <h3 className="font-black text-foreground text-sm uppercase tracking-wider">{step.title}</h3>
-                                      <div className="flex items-center gap-2 mt-1">
-                                        <Badge variant="outline" className={cn(
-                                          "text-[8px] font-black uppercase tracking-widest border-none px-2 py-0.5 h-auto",
-                                          step.difficulty === 'hard' ? "bg-ctu-maroon/20 text-ctu-maroon" : "bg-green-500/20 text-green-500"
-                                        )}>
-                                          {step.difficulty} Phase
-                                        </Badge>
-                                        {step.estimatedTime && (
-                                          <span className="text-[8px] font-bold text-foreground/30 uppercase flex items-center gap-1">
-                                            <Clock size={10} /> {step.estimatedTime}
-                                          </span>
-                                        )}
+                                    <div className="min-w-0 flex-1 text-center sm:text-left">
+                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
+                                        <div>
+                                          <h5 className="font-black text-lg text-foreground uppercase tracking-tight">
+                                            {step.title}
+                                          </h5>
+                                          <div className="flex items-center justify-center sm:justify-start gap-2 mt-1">
+                                            <Badge variant="outline" className={cn(
+                                              "font-black text-[9px] border-none px-3 py-1",
+                                              step.difficulty === 'hard' ? 'bg-ctu-maroon/10 text-ctu-maroon' : 'bg-green-500/10 text-green-500'
+                                            )}>
+                                              {step.difficulty.toUpperCase()}
+                                            </Badge>
+                                            {step.estimatedTime && (
+                                              <span className="text-[10px] font-bold text-foreground/30 flex items-center gap-1 underline decoration-ctu-gold/30">
+                                                <Clock size={10} /> {step.estimatedTime}
+                                              </span >
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <p className="text-sm text-foreground/60 leading-relaxed mb-6 font-medium max-w-2xl">{step.description}</p>
+                                      
+                                      <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                                        {step.subjects?.map((sCode: string) => (
+                                          <Badge key={sCode} className="bg-white/50 dark:bg-black/20 text-foreground/60 hover:text-ctu-gold transition-colors cursor-pointer border border-foreground/5 text-[10px] font-black px-4 py-1.5 rounded-xl backdrop-blur-md">
+                                            {sCode}
+                                          </Badge>
+                                        ))}
                                       </div>
                                     </div>
                                   </div>
-                                </div>
-
-                                {/* Subjects Grid (Interconnected Nodes) */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-                                  {step.subjects?.map((sCode: string, sIdx: number) => {
-                                    const normalizeCode = (c: string) => c.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-                                    const subjectInfo = IE_SUBJECTS.find(s => normalizeCode(s.code) === normalizeCode(sCode));
-                                    const progress = subjectInfo ? progressMap[subjectInfo.id] : null;
-                                    const isDone = progress?.status === 'done';
-                                    const isInProgress = progress?.status === 'in_progress';
-                                    
-                                    return (
-                                      <motion.div 
-                                        key={sCode}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: (idx * 0.2) + (sIdx * 0.1) }}
-                                        className="relative group"
-                                      >
-                                        <div className={cn(
-                                          "p-5 rounded-2xl border-2 transition-all duration-300 relative overflow-hidden",
-                                          isDone 
-                                            ? "bg-green-500/5 border-green-500/30" 
-                                            : isInProgress 
-                                              ? "bg-ctu-gold/5 border-ctu-gold/50 shadow-[0_0_15px_rgba(197,160,89,0.1)]"
-                                              : "bg-background border-foreground/5 hover:border-ctu-gold/30"
-                                        )}>
-                                          {/* Background Pattern for 'Done' */}
-                                          {isDone && (
-                                            <div className="absolute top-0 right-0 p-2 text-green-500 opacity-20">
-                                              <Award size={40} />
-                                            </div>
-                                          )}
-
-                                          <div className="flex items-start justify-between mb-3">
-                                            <span className={cn(
-                                              "text-[9px] font-black tracking-tighter uppercase px-2 py-0.5 rounded-md",
-                                              isDone ? "bg-green-500 text-white" : "bg-foreground/10 text-foreground/60"
-                                            )}>
-                                              {sCode}
-                                            </span>
-                                            {isDone ? (
-                                              <Badge className="bg-green-500 text-white border-none text-[8px] font-bold">COMPLETED</Badge>
-                                            ) : isInProgress ? (
-                                              <Badge className="bg-ctu-gold text-white border-none text-[8px] font-bold animate-pulse">ACTIVE FOCUS</Badge>
-                                            ) : null}
-                                          </div>
-
-                                          <h4 className="text-xs font-bold text-foreground mb-4 line-clamp-2 min-h-[2rem]">
-                                            {subjectInfo?.name || sCode}
-                                          </h4>
-
-                                          {/* Prerequisite Tags */}
-                                          {subjectInfo?.prerequisiteIds && subjectInfo.prerequisiteIds.length > 0 && (
-                                            <div className="flex flex-wrap gap-1 mt-auto">
-                                              {subjectInfo.prerequisiteIds.map(pid => {
-                                                const preCode = IE_SUBJECTS.find(s => s.id === pid)?.code || pid;
-                                                return (
-                                                  <span key={pid} className="text-[7px] font-black bg-foreground/5 text-foreground/40 px-1.5 py-0.5 rounded border border-foreground/5">
-                                                    PRE: {preCode}
-                                                  </span>
-                                                );
-                                              })}
-                                            </div>
-                                          )}
-                                          
-                                          <button 
-                                            onClick={() => subjectInfo && navigate(`/catalog/${subjectInfo.id}`)}
-                                            className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity text-ctu-gold"
-                                          >
-                                            <ChevronRight size={16} />
-                                          </button>
-                                        </div>
-
-                                        {/* Dynamic SVG Connections (Simplified) */}
-                                        {sIdx < (step.subjects?.length || 0) - 1 && (
-                                          <div className="absolute -right-3 top-1/2 w-3 h-0.5 bg-foreground/5 hidden lg:block" />
-                                        )}
-                                      </motion.div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
+                                </Card>
+                                
+                                {idx < roadmap.length - 1 && (
+                                  <div className="flex justify-center -my-2 relative z-20">
+                                    <div className="w-0.5 h-12 bg-gradient-to-b from-ctu-gold/30 to-transparent" />
+                                  </div>
+                                )}
+                              </motion.div>
+                            ))}
+                          </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center py-24 text-center space-y-6">
                            <div className="relative">
@@ -1011,20 +950,41 @@ export default function StudyTools() {
                   </GlowCard>
 
                   <div className="space-y-6">
-                    <Card className="neumorphic-card border-none p-6">
-                      <h3 className="font-bold text-foreground mb-4">Current Focus</h3>
-                      <div className="space-y-4">
-                        <div className="p-4 rounded-2xl neumorphic-pressed border border-ctu-gold/20">
-                          <p className="text-[10px] font-bold text-ctu-gold uppercase tracking-widest mb-1">Target Subject</p>
-                          <p className="font-bold text-foreground">Probability & Statistics</p>
-                          <div className="mt-3 flex items-center justify-between text-[10px] font-bold">
-                            <span className="text-foreground/40 uppercase">Difficulty</span>
-                            <span className="text-ctu-maroon">Hard</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                      {/* Current Focus */}
+                      <div className="space-y-6">
+                        <h4 className="text-xs font-black uppercase tracking-[0.2em] text-foreground/30 flex items-center gap-2">
+                          <Clock size={14} className="text-ctu-maroon" /> Current Focus
+                        </h4>
+                        {roadmap.length > 0 ? (
+                          <Card 
+                            className="relative p-6 rounded-3xl border backdrop-blur-sm overflow-hidden min-h-[140px] flex flex-col justify-center cursor-pointer group hover:scale-[1.02] transition-all"
+                            style={{ background: 'linear-gradient(135deg, rgba(var(--color-ctu-gold)/0.05), rgba(var(--color-ctu-maroon)/0.03))' }}
+                            onClick={() => setActiveTab('advisor')}
+                          >
+                            <div className="absolute -right-4 -bottom-4 text-ctu-gold opacity-10 rotate-12 shrink-0 group-hover:scale-110 transition-transform">
+                              <BrainCircuit size={100} />
+                            </div>
+                            <div className="relative z-10 flex items-start gap-4 min-w-0">
+                              <div className="w-12 h-12 rounded-2xl bg-ctu-gold/10 flex items-center justify-center text-ctu-gold shrink-0">
+                                <TrendingUp size={24} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h5 className="text-base sm:text-lg font-bold text-foreground leading-tight text-clamp-2">
+                                  {roadmap[0].subjects[0] || 'Curriculum Path'}
+                                </h5>
+                                <p className="text-[10px] sm:text-xs text-foreground/40 mt-1 font-medium">{roadmap[0].title}</p>
+                              </div>
+                            </div>
+                          </Card>
+                        ) : (
+                          <div className="neumorphic-pressed rounded-3xl p-8 text-center min-h-[140px] flex items-center justify-center">
+                            <p className="text-xs text-foreground/40 leading-relaxed font-medium break-words">
+                              Initialization required. Click Analyze to synthesize subject data.
+                            </p>
                           </div>
-                          <Progress value={45} className="h-1.5 mt-2 bg-foreground/5" />
-                        </div>
+                        )}
                       </div>
-                    </Card>
 
                     <Card className="neumorphic-card border-none p-6 bg-ctu-maroon/5 border border-ctu-maroon/10">
                       <h3 className="font-bold text-foreground mb-2 flex items-center gap-2">
@@ -1036,85 +996,68 @@ export default function StudyTools() {
                     </Card>
                   </div>
                 </div>
-              </TabsContent>
+              </div>
+            </TabsContent>
 
-              <TabsContent value="map" className="mt-0">
-                <GlowCard className="p-6 md:p-10 min-h-[600px] flex flex-col items-center relative overflow-hidden" glowColor="blue">
-                  <div className="absolute top-6 left-6 md:top-10 md:left-10 text-left z-20">
-                    <h2 className="text-4xl font-display font-black mb-2 tracking-tight">Academic Matrix Map</h2>
-                    <p className="text-base text-foreground/40 max-w-md font-medium tracking-tight">Visualizing the flow of Industrial Engineering subjects from fundamentals to specialization.</p>
+              <TabsContent value="map" className="mt-0 focus:outline-none">
+                <GlowCard className="p-6 sm:p-10 flex flex-col gap-8 relative overflow-hidden" glowColor="blue">
+                  <div className="relative z-20 text-left px-2">
+                    <h2 className="text-2xl sm:text-4xl font-display font-black mb-2 tracking-tight">Academic Matrix Map</h2>
+                    <p className="text-sm text-foreground/40 max-w-xs sm:max-w-sm font-medium">
+                      Visualizing the flow of Industrial Engineering subjects from fundamentals to specialization.
+                    </p>
                   </div>
 
-                  <div className="w-full flex flex-col items-center gap-20 mt-32 relative z-10">
-                    {/* Year Flow */}
-                    <div className="flex flex-col items-center gap-16 w-full">
-                       {/* Year 1 Row */}
-                       <div className="flex flex-wrap justify-center gap-8">
-                         {IE_SUBJECTS.filter(s => s.yearLevel === '1st' && (s.code.includes('IE') || s.code.includes('MATH'))).slice(0, 3).map(s => (
-                           <button 
-                             key={s.id} 
-                             onClick={() => navigate(`/catalog/${s.id}`)}
-                             className={cn(
-                             "w-48 p-4 rounded-xl neumorphic-raised border-b-4 text-center group hover:scale-105 transition-all cursor-pointer",
-                             progressMap[s.id]?.status === 'done' ? "border-green-500" : "border-ctu-gold/20"
-                           )}>
-                             <p className="text-[10px] font-bold text-foreground/40 uppercase mb-1">{s.code}</p>
-                             <p className="text-xs font-bold text-foreground line-clamp-1">{s.name}</p>
-                             {s.prerequisiteIds.length > 0 && <Clock size={12} className="mx-auto mt-2 text-ctu-gold animate-pulse" />}
-                           </button>
-                         ))}
-                       </div>
-
-                       <div className="w-1 h-12 bg-foreground/5 rounded-full" />
-
-                       {/* Year 2 Row */}
-                       <div className="flex flex-wrap justify-center gap-8">
-                         {IE_SUBJECTS.filter(s => s.yearLevel === '2nd' && s.prerequisiteIds.length > 0).slice(0, 3).map(s => (
-                           <button 
-                             key={s.id} 
-                             onClick={() => navigate(`/catalog/${s.id}`)}
-                             className={cn(
-                             "w-48 p-4 rounded-xl neumorphic-raised border-b-4 text-center group hover:scale-105 transition-all cursor-pointer relative",
-                             progressMap[s.id]?.status === 'done' ? "border-green-500" : "border-ctu-gold/20"
-                           )}>
-                             <p className="text-[10px] font-bold text-foreground/40 uppercase mb-1">{s.code}</p>
-                             <p className="text-xs font-bold text-foreground line-clamp-1">{s.name}</p>
-                             <div className="mt-2 flex justify-center gap-1">
-                               {s.prerequisiteIds.map(pid => (
-                                 <Badge key={pid} className="text-[8px] p-0 px-1 bg-ctu-maroon text-white">{pid.split('-')[0]}</Badge>
-                               ))}
-                             </div>
-                           </button>
-                         ))}
-                       </div>
-
-                       <div className="w-1 h-12 bg-foreground/5 rounded-full" />
-
-                       {/* Specializations */}
-                       <div className="grid grid-cols-1 md:grid-cols-3 gap-12 w-full max-w-4xl">
-                         <div className="p-6 rounded-3xl neumorphic-pressed bg-ctu-maroon/5 border border-ctu-maroon/10 text-center">
-                           <TrendingUp className="mx-auto mb-4 text-ctu-maroon" />
-                           <h4 className="font-bold mb-2">Operations Research</h4>
-                           <p className="text-[10px] text-foreground/40 font-medium">Optimization & Analytics Track</p>
-                         </div>
-                         <div className="p-6 rounded-3xl neumorphic-pressed bg-ctu-gold/5 border border-ctu-gold/10 text-center">
-                           <Layers className="mx-auto mb-4 text-ctu-gold" />
-                           <h4 className="font-bold mb-2">Production Systems</h4>
-                           <p className="text-[10px] text-foreground/40 font-medium">Manufacturing & Logistics Track</p>
-                         </div>
-                         <div className="p-6 rounded-3xl neumorphic-pressed bg-foreground/5 border border-foreground/10 text-center">
-                           <Users className="mx-auto mb-4 text-foreground/40" />
-                           <h4 className="font-bold mb-2">Human Factors</h4>
-                           <p className="text-[10px] text-foreground/40 font-medium">Ergonomics & Safety Track</p>
-                         </div>
-                       </div>
-                    </div>
+                  <div className="w-full flex flex-col items-center gap-12 relative z-10">
+                    {/* Visualizing Year Progress */}
+                    {['1st', '2nd', '3rd', '4th'].map((year, yIdx) => (
+                      <div key={year} className="w-full flex flex-col items-center gap-6">
+                        <div className="flex flex-wrap justify-center gap-3 sm:gap-6 w-full">
+                          {IE_SUBJECTS.filter(s => s.yearLevel === year).slice(0, 4).map((subject) => {
+                            const isDone = progressMap[subject.id]?.status === 'done';
+                            const isPrep = progressMap[subject.id]?.status === 'in_progress';
+                            
+                            return (
+                              <div 
+                                key={subject.id}
+                                className={cn(
+                                  "w-full max-w-[180px] p-3 sm:p-4 rounded-2xl transition-all border flex flex-col justify-between min-h-[100px] cursor-pointer",
+                                  isDone ? "bg-emerald-500/10 border-emerald-500/20" : 
+                                  isPrep ? "bg-ctu-gold/10 border-ctu-gold/20" : "bg-background neumorphic-raised border-foreground/5 shadow-sm"
+                                )}
+                                onClick={() => navigate(`/catalog/${subject.id}`)}
+                              >
+                                <div>
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className={cn(
+                                      "text-[8px] font-black uppercase",
+                                      isDone ? "text-emerald-500" : isPrep ? "text-ctu-gold" : "text-foreground/30"
+                                    )}>
+                                      {subject.code}
+                                    </span>
+                                    {isDone && <Award size={12} className="text-emerald-500" />}
+                                  </div>
+                                  <h5 className="text-[11px] sm:text-xs font-bold leading-tight text-clamp-1">{subject.name}</h5>
+                                </div>
+                                <Progress value={isDone ? 100 : isPrep ? 40 : 0} className="h-1 mt-3" />
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {yIdx < 3 && (
+                          <div className="flex flex-col items-center py-4">
+                            <motion.div
+                              initial={{ scaleY: 0 }}
+                              whileInView={{ scaleY: 1 }}
+                              transition={{ duration: 0.8, ease: "easeOut" }}
+                              className="w-0.5 h-12 bg-gradient-to-b from-ctu-gold/60 to-ctu-maroon/20 origin-top"
+                            />
+                            <div className="w-2 h-2 rounded-full bg-ctu-gold animate-pulse" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-
-                  {/* Decorative Grid */}
-                  <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-                    style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '30px 30px' }} 
-                  />
                 </GlowCard>
               </TabsContent>
 
@@ -1678,71 +1621,88 @@ export default function StudyTools() {
                 )}
               </TabsContent>
               
-              <TabsContent value="quizzes" className="mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <GlowCard className="p-8" glowColor="orange">
-                    <div className="flex items-start justify-between mb-8 pb-6 border-b border-foreground/5">
-                      <div>
-                        <h2 className="text-4xl font-display font-black tracking-tight text-foreground">Featured AI Quiz</h2>
-                        <p className="text-base text-foreground/40 mt-2 font-medium">Challenge yourself with this week's topics.</p>
-                      </div>
-                      <Award className="text-ctu-gold" size={40} />
+              <TabsContent value="quizzes" className="mt-0 focus:outline-none">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Gen Quiz Card */}
+                  <GlowCard className="p-8 sm:p-10 flex flex-col justify-between min-h-0" glowColor="orange">
+                    <div>
+                      <h3 className="text-2xl sm:text-4xl font-black mb-4 tracking-tight">Start Quiz Session</h3>
+                      <p className="text-sm text-foreground/60 leading-relaxed mb-8 font-medium">
+                        Generate a unique Industrial Engineering quiz powered by AI to test your knowledge in real-time.
+                      </p>
                     </div>
-                    
-                    <div className="space-y-4 mb-8">
-                      <div className="flex justify-between items-center p-4 rounded-xl neumorphic-pressed">
-                        <span className="text-sm font-bold">System Engineering Quiz</span>
-                        <Badge className="bg-green-500/10 text-green-500 border-none">Ready</Badge>
-                      </div>
-                      <div className="flex justify-between items-center p-4 rounded-xl neumorphic-pressed opacity-50">
-                        <span className="text-sm font-bold">Optimization Techniques</span>
-                        <Badge className="bg-ctu-gold/10 text-ctu-gold border-none">Coming Soon</Badge>
-                      </div>
+                    <div className="space-y-4">
+                      <Label className="text-xs font-bold uppercase tracking-[0.2em] text-foreground/40 ml-1">Select Domain</Label>
+                      <Select onValueChange={(val: string) => startQuizSession(val)}>
+                        <SelectTrigger className="h-14 rounded-2xl bg-white/5 border-white/10 text-foreground font-medium px-6">
+                          <SelectValue placeholder="Choose a subject sector..." />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-none shadow-2xl">
+                          {IE_SUBJECTS.slice(0, 10).map(s => (
+                            <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        onClick={() => startQuizSession("General IE")}
+                        disabled={isSessionLoading}
+                        className="w-full h-14 bg-ctu-gold text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-ctu-gold/20 hover:scale-[1.02] active:scale-95 transition-all mt-4"
+                      >
+                        {isSessionLoading ? "Analyzing Syllabi..." : "Initiate AI Quiz"}
+                      </Button>
                     </div>
-                    
-                    <Button 
-                      onClick={() => startQuizSession("Systems Engineering")}
-                      disabled={isSessionLoading}
-                      className="w-full h-14 bg-ctu-gold text-white font-bold rounded-2xl text-lg hover:scale-[1.02] transition-all shadow-xl"
-                    >
-                      {isSessionLoading ? "Generating AI Quiz..." : "Start Quiz"}
-                    </Button>
                   </GlowCard>
-                  
-                  <div className="grid grid-cols-1 gap-6">
-                    <Card className="neumorphic-card border-none p-6">
-                      <h3 className="font-bold text-foreground mb-4">Your Achievements</h3>
-                      <div className="grid grid-cols-3 gap-4">
-                        {[1, 2, 3].map(i => (
-                          <div key={i} className="flex flex-col items-center gap-2">
-                            <div className="w-16 h-16 rounded-full neumorphic-pressed flex items-center justify-center text-ctu-gold">
-                              <Award size={32} />
+
+                  {/* Achievements Card */}
+                  <GlowCard className="p-8 sm:p-10 flex flex-col" glowColor="blue">
+                    <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-ctu-gold/10 text-ctu-gold">
+                        <Award size={20} />
+                      </div>
+                      Your Achievements
+                    </h3>
+                    <div className="grid grid-cols-4 gap-4">
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                        <div key={i} className="group relative flex flex-col items-center">
+                          <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full">
+                            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-ctu-gold to-ctu-maroon opacity-20" />
+                            <div className="absolute inset-0 rounded-full neumorphic-pressed flex items-center justify-center">
+                              <Award size={20} className={cn("transition-all duration-500", i <= 3 ? "text-ctu-gold scale-110" : "text-foreground/10 grayscale")} />
                             </div>
-                            <span className="text-[10px] font-bold text-foreground/40 uppercase text-center">Top Scorers</span>
+                            {i <= 3 && (
+                              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-ctu-gold border-2 border-background flex items-center justify-center shadow-lg">
+                                <span className="text-[8px] font-black text-white">{i}</span>
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-[8px] font-black text-foreground/30 uppercase tracking-tighter mt-3 text-center">Badge {i}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-auto pt-8 border-t border-foreground/5">
+                      <div className="flex justify-between items-center mb-6">
+                        <span className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em]">Recent Performance</span>
+                        <div className="flex items-center gap-1">
+                          <TrendingUp size={12} className="text-green-500" />
+                          <span className="text-[10px] text-green-500 font-black">TOP TIERO</span>
+                        </div>
+                      </div>
+                      <div className="space-y-5">
+                        {[
+                          { label: 'Work Measurement', score: 92 },
+                          { label: 'Industrial Safety', score: 78 }
+                        ].map((s, i) => (
+                          <div key={i} className="space-y-2">
+                            <div className="flex justify-between text-[11px] font-bold">
+                              <span className="text-foreground/60">{s.label}</span>
+                              <span className={cn(s.score >= 80 ? "text-green-500" : "text-ctu-gold")}>{s.score}%</span>
+                            </div>
+                            <Progress value={s.score} className="h-2 rounded-full bg-foreground/5" />
                           </div>
                         ))}
                       </div>
-                    </Card>
-                    
-                    <Card className="neumorphic-card border-none p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold text-foreground">Recent Scores</h3>
-                        <TrendingUp size={16} className="text-green-500" />
-                      </div>
-                      <div className="space-y-3">
-                         <div className="flex justify-between items-center text-xs">
-                           <span className="font-medium">Work Measurement</span>
-                           <span className="font-bold text-green-500">92%</span>
-                         </div>
-                         <Progress value={92} className="h-1 bg-foreground/5" />
-                         <div className="flex justify-between items-center text-xs">
-                           <span className="font-medium">Industrial Safety</span>
-                           <span className="font-bold text-ctu-gold">78%</span>
-                         </div>
-                         <Progress value={78} className="h-1 bg-foreground/5" />
-                      </div>
-                    </Card>
-                  </div>
+                    </div>
+                  </GlowCard>
                 </div>
               </TabsContent>
 

@@ -33,21 +33,32 @@ export default function BottomNav() {
             key={item.path}
             to={item.path}
             className={({ isActive }) => cn(
-              "flex flex-col items-center justify-center p-2.5 rounded-2xl transition-all duration-300 flex-1 min-w-0 h-14",
+              "flex flex-col items-center justify-center p-2.5 rounded-2xl transition-all duration-300 flex-1 min-w-0 h-14 relative group",
               isActive ? "neumorphic-pressed text-ctu-gold" : "text-foreground/30 hover:text-foreground/60 focus:outline-none"
             )}
             title={item.name}
           >
             {({ isActive }) => (
               <>
-                <item.icon size={18} className="shrink-0" />
+                <AnimatePresence>
+                  {isActive && (
+                    <motion.div
+                      layoutId="nav-glow"
+                      className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-ctu-gold shadow-[0_0_8px_rgba(234,179,8,0.8)]"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    />
+                  )}
+                </AnimatePresence>
+                <item.icon size={18} className="shrink-0 transition-transform group-active:scale-95" />
                 <AnimatePresence>
                   {isActive && (
                     <motion.span
-                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                      animate={{ opacity: 1, height: 'auto', marginTop: 4 }}
-                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                      className="text-[7px] font-black uppercase tracking-tighter truncate w-full text-center"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      className="text-[7px] font-black uppercase tracking-tighter truncate w-full text-center mt-1"
                     >
                       {item.name}
                     </motion.span>

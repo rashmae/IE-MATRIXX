@@ -14,6 +14,8 @@ import {
   Filter,
   X,
   Trophy,
+  Cpu,
+  FlaskConical as FlaskConIcon
 } from 'lucide-react';
 import { useAuth } from '@/src/context/AuthContext';
 import { useProgress } from '@/src/hooks/useProgress';
@@ -404,7 +406,7 @@ export default function Dashboard() {
             {/* Dynamic Results Area */}
             <motion.div variants={itemVariants} className="space-y-10 mt-12">
               <div className="flex items-center justify-between">
-                <h3 className="text-2xl md:text-4xl font-display font-black tracking-tight frosted-header">
+                <h3 className="text-xl sm:text-2xl md:text-4xl font-display font-black tracking-tight frosted-header">
                   {isFilterActive ? `Search Results (${filteredSubjects.length})` : 'Recommended for You'}
                 </h3>
                 <div className="flex gap-2">
@@ -453,32 +455,70 @@ export default function Dashboard() {
                 <div className="relative group/scroll">
                    <div 
                     id="horizontal-scroll-container"
-                    className="flex gap-8 overflow-x-auto pb-10 px-4 scroll-smooth no-scrollbar snap-x snap-mandatory"
+                    className="flex gap-4 sm:gap-6 overflow-x-auto pb-10 px-4 scroll-smooth no-scrollbar snap-x snap-mandatory"
                   >
-                    {filteredSubjects.slice(0, 10).map((subject, idx) => (
-                      <GlowCard 
-                        key={subject.id} 
-                        glowColor={idx % 2 === 0 ? 'blue' : 'orange'}
-                        customSize
-                        className="w-72 h-44 shrink-0 hover:scale-[1.05] transition-all cursor-pointer border-none flex flex-col justify-between snap-start"
-                        onClick={() => navigate(`/catalog/${subject.id}`)}
-                      >
-                        <div className="relative z-10 w-full">
-                          <Badge variant="outline" className="mb-3 border-ctu-gold text-ctu-gold text-[10px] font-bold bg-ctu-gold/5">{subject.code}</Badge>
-                          <h4 className="font-bold text-foreground truncate text-lg w-full">{subject.name}</h4>
-                          <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-wider mt-1 truncate">
-                            {subject.department || 'IE Department'}
-                          </p>
-                        </div>
-                        <div className="relative z-10 flex justify-between items-center">
-                          <p className="text-xs text-foreground/60 font-medium">{subject.units} Units · {subject.semester} Sem</p>
-                          <div className="w-8 h-8 rounded-full bg-foreground/10 flex items-center justify-center text-foreground">
-                            <ChevronRight size={16} />
+                    {filteredSubjects.slice(0, 10).map((subject, idx) => {
+                      const isDone = progressMap[subject.id]?.status === 'done';
+                      const yearColors: Record<string, string> = {
+                        '1st': 'border-l-ctu-maroon',
+                        '2nd': 'border-l-ctu-gold',
+                        '3rd': 'border-l-cyan-500',
+                        '4th': 'border-l-emerald-500'
+                      };
+                      
+                      const DepartmentIcon = subject.department?.toLowerCase().includes('chem') ? FlaskConIcon : 
+                                            subject.department?.toLowerCase().includes('math') ? BookOpen : 
+                                            subject.department?.toLowerCase().includes('phy') ? FlaskConIcon : Cpu;
+
+                      return (
+                        <GlowCard 
+                          key={subject.id} 
+                          glowColor={idx % 2 === 0 ? 'blue' : 'orange'}
+                          customSize
+                          className={cn(
+                            "w-56 sm:w-64 md:w-72 shrink-0 min-h-[160px] h-auto hover:scale-[1.05] transition-all cursor-pointer border-none flex flex-col justify-between snap-start tap-target rounded-3xl p-5 overflow-hidden border-l-4",
+                            yearColors[subject.yearLevel] || 'border-l-foreground/10'
+                          )}
+                          onClick={() => navigate(`/catalog/${subject.id}`)}
+                        >
+                          <div className="relative z-10 w-full min-w-0">
+                            <div className="flex justify-between items-start mb-3">
+                              <Badge variant="outline" className="border-ctu-gold text-ctu-gold text-[10px] font-bold bg-ctu-gold/5 max-w-[80%] truncate">
+                                {subject.code}
+                              </Badge>
+                              {isDone && (
+                                <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-white shrink-0">
+                                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-3 h-3">
+                                      <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                  </motion.div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex gap-3 mb-2">
+                              <DepartmentIcon size={16} className="text-foreground/20 shrink-0 mt-1" />
+                              <h4 className="font-bold text-foreground text-clamp-2 text-sm sm:text-base leading-tight">
+                                {subject.name}
+                              </h4>
+                            </div>
+                            <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-wider text-clamp-1">
+                              {subject.department || 'IE Department'}
+                            </p>
                           </div>
-                        </div>
-                      </GlowCard>
-                    ))}
+                          
+                          <div className="relative z-10 flex justify-between items-center mt-4 pt-3 border-t border-foreground/5">
+                            <p className="text-[10px] sm:text-xs text-foreground/60 font-medium">
+                              {subject.units} Units · {subject.semester}
+                            </p>
+                            <ChevronRight size={14} className="text-foreground/40 shrink-0" />
+                          </div>
+                        </GlowCard>
+                      );
+                    })}
                   </div>
+                  {/* Subtle mobile scroll hint gradient on the right */}
+                  <div className="absolute top-0 right-0 bottom-10 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none md:hidden z-20" />
                 </div>
               ) : (
                 <motion.div 

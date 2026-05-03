@@ -16,7 +16,8 @@ import {
   ChevronRight,
   Globe,
   Upload,
-  BrainCircuit
+  BrainCircuit,
+  X
 } from 'lucide-react';
 import { useNotebook, useNotebooks } from '@/src/hooks/useNotebooks';
 import { chatWithNotebook, searchExternalResources, generateNotebookSummary } from '@/src/services/notebookService';
@@ -456,63 +457,69 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
         </div>
       </div>
 
-      {/* Add Source Modal */}
       <Dialog open={isAddSourceOpen} onOpenChange={setIsAddSourceOpen}>
-        <DialogContent className="max-w-4xl rounded-[40px] border-none neumorphic-card p-0 overflow-hidden min-h-[500px]">
-          <div className="p-8 border-b border-foreground/5 flex items-center justify-between">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[90dvh] rounded-[30px] sm:rounded-[40px] border-none neumorphic-card p-0 overflow-hidden flex flex-col">
+          <div className="p-6 sm:p-8 border-b border-foreground/5 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
-              <DialogTitle className="text-3xl font-black">Add Research Source</DialogTitle>
-              <p className="text-foreground/40 text-xs font-bold uppercase tracking-[2px] mt-1">Import knowledge into your notebook</p>
+              <DialogTitle className="text-2xl sm:text-3xl font-black text-center sm:text-left">Add Source</DialogTitle>
+              <p className="text-foreground/40 text-[10px] font-bold uppercase tracking-[2px] mt-1 text-center sm:text-left">Knowledge Import</p>
             </div>
+            <Button variant="ghost" size="icon" onClick={() => setIsAddSourceOpen(false)} className="sm:hidden absolute top-4 right-4">
+              <X size={18} />
+            </Button>
           </div>
-          <Tabs defaultValue="search" className="flex flex-col flex-1">
-            <TabsList className="bg-foreground/5 h-16 w-full flex justify-start rounded-none px-8 gap-8">
-              <TabsTrigger value="search" className="data-[state=active]:bg-transparent data-[state=active]:text-ctu-gold text-xs font-bold uppercase tracking-widest gap-2">
-                <Search size={16} /> External Search
+          <Tabs defaultValue="search" className="flex flex-col flex-1 overflow-hidden">
+            <TabsList className="bg-foreground/5 h-auto p-1 w-full flex justify-start rounded-none px-4 sm:px-8 gap-4 sm:gap-8 overflow-x-auto no-scrollbar">
+              <TabsTrigger value="search" className="data-[state=active]:bg-transparent data-[state=active]:text-ctu-gold text-[10px] sm:text-xs font-black uppercase tracking-widest gap-2 py-4">
+                <Search size={14} /> <span className="hidden xs:inline">Search</span><span className="xs:hidden">Search</span>
               </TabsTrigger>
-              <TabsTrigger value="manual" className="data-[state=active]:bg-transparent data-[state=active]:text-ctu-gold text-xs font-bold uppercase tracking-widest gap-2">
-                <LinkIcon size={16} /> Link / Text
+              <TabsTrigger value="manual" className="data-[state=active]:bg-transparent data-[state=active]:text-ctu-gold text-[10px] sm:text-xs font-black uppercase tracking-widest gap-2 py-4">
+                <LinkIcon size={14} /> <span className="hidden xs:inline">Link / Text</span><span className="xs:hidden">Link</span>
               </TabsTrigger>
-              <TabsTrigger value="upload" className="data-[state=active]:bg-transparent data-[state=active]:text-ctu-gold text-xs font-bold uppercase tracking-widest gap-2">
-                <Upload size={16} /> File Upload
+              <TabsTrigger value="upload" className="data-[state=active]:bg-transparent data-[state=active]:text-ctu-gold text-[10px] sm:text-xs font-black uppercase tracking-widest gap-2 py-4">
+                <Upload size={14} /> <span className="hidden xs:inline">Upload</span><span className="xs:hidden">File</span>
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="search" className="p-8 flex-1 focus-visible:ring-0">
-              <div className="space-y-6">
-                <div className="flex gap-4">
-                  <Input 
-                    placeholder="Search scholarly articles, documentation, IE standards..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="flex-1 h-14 rounded-2xl bg-foreground/5 border-none px-6 focus:ring-ctu-gold transition-all"
-                  />
-                  <Button 
-                    onClick={handleSearch}
-                    disabled={isSearching || !searchQuery.trim()}
-                    className="h-14 px-8 rounded-2xl bg-ctu-maroon text-white font-bold uppercase tracking-widest group"
-                  >
-                    {isSearching ? <Loader2 className="animate-spin" /> : <Search />}
-                  </Button>
-                </div>
+            <div className="flex-1 overflow-y-auto overscroll-contain custom-scrollbar">
+              <TabsContent value="search" className="p-4 sm:p-8 mt-0 focus-visible:ring-0">
+                <div className="space-y-6">
+                  <div className="flex gap-2 sm:gap-4">
+                    <Input 
+                      placeholder="Search IE resources..." 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      className="flex-1 h-12 sm:h-14 rounded-2xl bg-foreground/5 border-none px-4 sm:px-6 focus:ring-ctu-gold transition-all text-sm"
+                    />
+                    <Button 
+                      onClick={handleSearch}
+                      disabled={isSearching || !searchQuery.trim()}
+                      className="h-12 sm:h-14 px-4 sm:px-8 rounded-2xl bg-ctu-maroon text-white font-bold uppercase tracking-widest shrink-0"
+                    >
+                      {isSearching ? <Loader2 className="animate-spin" /> : <Search />}
+                    </Button>
+                  </div>
 
-                <ScrollArea className="h-[300px]">
-                  <div className="space-y-4 pr-4">
+                  <div className="space-y-4">
                     {searchResults.map((res, i) => (
-                      <Card key={i} className="bg-background border-none neumorphic-raised group overflow-hidden">
-                        <CardContent className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                          <div className="flex-1">
-                            <h4 className="font-bold text-foreground mb-1 group-hover:text-ctu-gold transition-colors">{res.title}</h4>
-                            <div className="flex items-center gap-2 text-foreground/20 text-[10px] uppercase font-bold tracking-widest mb-3">
-                              <Globe size={10} />
-                              <span className="truncate max-w-[200px]">{res.url}</span>
+                      <Card key={i} className="bg-background border-none neumorphic-raised group overflow-hidden border-l-4 border-l-ctu-gold/30">
+                        <CardContent className="p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-foreground mb-1 group-hover:text-ctu-gold transition-colors text-sm sm:text-base text-clamp-1">{res.title}</h4>
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-5 h-5 rounded bg-foreground/5 flex items-center justify-center shrink-0">
+                                <Globe size={10} className="text-foreground/40" />
+                              </div>
+                              <Badge variant="outline" className="text-[8px] sm:text-[9px] h-auto py-0.5 font-mono text-foreground/30 border-foreground/5 bg-foreground/[0.02] truncate max-w-[150px] sm:max-w-[250px]">
+                                {res.url}
+                              </Badge>
                             </div>
-                            <p className="text-xs text-foreground/40 leading-relaxed line-clamp-2">{res.snippet}</p>
+                            <p className="text-[11px] sm:text-xs text-foreground/40 leading-relaxed text-clamp-2">{res.snippet}</p>
                           </div>
                           <Button 
                             onClick={() => handleImportSearchResult(res)}
-                            className="bg-ctu-gold/10 text-ctu-gold hover:bg-ctu-gold hover:text-white rounded-xl px-4 gap-2 h-10 transition-all font-bold uppercase text-[10px]"
+                            className="bg-ctu-gold/10 text-ctu-gold hover:bg-ctu-gold hover:text-white rounded-xl px-4 gap-2 h-10 transition-all font-black uppercase text-[10px] shrink-0"
                           >
                             <Plus size={14} /> Import
                           </Button>
@@ -522,64 +529,64 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
                     {!isSearching && searchResults.length === 0 && (
                       <div className="py-12 text-center text-foreground/20">
                         <ExternalLink size={32} className="mx-auto mb-3" />
-                        <p className="text-xs font-bold uppercase tracking-widest">Search results will appear here</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest">Search results will appear here</p>
                       </div>
                     )}
                   </div>
-                </ScrollArea>
-              </div>
-            </TabsContent>
+                </div>
+              </TabsContent>
 
-            <TabsContent value="manual" className="p-8 flex-1 space-y-6 focus-visible:ring-0">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div className="space-y-3">
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest ml-1">Title</label>
+              <TabsContent value="manual" className="p-4 sm:p-8 mt-0 space-y-6 focus-visible:ring-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-foreground/40 uppercase tracking-[2px] ml-1">Title</label>
                     <Input 
                       value={manualTitle}
                       onChange={(e) => setManualTitle(e.target.value)}
                       placeholder="Source Title"
-                      className="bg-foreground/5 border-none h-14 rounded-2xl px-6"
+                      className="bg-foreground/5 border-none h-12 rounded-xl px-4 sm:px-6"
                     />
-                 </div>
-                 <div className="space-y-3">
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest ml-1">URL (Optional)</label>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-foreground/40 uppercase tracking-[2px] ml-1">URL (Optional)</label>
                     <Input 
                       value={manualUrl}
                       onChange={(e) => setManualUrl(e.target.value)}
                       placeholder="https://..."
-                      className="bg-foreground/5 border-none h-14 rounded-2xl px-6"
+                      className="bg-foreground/5 border-none h-12 rounded-xl px-4 sm:px-6"
                     />
-                 </div>
-               </div>
-               <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest ml-1">Content / Notes</label>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-foreground/40 uppercase tracking-[2px] ml-1">Content / Notes</label>
                   <textarea 
                     value={manualContent}
                     onChange={(e) => setManualContent(e.target.value)}
                     placeholder="Paste text or add your notes here..."
-                    className="w-full bg-foreground/5 border-none rounded-3xl p-6 min-h-[150px] focus:ring-ctu-gold transition-all text-sm leading-relaxed"
+                    className="w-full bg-foreground/5 border-none rounded-2xl p-4 sm:p-6 min-h-[120px] sm:min-h-[150px] focus:ring-ctu-gold transition-all text-sm leading-relaxed"
                   />
-               </div>
-               <Button 
-                 onClick={handleAddManual}
-                 disabled={isAddingManual || !manualTitle.trim() || !manualContent.trim()}
-                 className="w-full h-14 bg-ctu-maroon text-white font-bold uppercase tracking-widest rounded-2xl"
-               >
-                 {isAddingManual ? <Loader2 className="animate-spin" /> : 'Add to Notebook'}
-               </Button>
-            </TabsContent>
+                </div>
+                <Button 
+                  onClick={handleAddManual}
+                  disabled={isAddingManual || !manualTitle.trim() || !manualContent.trim()}
+                  className="w-full h-14 bg-ctu-maroon text-white font-black uppercase tracking-widest rounded-xl sm:rounded-2xl shadow-xl shadow-ctu-maroon/20 hover:scale-[1.01]"
+                >
+                  {isAddingManual ? <Loader2 className="animate-spin" /> : 'Store in Notebook'}
+                </Button>
+              </TabsContent>
 
-            <TabsContent value="upload" className="p-8 flex-1 focus-visible:ring-0">
-               <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-foreground/10 rounded-[30px] bg-foreground/[0.02]">
-                 <Upload size={48} className="text-foreground/10 mb-6" />
-                 <h4 className="text-xl font-bold mb-2">Drag & Drop Files</h4>
-                 <p className="text-foreground/40 text-xs text-center max-w-xs mb-8">
-                   Support for PDF, DOCX, and TXT files. AI will automatically extract text content.
-                 </p>
-                 <Button variant="outline" className="rounded-xl px-12 h-12 border-foreground/10">Select Files</Button>
-                 <p className="mt-4 text-[10px] font-bold text-foreground/10 uppercase tracking-widest">Coming soon (PDF Parsing)</p>
-               </div>
-            </TabsContent>
+              <TabsContent value="upload" className="p-4 sm:p-8 mt-0 focus-visible:ring-0">
+                <div className="flex flex-col items-center justify-center py-10 sm:py-16 border-2 border-dashed border-foreground/10 rounded-[30px] bg-foreground/[0.02]">
+                  <Upload size={48} className="text-foreground/10 mb-6" />
+                  <h4 className="text-xl font-bold mb-2">Drag & Drop Files</h4>
+                  <p className="text-foreground/40 text-[10px] sm:text-xs text-center max-w-[200px] sm:max-w-xs mb-8 font-medium">
+                    Support for PDF, DOCX, and TXT files. AI will automatically extract text content.
+                  </p>
+                  <Button variant="outline" className="rounded-xl px-12 h-12 border-foreground/10 font-bold">Select Files</Button>
+                  <p className="mt-4 text-[9px] font-black text-ctu-gold uppercase tracking-[4px]">Coming soon (PDF)</p>
+                </div>
+              </TabsContent>
+            </div>
           </Tabs>
         </DialogContent>
       </Dialog>
