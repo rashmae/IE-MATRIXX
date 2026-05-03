@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 
 import { useAuth } from '@/src/context/AuthContext';
 import { db } from '@/src/lib/firebase';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, onSnapshot } from 'firebase/firestore';
 
 export default function Bulletin() {
   const { profile, loading: authLoading } = useAuth();
@@ -34,28 +34,30 @@ export default function Bulletin() {
   useEffect(() => {
     if (!authLoading && !profile) {
       navigate('/login');
-      return;
     }
 
-    if (!profile) return;
-
-    setLoading(true);
-    const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (!snapshot.empty) {
-        setAnnouncements(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement)));
-      } else {
+    if (profile) {
+      const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        if (!snapshot.empty) {
+          setAnnouncements(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement)));
+        } else {
+          setAnnouncements(ANNOUNCEMENTS);
+        }
+        setLoading(false);
+      }, (error) => {
+        console.error("Error fetching announcements:", error);
         setAnnouncements(ANNOUNCEMENTS);
-      }
-      setLoading(false);
-    }, (error) => {
-      console.error("Bulletin sync error:", error);
-      setAnnouncements(ANNOUNCEMENTS);
-      setLoading(false);
-    });
+        setLoading(false);
+      });
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    }
   }, [profile, authLoading, navigate]);
+
+  const fetchAnnouncements = async () => {
+    // Handled by onSnapshot
+  };
 
   const filteredAnnouncements = announcements.filter(a => 
     selectedCategory === 'All' || a.category === selectedCategory
@@ -73,16 +75,8 @@ export default function Bulletin() {
 
   if (authLoading || loading || !profile) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex">
-        <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          <div className="skeleton h-16 w-48 rounded-xl mx-auto" />
-          <div className="skeleton h-5 w-64 rounded-lg mx-auto" />
-          <div className="mt-8 space-y-3 w-full max-w-lg px-8">
-            <div className="skeleton h-12 w-full rounded-2xl" />
-            <div className="skeleton h-12 w-full rounded-2xl" />
-            <div className="skeleton h-12 w-3/4 rounded-2xl" />
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="loader"></div>
       </div>
     );
   }
@@ -94,8 +88,8 @@ export default function Bulletin() {
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
           <div>
-            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Bulletin</h1>
-            <p className="text-foreground/40 mt-3 text-base md:text-xl font-medium tracking-tight">Stay updated with the latest IE department news.</p>
+            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Board</h1>
+            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Stay updated with the latest IE department news.</p>
           </div>
 
           <div className="flex gap-3 overflow-x-auto pb-4 md:pb-0 no-scrollbar scroll-smooth">

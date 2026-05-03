@@ -19,6 +19,7 @@ import {
   Upload,
   X
 } from 'lucide-react';
+import ThemeToggle from '@/src/components/ThemeToggle';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
 import { User as UserType } from '@/src/types/index';
@@ -60,9 +61,6 @@ export default function Profile() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => 
-    document.documentElement.classList.contains('dark') ? 'dark' : 'light'
-  );
   const [isUpdating, setIsUpdating] = useState(false);
   const [editData, setEditData] = useState({ fullName: '', yearLevel: '' });
 
@@ -93,19 +91,7 @@ export default function Profile() {
     if (!authLoading && !user) {
       navigate('/login');
     }
-
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-    if (savedTheme) {
-      setTheme(savedTheme);
-    }
   }, [user, authLoading, navigate]);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-  };
 
   const handleLogout = async () => {
     try {
@@ -181,16 +167,8 @@ export default function Profile() {
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex">
-        <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          <div className="skeleton h-16 w-48 rounded-xl mx-auto" />
-          <div className="skeleton h-5 w-64 rounded-lg mx-auto" />
-          <div className="mt-8 space-y-3 w-full max-w-lg px-8">
-            <div className="skeleton h-12 w-full rounded-2xl" />
-            <div className="skeleton h-12 w-full rounded-2xl" />
-            <div className="skeleton h-12 w-3/4 rounded-2xl" />
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="loader"></div>
       </div>
     );
   }
@@ -202,7 +180,7 @@ export default function Profile() {
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
         <div className="mb-12">
           <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Profile</h1>
-          <p className="text-foreground/40 mt-3 text-base md:text-xl font-medium tracking-tight">Manage your account and application settings.</p>
+          <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Manage your account and application settings.</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -257,10 +235,12 @@ export default function Profile() {
 
                 <div className="w-full mt-8">
                   <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="w-full rounded-2xl neumorphic-raised border-none text-xs font-bold uppercase tracking-widest gap-2">
-                        <Settings size={14} /> Edit Profile
-                      </Button>
+                    <DialogTrigger
+                      render={
+                        <Button variant="outline" className="w-full rounded-2xl neumorphic-raised border-none text-xs font-bold uppercase tracking-widest gap-2" />
+                      }
+                    >
+                      <Settings size={14} /> Edit Profile
                     </DialogTrigger>
                     <DialogContent className="neumorphic-card border-none rounded-[32px] max-w-md p-0 overflow-hidden">
                       <div className="p-8 border-b border-foreground/5">
@@ -378,30 +358,13 @@ export default function Profile() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <button 
-                    onClick={toggleTheme}
-                    className="w-full flex items-center justify-between p-5 rounded-2xl neumorphic-pressed group transition-all"
-                  >
+                  <div className="flex items-center justify-between p-5 rounded-2xl neumorphic-pressed group">
                     <div className="flex items-center gap-4">
-                      {theme === 'dark' ? (
-                        <Moon size={20} className="text-ctu-gold" />
-                      ) : (
-                        <Sun size={20} className="text-ctu-gold" />
-                      )}
-                      <span className="text-sm font-bold text-foreground/80">
-                        {theme === 'dark' ? 'Dark Mode Active' : 'Light Mode Active'}
-                      </span>
+                      <Monitor className="text-ctu-gold" size={20} />
+                      <span className="text-sm font-bold text-foreground/80">Interface Theme</span>
                     </div>
-                    <div className={cn(
-                      "w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300",
-                      theme === 'dark' ? "bg-ctu-gold" : "bg-foreground/10"
-                    )}>
-                      <div className={cn(
-                        "absolute top-1 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-300",
-                        theme === 'dark' ? "right-1" : "left-1"
-                      )} />
-                    </div>
-                  </button>
+                    <ThemeToggle className="neumorphic-raised" />
+                  </div>
                   <button 
                     onClick={() => toast.info('Cache cleared successfully.')}
                     className="w-full flex items-center justify-between p-4 rounded-2xl neumorphic-raised hover:neumorphic-pressed transition-all group"

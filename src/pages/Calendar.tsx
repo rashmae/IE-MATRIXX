@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Calendar as CalendarIcon, 
   ChevronLeft, 
@@ -9,7 +9,10 @@ import {
   LayoutGrid,
   Info,
   Download,
-  Share2
+  Share2,
+  X,
+  Clock,
+  MapPin
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
@@ -19,6 +22,13 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog';
 
 import { useAuth } from '@/src/context/AuthContext';
 
@@ -26,6 +36,8 @@ export default function CalendarPage() {
   const { profile: user, loading: authLoading } = useAuth();
   const [viewMode, setViewMode] = useState<'month' | 'list'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDayEvents, setSelectedDayEvents] = useState<CalendarEvent[] | null>(null);
+  const [selectedDayLabel, setSelectedDayLabel] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,8 +60,6 @@ export default function CalendarPage() {
     return CALENDAR_EVENTS.filter(e => e.date === dateStr);
   };
 
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
-
   const getEventColor = (category: string) => {
     switch (category.toLowerCase()) {
       case 'academic': return 'bg-ctu-maroon';
@@ -62,16 +72,8 @@ export default function CalendarPage() {
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex">
-        <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          <div className="skeleton h-16 w-48 rounded-xl mx-auto" />
-          <div className="skeleton h-5 w-64 rounded-lg mx-auto" />
-          <div className="mt-8 space-y-3 w-full max-w-lg px-8">
-            <div className="skeleton h-12 w-full rounded-2xl" />
-            <div className="skeleton h-12 w-full rounded-2xl" />
-            <div className="skeleton h-12 w-3/4 rounded-2xl" />
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="loader"></div>
       </div>
     );
   }
@@ -129,9 +131,20 @@ export default function CalendarPage() {
                 <CardTitle className="text-2xl font-bold">
                   {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                 </CardTitle>
-                <div className="flex gap-2">
-                  <button onClick={prevMonth} className="p-2 neumorphic-raised hover:neumorphic-pressed rounded-lg transition-all"><ChevronLeft size={20} /></button>
-                  <button onClick={nextMonth} className="p-2 neumorphic-raised hover:neumorphic-pressed rounded-lg transition-all"><ChevronRight size={20} /></button>
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={() => {
+                      setCurrentDate(new Date());
+                      setSelectedDayEvents(null);
+                    }}
+                    className="hidden sm:block px-4 py-2 neumorphic-raised hover:neumorphic-pressed rounded-xl text-[10px] font-black uppercase tracking-widest text-ctu-gold transition-all"
+                  >
+                    Back to Today
+                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={prevMonth} className="p-2 neumorphic-raised hover:neumorphic-pressed rounded-lg transition-all"><ChevronLeft size={20} /></button>
+                    <button onClick={nextMonth} className="p-2 neumorphic-raised hover:neumorphic-pressed rounded-lg transition-all"><ChevronRight size={20} /></button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
@@ -150,12 +163,19 @@ export default function CalendarPage() {
                     const isToday = day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth();
                     
                     return (
-                      <div key={day} 
-                        onClick={() => setSelectedDay(selectedDay === day ? null : day)}
+                      <div 
+                        key={day} 
+                        onClick={() => {
+                          if (events.length > 0) {
+                            setSelectedDayEvents(events);
+                            setSelectedDayLabel(new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toLocaleDateString(undefined, { dateStyle: 'full' }));
+                          }
+                        }}
                         className={cn(
-                          "aspect-square border-r border-b border-foreground/5 p-2 relative group hover:bg-foreground/[0.04] transition-colors cursor-pointer",
-                          selectedDay === day && "bg-ctu-gold/10 ring-1 ring-inset ring-ctu-gold/30"
-                        )}>
+                          "aspect-square border-r border-b border-foreground/5 p-2 relative group hover:bg-foreground/[0.02] transition-colors cursor-pointer",
+                          events.length > 0 && "hover:shadow-inner"
+                        )}
+                      >
                         <span className={cn(
                           "text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full transition-all",
                           isToday ? "bg-ctu-gold text-white shadow-lg scale-110" : "text-foreground/60"
@@ -167,6 +187,11 @@ export default function CalendarPage() {
                             <div key={e.id} className={cn("h-1.5 rounded-full", getEventColor(e.category))} title={e.title} />
                           ))}
                         </div>
+                        {events.length > 0 && (
+                          <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="w-1.5 h-1.5 rounded-full bg-ctu-gold animate-pulse" />
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -197,35 +222,19 @@ export default function CalendarPage() {
               </div>
 
               <div className="neumorphic-card p-6">
-                <h3 className="text-lg font-bold mb-6">
-                  {selectedDay 
-                    ? `${currentDate.toLocaleString('default', { month: 'short' })} ${selectedDay} Events` 
-                    : "Today's Events"}
-                </h3>
+                <h3 className="text-lg font-bold mb-6">Today's Events</h3>
                 <div className="space-y-4">
-                  {(selectedDay ? getEventsForDay(selectedDay) : getEventsForDay(new Date().getDate())).length > 0 ? (
-                    (selectedDay ? getEventsForDay(selectedDay) : getEventsForDay(new Date().getDate())).map(e => (
-                      <div key={e.id} className={cn("p-4 rounded-2xl neumorphic-pressed border-l-4", 
-                        e.category === 'academic' ? 'border-ctu-maroon' :
-                        e.category === 'event' ? 'border-ctu-gold' :
-                        e.category === 'holiday' ? 'border-green-600' : 'border-blue-500'
-                      )}>
+                  {getEventsForDay(new Date().getDate()).length > 0 ? (
+                    getEventsForDay(new Date().getDate()).map(e => (
+                      <div key={e.id} className="p-4 rounded-2xl neumorphic-pressed border-l-4 border-ctu-gold">
                         <h4 className="text-sm font-bold text-foreground">{e.title}</h4>
                         <p className="text-xs text-foreground/60 mt-1 font-medium">{e.description}</p>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/30 mt-2 block">{e.category}</span>
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-foreground/40 italic font-medium">
-                      {selectedDay ? `No events on the ${selectedDay}th.` : 'No events scheduled for today.'}
-                    </p>
+                    <p className="text-sm text-foreground/40 italic font-medium">No events scheduled for today.</p>
                   )}
                 </div>
-                {selectedDay && (
-                  <button onClick={() => setSelectedDay(null)} className="mt-4 text-xs text-foreground/40 hover:text-foreground/60 font-bold transition-colors">
-                    ← Back to today
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -260,6 +269,42 @@ export default function CalendarPage() {
             ))}
           </div>
         )}
+
+        <Dialog open={!!selectedDayEvents} onOpenChange={(open) => !open && setSelectedDayEvents(null)}>
+          <DialogContent className="sm:max-w-[425px] neumorphic-card border-none p-8">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-black tracking-tight">{selectedDayLabel}</DialogTitle>
+              <DialogDescription className="text-xs font-bold uppercase tracking-widest text-ctu-gold">
+                Events for this day
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 mt-4">
+              {selectedDayEvents?.map(event => (
+                <div key={event.id} className="p-5 rounded-2xl neumorphic-pressed border-l-4 border-ctu-gold animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className={cn("text-[10px] uppercase font-bold border-none px-2 py-0", getEventColor(event.category))}>
+                      {event.category}
+                    </Badge>
+                  </div>
+                  <h4 className="text-base font-bold text-foreground mb-1">{event.title}</h4>
+                  <p className="text-xs text-foreground/60 mb-4 font-medium">{event.description}</p>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-foreground/40 uppercase">
+                      <Clock size={12} className="text-ctu-gold" />
+                      Whole Day Event
+                    </div>
+                    {event.location && (
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-foreground/40 uppercase">
+                        <MapPin size={12} className="text-ctu-gold" />
+                        {event.location}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
 
       <BottomNav />

@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/context/AuthContext';
@@ -12,6 +12,7 @@ export function useProgress() {
   const { user } = useAuth();
   const [progressMap, setProgressMap] = useState<Record<string, Progress>>({});
   const [loading, setLoading] = useState(true);
+  const debounceRef = React.useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -36,7 +37,7 @@ export function useProgress() {
     return () => unsubscribe();
   }, [user]);
 
-  const updateProgress = async (subjectId: string, updates: Partial<Progress>) => {
+  const updateProgress = async (subjectId: string, updates: Partial<Progress>, debounce = false) => {
     if (!user) return;
 
     const current = progressMap[subjectId] || {
@@ -57,15 +58,29 @@ export function useProgress() {
     ) as Progress;
 
     const newMap = { ...progressMap, [subjectId]: cleanedNext };
-    const progressRef = doc(db, 'userProgress', user.uid);
+    
+    // Optimistic local update
+    setProgressMap(newMap);
 
-    try {
-      await setDoc(progressRef, {
-        progressMap: newMap,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-    } catch (error) {
-      handleFirestoreError(error, 'update', `userProgress/${user.uid}`);
+    const save = async (dataToSave: any) => {
+      const progressRef = doc(db, 'userProgress', user.uid);
+      try {
+        await setDoc(progressRef, {
+          progressMap: dataToSave,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      } catch (error) {
+        handleFirestoreError(error, 'update', `userProgress/${user.uid}`);
+      }
+    };
+
+    if (debounce) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        save(newMap);
+      }, 800);
+    } else {
+      await save(newMap);
     }
   };
 
@@ -95,27 +110,8 @@ export function useProgress() {
     toast.success(`Updated status for ${subject.code}`);
   };
 
-  const gradeDebounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-
-  const setGrade = (subjectId: string, grade: number | undefined) => {
-    // Optimistically update local state immediately for responsive UI
-    setProgressMap(prev => ({
-      ...prev,
-      [subjectId]: {
-        ...(prev[subjectId] || { subjectId, status: 'not_yet' as SubjectStatus, updatedAt: new Date().toISOString() }),
-        grade,
-        updatedAt: new Date().toISOString()
-      }
-    }));
-
-    // Debounce the actual Firestore write by 800ms
-    if (gradeDebounceRef.current[subjectId]) {
-      clearTimeout(gradeDebounceRef.current[subjectId]);
-    }
-    gradeDebounceRef.current[subjectId] = setTimeout(async () => {
-      await updateProgress(subjectId, { grade });
-      delete gradeDebounceRef.current[subjectId];
-    }, 800);
+  const setGrade = async (subjectId: string, grade: number | undefined) => {
+    await updateProgress(subjectId, { grade }, true);
   };
 
   return { progressMap, loading, updateProgress, toggleStatus, setGrade };

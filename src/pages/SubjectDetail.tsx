@@ -77,6 +77,8 @@ export default function SubjectDetail() {
   const [subject, setSubject] = useState<Subject | null>(null);
   const [resources, setResources] = useState<Resource[]>([]);
   const [ratings, setRatings] = useState<any[]>([]);
+  const publicResRef = React.useRef<Resource[]>([]);
+  const myResRef = React.useRef<Resource[]>([]);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   
@@ -157,12 +159,10 @@ export default function SubjectDetail() {
         where('userId', '==', profile.uid)
       );
 
-      const publicResRef: { current: Resource[] } = { current: [] };
-      const myResRef: { current: Resource[] } = { current: [] };
-
-      const mergeResources = () => {
+      const updateResources = () => {
+        if (!isMounted) return;
         const combined = [...publicResRef.current, ...myResRef.current];
-        const seen = new Set<string>();
+        const seen = new Set();
         const deduped = combined.filter(r => {
           if (seen.has(r.id)) return false;
           seen.add(r.id);
@@ -179,16 +179,15 @@ export default function SubjectDetail() {
         setResources(deduped);
       };
 
-      const handleResSnapshot = (snapshot: any, source: 'public' | 'mine') => {
-        if (!isMounted) return;
-        const fetched = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })) as Resource[];
-        if (source === 'public') publicResRef.current = fetched;
-        else myResRef.current = fetched;
-        mergeResources();
-      };
+      const unsubPublicRes = onSnapshot(publicResQuery, (s) => {
+        publicResRef.current = s.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Resource[];
+        updateResources();
+      }, (e) => console.warn("Vault public sync error:", e));
 
-      const unsubPublicRes = onSnapshot(publicResQuery, (s) => handleResSnapshot(s, 'public'), (e) => console.warn("Vault public sync error:", e));
-      const unsubMyRes = onSnapshot(myResQuery, (s) => handleResSnapshot(s, 'mine'), (e) => console.warn("Vault my sync error:", e));
+      const unsubMyRes = onSnapshot(myResQuery, (s) => {
+        myResRef.current = s.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Resource[];
+        updateResources();
+      }, (e) => console.warn("Vault my sync error:", e));
 
       // 4. Real-time Ratings
       const fallbackSubject = IE_SUBJECTS.find(s => s.id === id || s.code === id);
@@ -456,16 +455,8 @@ export default function SubjectDetail() {
 
   if (authLoading || loading || !profile || !subject) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex">
-        <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          <div className="skeleton h-16 w-48 rounded-xl mx-auto" />
-          <div className="skeleton h-5 w-64 rounded-lg mx-auto" />
-          <div className="mt-8 space-y-3 w-full max-w-lg px-8">
-            <div className="skeleton h-12 w-full rounded-2xl" />
-            <div className="skeleton h-12 w-full rounded-2xl" />
-            <div className="skeleton h-12 w-3/4 rounded-2xl" />
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="loader"></div>
       </div>
     );
   }
@@ -495,7 +486,7 @@ export default function SubjectDetail() {
                 <Badge className="neumorphic-pressed text-foreground/60 border-none px-4 py-1 rounded-full text-[10px] font-bold uppercase">{subject.units} Units</Badge>
               </div>
               
-              <h1 className="text-3xl sm:text-5xl md:text-7xl frosted-header font-black mb-4 tracking-tighter leading-[0.9] py-2">{subject.name}</h1>
+              <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black mb-4 tracking-tighter leading-[0.9] py-2">{subject.name}</h1>
               <p className="text-ctu-gold font-black text-3xl mb-10 tracking-[0.2em]">{subject.code}</p>
 
               <div className="flex flex-wrap items-center gap-8 p-6 neumorphic-card w-fit">

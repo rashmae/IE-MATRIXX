@@ -10,7 +10,8 @@ export const getGeminiClient = () => {
 
   // Following skill guidelines: Always use process.env.GEMINI_API_KEY for Gemini API in AI Studio
   // We include a fallback for local development if needed, but prioritize the required pattern.
-  const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
+  const apiKey = (process as any).env?.GEMINI_API_KEY || 
+                 (import.meta as any).env?.VITE_GEMINI_API_KEY;
 
   if (!apiKey || apiKey === 'undefined' || apiKey === 'null') {
     console.warn('[Gemini] API Key is missing. Batch ingestion and AI features will fail.');
@@ -139,21 +140,33 @@ export async function getCurriculumAdvice(userProgress: any, subjects: any[]) {
   }
 }
 
-export async function generateChatResponse(messages: { role: 'user' | 'ai'; content: string }[], systemContext: string) {
+export async function searchExternalResources(topic: string) {
   const ai = getGeminiClient();
-  if (!ai) return "AI Assistant is currently unavailable. Please check your VITE_GEMINI_API_KEY.";
+  if (!ai) return [];
 
-  const history = messages.map(m => `${m.role === 'user' ? 'Student' : 'Advisor'}: ${m.content}`).join('\n');
-  const fullPrompt = `${systemContext}\n\nConversation:\n${history}\n\nAdvisor:`;
-
+  const prompt = `
+    Search for high-quality external learning resources (PDFs, YouTube videos, academic sites) for the Industrial Engineering topic: ${topic}.
+    
+    Return a JSON array of objects, each containing:
+    - title: String (catchy title)
+    - description: String (brief summary)
+    - url: String (a valid-looking sample URL or resource hint)
+    - type: "video" | "pdf" | "article" | "course"
+    
+    Provide 3-5 relevant results.
+  `;
+  
   try {
     const response = await ai.models.generateContent({
       model: DEFAULT_MODEL,
-      contents: fullPrompt,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json"
+      }
     });
-    return response.text || "Sorry, I couldn't process your request.";
+    return JSON.parse(response.text || "[]");
   } catch (error) {
-    console.error("Gemini Chat Error:", error);
-    return "Sorry, something went wrong. Please try again.";
+    console.error("External Search Error:", error);
+    return [];
   }
 }

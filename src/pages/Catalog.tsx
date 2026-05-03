@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { SubjectCardSkeleton } from '@/src/components/SkeletonLoader';
-import { useDebounce } from '@/src/hooks/useDebounce';
 import { 
   Search, 
   Filter, 
@@ -27,6 +25,9 @@ import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
 import { User, Subject, YearLevel, Semester } from '@/src/types/index';
 import { IE_SUBJECTS } from '@/src/lib/constants';
+import { useDebounce } from '@/src/hooks/useDebounce';
+import { useMediaQuery } from '@/src/hooks/useMediaQuery';
+import { HeaderSkeleton, StatSkeleton, GridSkeleton } from '@/src/components/SkeletonLoader';
 import { Badge } from '@/components/ui/badge';
 import { GlowCard } from '@/components/ui/spotlight-card';
 import { Input } from '@/components/ui/input';
@@ -74,10 +75,12 @@ type SortOption = 'relevance' | 'alpha-asc' | 'alpha-desc' | 'newest';
 export default function Catalog() {
   const { profile, isAdmin, loading: authLoading } = useAuth();
   const { progressMap, loading: progressMapLoading } = useProgress();
+  const isMobile = useMediaQuery('(max-width: 640px)');
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectsLoading, setSubjectsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const debouncedSearch = useDebounce(searchQuery, 250);
+  const debouncedSearch = useDebounce(searchQuery, 300);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   
@@ -212,7 +215,7 @@ export default function Catalog() {
     }
 
     return result;
-  }, [subjects, debouncedSearch, selectedYears, selectedSems, unitRange, sortBy]);
+  }, [subjects, searchQuery, selectedYears, selectedSems, unitRange, sortBy]);
 
   const clearAllFilters = () => {
     setSearchQuery('');
@@ -377,16 +380,18 @@ export default function Catalog() {
 
   if (authLoading || !profile) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex">
+      <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
         <Sidebar user={null} />
         <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-          <div className="mb-8 space-y-3">
-            <div className="skeleton h-14 w-36 rounded-xl" />
-            <div className="skeleton h-5 w-64 rounded-lg" />
-          </div>
-          <div className="skeleton h-12 w-full rounded-2xl mb-8" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 9 }).map((_, i) => <SubjectCardSkeleton key={i} />)}
+          <HeaderSkeleton />
+          <div className="flex flex-col lg:flex-row gap-8">
+            <aside className="hidden lg:block w-72 shrink-0 space-y-6">
+              <StatSkeleton />
+              <StatSkeleton />
+            </aside>
+            <div className="flex-1">
+              <GridSkeleton count={6} />
+            </div>
           </div>
         </main>
         <BottomNav />
@@ -402,29 +407,88 @@ export default function Catalog() {
         {/* Header & Search */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
-            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Catalog</h1>
+            <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Catalog</h1>
             <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Explore the IE Industrial Engineering curriculum.</p>
           </div>
 
           <div className="flex items-center gap-3">
+            <AnimatePresence>
+              {isMobile && !isMobileSearchOpen && (
+                <motion.button
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  onClick={() => setIsMobileSearchOpen(true)}
+                  className="p-3 rounded-full neumorphic-raised text-ctu-gold tap-target"
+                >
+                  <Search size={24} />
+                </motion.button>
+              )}
+            </AnimatePresence>
             <div className="flex bg-background p-1.5 rounded-2xl neumorphic-raised">
               <button 
                 onClick={() => setViewMode('grid')}
                 aria-label="Grid View"
-                className={cn("p-2.5 rounded-xl transition-all", viewMode === 'grid' ? "neumorphic-pressed text-ctu-gold" : "text-foreground/40")}
+                className={cn("p-2.5 rounded-xl transition-all tap-target", viewMode === 'grid' ? "neumorphic-pressed text-ctu-gold" : "text-foreground/40")}
               >
                 <Grid size={20} />
               </button>
               <button 
                 onClick={() => setViewMode('list')}
                 aria-label="List View"
-                className={cn("p-2.5 rounded-xl transition-all", viewMode === 'list' ? "neumorphic-pressed text-ctu-gold" : "text-foreground/40")}
+                className={cn("p-2.5 rounded-xl transition-all tap-target", viewMode === 'list' ? "neumorphic-pressed text-ctu-gold" : "text-foreground/40")}
               >
                 <ListIcon size={20} />
               </button>
             </div>
           </div>
         </div>
+
+        {/* Mobile Search Overlay */}
+        <AnimatePresence>
+          {isMobile && isMobileSearchOpen && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="mb-8 overflow-hidden"
+            >
+              <div className="relative mb-4">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40" size={18} />
+                <Input 
+                  autoFocus
+                  placeholder="Subject, code, professor..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-background border-none neumorphic-pressed pl-12 pr-12 h-14 rounded-2xl focus-ring"
+                />
+                <button 
+                  onClick={() => setIsMobileSearchOpen(false)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full text-foreground/40"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
+                {(['1st', '2nd', '3rd', '4th'] as YearLevel[]).map(year => (
+                  <button
+                    key={year}
+                    onClick={() => {
+                      if (selectedYears.includes(year)) setSelectedYears(prev => prev.filter(y => y !== year));
+                      else setSelectedYears(prev => [...prev, year]);
+                    }}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all",
+                      selectedYears.includes(year) ? "bg-ctu-gold text-white" : "neumorphic-raised text-foreground/40"
+                    )}
+                  >
+                    {year} Year
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Desktop Sidebar Filters */}
@@ -499,7 +563,7 @@ export default function Catalog() {
             )}
 
             {/* Controls Bar */}
-            <div className="space-y-6">
+            <div className={cn("space-y-6", isMobile && "hidden")}>
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40" size={18} />
@@ -516,7 +580,7 @@ export default function Catalog() {
                     onBlur={() => {
                       if (searchQuery.trim()) addToHistory(searchQuery);
                     }}
-                    className="bg-background border-none neumorphic-pressed pl-12 pr-12 h-14 rounded-2xl focus:ring-ctu-gold text-foreground placeholder:text-foreground/30 shadow-none ring-offset-0"
+                    className="bg-background border-none neumorphic-pressed pl-12 pr-12 h-14 rounded-2xl focus:ring-ctu-gold text-foreground placeholder:text-foreground/30 shadow-none ring-offset-0 focus-ring"
                   />
                   {searchQuery && (
                     <button 
@@ -667,16 +731,13 @@ export default function Catalog() {
                             <div className="flex-1 h-px bg-foreground/10" />
                           </h3>
 
-                          <motion.div
+                          <motion.div 
                             layout
                             className={cn(
-                              "grid gap-6 sm:gap-8",
+                              "grid gap-8",
                               viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
                             )}
                           >
-                            {subjectsLoading ? (
-                              Array.from({ length: 6 }).map((_, i) => <SubjectCardSkeleton key={i} />)
-                            ) : (
                             <AnimatePresence mode="popLayout">
                               {semSubjects.map((subject, idx) => (
                                 <motion.div
@@ -777,7 +838,6 @@ export default function Catalog() {
                                 </motion.div>
                               ))}
                             </AnimatePresence>
-                            )}
                           </motion.div>
                         </div>
                       );

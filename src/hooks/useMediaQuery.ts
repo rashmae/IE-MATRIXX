@@ -1,20 +1,39 @@
 import { useState, useEffect } from 'react';
 
+/**
+ * A hook that tracks the state of a media query.
+ * 
+ * @param query The CSS media query string
+ * @returns Boolean indicating if the query matches
+ */
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia(query).matches;
-  });
+  const [matches, setMatches] = useState(false);
 
   useEffect(() => {
-    const mq = window.matchMedia(query);
-    const handler = (e: MediaQueryListEvent) => setMatches(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, [query]);
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
+
+    const listener = () => setMatches(media.matches);
+    media.addEventListener('change', listener);
+    
+    return () => media.removeEventListener('change', listener);
+  }, [query, matches]);
 
   return matches;
 }
 
-export const useIsMobile = () => useMediaQuery('(max-width: 1023px)');
-export const useIsTablet = () => useMediaQuery('(min-width: 768px) and (max-width: 1023px)');
+/**
+ * Helper hook for mobile detection (max-width: 640px - Tailwind 'sm')
+ */
+export function useIsMobile() {
+  return useMediaQuery('(max-width: 640px)');
+}
+
+/**
+ * Helper hook for tablet detection (max-width: 1024px - Tailwind 'lg')
+ */
+export function useIsTablet() {
+  return useMediaQuery('(max-width: 1024px)');
+}

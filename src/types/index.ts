@@ -11,7 +11,7 @@ export interface User {
   email?: string;
   yearLevel?: string;
   role?: 'student' | 'admin';
-  loginTime?: string;
+  lastLogin?: any;
   photoURL?: string;
 }
 
@@ -137,6 +137,7 @@ export interface CalendarEvent {
   date: string;
   category: string;
   description: string;
+  location?: string;
 }
 
 export interface Notebook {

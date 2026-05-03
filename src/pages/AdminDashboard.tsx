@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { 
@@ -15,7 +15,8 @@ import {
   ExternalLink,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  X
 } from 'lucide-react';
 import { useAuth } from '@/src/context/AuthContext';
 import { db } from '@/src/lib/firebase';
@@ -24,6 +25,8 @@ import { User as UserType } from '@/src/types/index';
 import { IE_SUBJECTS } from '@/src/lib/constants';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
+import { useDebounce } from '@/src/hooks/useDebounce';
+import { HeaderSkeleton, StatSkeleton, GridSkeleton } from '@/src/components/SkeletonLoader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +40,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [isSeeding, setIsSeeding] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 300);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const navigate = useNavigate();
 
@@ -80,7 +84,7 @@ export default function AdminDashboard() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const q = query(collection(db, 'users'), orderBy('lastLogin', 'desc'), limit(100));
+      const q = query(collection(db, 'users'), limit(500));
       const querySnapshot = await getDocs(q);
       const fetchedUsers = querySnapshot.docs.map(doc => ({
         id: doc.id,
@@ -95,25 +99,25 @@ export default function AdminDashboard() {
     }
   };
 
-  const toggleSort = () => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  const toggleSort = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
 
-  const filteredUsers = users
-    .filter(u =>
-      u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.idNumber?.includes(searchTerm) ||
-      u.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      const getT = (val: any) => {
-        if (!val) return 0;
-        if (typeof val.toMillis === 'function') return val.toMillis();
-        if (typeof val.toDate === 'function') return val.toDate().getTime();
-        return new Date(val).getTime() || 0;
-      };
-      return sortOrder === 'desc'
-        ? getT(b.lastLogin) - getT(a.lastLogin)
-        : getT(a.lastLogin) - getT(b.lastLogin);
+  const sortedUsers = useMemo(() => {
+    return [...users].sort((a, b) => {
+      const dateA = a.lastLogin?.toDate ? a.lastLogin.toDate().getTime() : (typeof a.lastLogin === 'number' ? a.lastLogin : new Date(a.lastLogin).getTime() || 0);
+      const dateB = b.lastLogin?.toDate ? b.lastLogin.toDate().getTime() : (typeof b.lastLogin === 'number' ? b.lastLogin : new Date(b.lastLogin).getTime() || 0);
+      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
     });
+  }, [users, sortOrder]);
+
+  const filteredUsers = useMemo(() => {
+    return sortedUsers.filter(u => 
+      u.fullName?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      u.idNumber?.includes(debouncedSearch) ||
+      u.email?.toLowerCase().includes(debouncedSearch.toLowerCase())
+    );
+  }, [sortedUsers, debouncedSearch]);
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return 'Never';
@@ -127,21 +131,37 @@ export default function AdminDashboard() {
     });
   };
 
-  if (authLoading || !profile) return null;
+  if (authLoading || !profile) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
+        <Sidebar user={null} />
+        <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
+          <HeaderSkeleton />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+            <StatSkeleton />
+            <StatSkeleton />
+            <StatSkeleton />
+          </div>
+          <GridSkeleton count={8} />
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
       <Sidebar user={profile} />
       
-      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+      <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-3">
               <ShieldCheck className="text-ctu-gold" size={24} />
               <span className="text-xs font-black text-ctu-gold uppercase tracking-[0.3em]">Command Center</span>
             </div>
-            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Admin Console</h1>
-            <p className="text-foreground/40 mt-3 text-base md:text-xl font-medium tracking-tight">Monitor all IE students currently in the Matrix.</p>
+            <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Admin Console</h1>
+            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Monitor all IE students currently in the Matrix.</p>
           </div>
           
           <div className="flex gap-3">
@@ -228,8 +248,16 @@ export default function AdminDashboard() {
                   placeholder="Search name, ID, or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-12 bg-background border-none neumorphic-pressed text-foreground rounded-2xl h-12 placeholder:text-foreground/30"
+                  className="pl-12 pr-10 bg-background border-none neumorphic-pressed text-foreground rounded-2xl h-12 placeholder:text-foreground/30 focus-ring"
                 />
+                {searchTerm && (
+                  <button 
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
               </div>
             </div>
           </CardHeader>

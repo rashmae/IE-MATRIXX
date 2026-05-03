@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import ReactMarkdown from 'react-markdown';
 import { 
   Users, 
   MessageSquare, 
@@ -60,6 +59,7 @@ import { useAuth } from '@/src/context/AuthContext';
 import { useProgress } from '@/src/hooks/useProgress';
 import NotebookList from '@/src/components/notebook/NotebookList';
 import NotebookWorkspace from '@/src/components/notebook/NotebookWorkspace';
+import ReactMarkdown from 'react-markdown';
 
 // Session Types
 type Flashcard = { front: string; back: string };
@@ -237,20 +237,19 @@ export default function StudyTools() {
     if (!advisorInput.trim() || isAdvisorLoading) return;
 
     const userMsg = { role: 'user' as const, content: advisorInput };
-    const updatedChat = [...advisorChat, userMsg];
-    setAdvisorChat(updatedChat);
+    const chatHistory = advisorChat.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
+    setAdvisorChat(prev => [...prev, userMsg]);
     setAdvisorInput('');
     setIsAdvisorLoading(true);
 
     try {
-      const systemCtx = `You are an IE Matrix AI Tutor for Industrial Engineering students at Cebu Technological University.
-Curriculum: ${JSON.stringify(IE_SUBJECTS.map(s => ({ code: s.code, name: s.name, year: s.yearLevel, prereqs: s.prerequisiteIds })))}
-Student Progress: ${JSON.stringify(progressMap)}
-Current Roadmap: ${JSON.stringify(roadmap)}
-Be concise, helpful, and use markdown. Focus on IE academics.`;
-      const history = updatedChat.map(m => `${m.role === 'user' ? 'Student' : 'Advisor'}: ${m.content}`).join('\n');
-      const fullPrompt = `${systemCtx}\n\nConversation:\n${history}\n\nAdvisor:`;
-      const response = await askQuestion(fullPrompt, '');
+      const fullContext = `
+        Curriculum: ${JSON.stringify(IE_SUBJECTS.map(s => ({ code: s.code, name: s.name })))}
+        Progress: ${JSON.stringify(progressMap)}
+        Roadmap: ${JSON.stringify(roadmap)}
+        Previous Chat: ${chatHistory}
+      `;
+      const response = await askQuestion(advisorInput, fullContext);
       setAdvisorChat(prev => [...prev, { role: 'ai' as const, content: response }]);
     } catch (error) {
       toast.error("AI Advisor is currently unavailable.");
@@ -602,16 +601,8 @@ Be concise, helpful, and use markdown. Focus on IE academics.`;
 
   if (authLoading || (activeTab === 'advisor' && progressLoading && roadmap.length === 0)) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex">
-        <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          <div className="skeleton h-16 w-48 rounded-xl mx-auto" />
-          <div className="skeleton h-5 w-64 rounded-lg mx-auto" />
-          <div className="mt-8 space-y-3 w-full max-w-lg px-8">
-            <div className="skeleton h-12 w-full rounded-2xl" />
-            <div className="skeleton h-12 w-full rounded-2xl" />
-            <div className="skeleton h-12 w-3/4 rounded-2xl" />
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="loader"></div>
       </div>
     );
   }
@@ -797,7 +788,7 @@ Be concise, helpful, and use markdown. Focus on IE academics.`;
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 lg:mb-12">
           <div>
             <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2 flex items-center gap-4">
-              Study Hub <Sparkles className="text-ctu-gold shrink-0 scale-125" size={56} />
+              Study Hub <Sparkles className="text-ctu-gold shrink-0 scale-125" size={32} />
             </h1>
             <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Elevate your learning with AI guidance and community support.</p>
           </div>
@@ -1130,10 +1121,10 @@ Be concise, helpful, and use markdown. Focus on IE academics.`;
               <TabsContent value="groups" className="mt-0 space-y-8 lg:space-y-12">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                   <div>
-                    <h2 className="text-3xl sm:text-5xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
+                    <h2 className="text-3xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
                        Active Groups
                     </h2>
-                    <p className="text-base md:text-xl text-foreground/40 font-medium mt-3 tracking-tight">Connect with peers and navigate the IE curriculum together.</p>
+                    <p className="text-xl text-foreground/40 font-medium mt-3 tracking-tight">Connect with peers and navigate the IE curriculum together.</p>
                   </div>
                   <div className="flex flex-wrap gap-4 w-full md:w-auto">
                     <div className="relative flex-1 md:w-72">
@@ -1260,10 +1251,10 @@ Be concise, helpful, and use markdown. Focus on IE academics.`;
               <TabsContent value="qa" className="mt-0 space-y-8 lg:space-y-12">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                   <div>
-                    <h2 className="text-3xl sm:text-5xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
+                    <h2 className="text-3xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
                        Q&A Forum
                     </h2>
-                    <p className="text-base md:text-xl text-foreground/40 font-medium mt-3 tracking-tight">Rapid knowledge exchange with the IE community.</p>
+                    <p className="text-xl text-foreground/40 font-medium mt-3 tracking-tight">Rapid knowledge exchange with the IE community.</p>
                   </div>
                   <Dialog open={isAskQuestionModalOpen} onOpenChange={setIsAskQuestionModalOpen}>
                     <DialogTrigger 
@@ -1391,10 +1382,10 @@ Be concise, helpful, and use markdown. Focus on IE academics.`;
                   <div className="space-y-8 lg:space-y-12">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                       <div>
-                        <h2 className="text-3xl sm:text-5xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
+                        <h2 className="text-3xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
                            Flash Decks
                         </h2>
-                        <p className="text-base md:text-xl text-foreground/40 font-medium mt-3 tracking-tight">Accelerate mastery through strategic retention cycles.</p>
+                        <p className="text-xl text-foreground/40 font-medium mt-3 tracking-tight">Accelerate mastery through strategic retention cycles.</p>
                       </div>
                       <div className="flex flex-wrap gap-3 w-full md:w-auto">
                         <Dialog open={isNewDeckModalOpen} onOpenChange={setIsNewDeckModalOpen}>
@@ -1984,7 +1975,7 @@ Be concise, helpful, and use markdown. Focus on IE academics.`;
             </DialogHeader>
             
             <ScrollArea className="flex-1 p-6">
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-6">
                 {advisorChat.length === 0 && (
                   <div className="text-center py-12 space-y-4">
                     <div className="w-16 h-16 rounded-full bg-ctu-gold/5 flex items-center justify-center mx-auto text-ctu-gold animate-bounce">
@@ -1995,26 +1986,27 @@ Be concise, helpful, and use markdown. Focus on IE academics.`;
                 )}
                 {advisorChat.map((msg, i) => (
                   <div key={i} className={cn(
-                    "flex",
-                    msg.role === 'user' ? "justify-end" : "justify-start"
+                    "flex flex-col",
+                    msg.role === 'user' ? "items-end" : "items-start"
                   )}>
                     <div className={cn(
-                      "max-w-[85%] p-4 rounded-2xl text-sm font-medium",
-                      msg.role === 'user'
-                        ? "bg-ctu-maroon text-white rounded-tr-none"
-                        : "neumorphic-raised text-foreground rounded-tl-none"
+                      "max-w-[85%] p-4 rounded-3xl text-sm font-medium",
+                      msg.role === 'user' 
+                        ? "bg-ctu-maroon text-white rounded-tr-none" 
+                        : "neumorphic-card bg-background border border-foreground/5 text-foreground rounded-tl-none"
                     )}>
-                      {msg.role === 'ai' ? (
-                        <div className="prose prose-sm max-w-none prose-invert text-foreground/80">
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
-                        </div>
-                      ) : msg.content}
+                      <div className={cn(
+                        "prose prose-sm max-w-none",
+                        msg.role === 'user' ? "prose-invert" : "prose-slate"
+                      )}>
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
                     </div>
                   </div>
                 ))}
                 {isAdvisorLoading && (
                   <div className="flex justify-start">
-                    <div className="neumorphic-raised text-foreground rounded-2xl rounded-tl-none p-4">
+                    <div className="neumorphic-card bg-background border border-foreground/5 text-foreground rounded-3xl rounded-tl-none p-4 w-16">
                       <div className="flex gap-1">
                         <div className="w-1.5 h-1.5 bg-ctu-gold rounded-full animate-bounce" />
                         <div className="w-1.5 h-1.5 bg-ctu-gold rounded-full animate-bounce [animation-delay:0.2s]" />

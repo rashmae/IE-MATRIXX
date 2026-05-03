@@ -1,8 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ListItemSkeleton } from '@/src/components/SkeletonLoader';
-import { useDebounce } from '@/src/hooks/useDebounce';
 import { 
   FolderOpen, 
   Search, 
@@ -17,12 +15,15 @@ import {
   Upload,
   Youtube,
   FileBarChart,
-  FilePieChart
+  FilePieChart,
+  X
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
 import { User, Resource, ResourceType } from '@/src/types/index';
 import { IE_SUBJECTS } from '@/src/lib/constants';
+import { useDebounce } from '@/src/hooks/useDebounce';
+import { HeaderSkeleton, GridSkeleton } from '@/src/components/SkeletonLoader';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -39,12 +40,15 @@ import { useAuth } from '@/src/context/AuthContext';
 export default function Resources() {
   const { profile: user, loading: authLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const debouncedSearch = useDebounce(searchQuery, 250);
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [selectedType, setSelectedType] = useState<ResourceType | 'All'>('All');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [resources, setResources] = useState<Resource[]>([]);
-  const [resourcesLoading, setResourcesLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const navigate = useNavigate();
+
+  const publicResourcesRef = React.useRef<Resource[]>([]);
+  const myResourcesRef = React.useRef<Resource[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -53,7 +57,6 @@ export default function Resources() {
     } 
     
     if (user) {
-      // Real-time Firestore sync with two separate queries to handle permissions correctly
       const publicQuery = query(
         collection(db, 'resources'),
         where('isPublic', '==', true),
@@ -68,12 +71,9 @@ export default function Resources() {
         limit(20)
       );
 
-      const publicResourcesRef: { current: Resource[] } = { current: [] };
-      const myResourcesRef: { current: Resource[] } = { current: [] };
-
-      const mergeAndSet = () => {
+      const updateList = () => {
         const combined = [...publicResourcesRef.current, ...myResourcesRef.current];
-        const seen = new Set<string>();
+        const seen = new Set();
         const deduped = combined.filter(r => {
           if (seen.has(r.id)) return false;
           seen.add(r.id);
@@ -92,26 +92,19 @@ export default function Resources() {
         setResources(deduped);
       };
 
-      const handleSnapshot = (snapshot: any, source: 'public' | 'mine') => {
-        const newResources = snapshot.docs.map((doc: any) => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Resource[];
-
-        if (source === 'public') {
-          publicResourcesRef.current = newResources;
-        } else {
-          myResourcesRef.current = newResources;
-        }
-        mergeAndSet();
-        setResourcesLoading(false);
-      };
-
-      const unsubscribePublic = onSnapshot(publicQuery, (snapshot) => handleSnapshot(snapshot, 'public'), (error) => {
+      const unsubscribePublic = onSnapshot(publicQuery, (snapshot) => {
+        publicResourcesRef.current = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Resource[];
+        updateList();
+        setIsInitialLoading(false);
+      }, (error) => {
         console.error("Public resources sync error:", error);
+        setIsInitialLoading(false);
       });
 
-      const unsubscribeMy = onSnapshot(myQuery, (snapshot) => handleSnapshot(snapshot, 'mine'), (error) => {
+      const unsubscribeMy = onSnapshot(myQuery, (snapshot) => {
+        myResourcesRef.current = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Resource[];
+        updateList();
+      }, (error) => {
         console.error("My resources sync error:", error);
       });
 
@@ -128,22 +121,21 @@ export default function Resources() {
     setIsUploadModalOpen(false);
   };
 
-  const filteredResources = useMemo(() => resources.filter(r => {
-    const matchesSearch = r.title.toLowerCase().includes(debouncedSearch.toLowerCase());
-    const matchesType = selectedType === 'All' || r.type === selectedType;
-    return matchesSearch && matchesType;
-  }), [resources, debouncedSearch, selectedType]);
+  const filteredResources = useMemo(() => {
+    return resources.filter(r => {
+      const matchesSearch = r.title.toLowerCase().includes(debouncedSearch.toLowerCase());
+      const matchesType = selectedType === 'All' || r.type === selectedType;
+      return matchesSearch && matchesType;
+    });
+  }, [resources, debouncedSearch, selectedType]);
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex">
+      <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
         <Sidebar user={null} />
         <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-          <div className="mb-8 space-y-3">
-            <div className="skeleton h-14 w-40 rounded-xl" />
-            <div className="skeleton h-5 w-64 rounded-lg" />
-          </div>
-          <ListItemSkeleton count={5} />
+          <HeaderSkeleton />
+          <GridSkeleton count={6} />
         </main>
         <BottomNav />
       </div>
@@ -157,13 +149,13 @@ export default function Resources() {
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
           <div>
-            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Resources</h1>
+            <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Resources</h1>
             <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Access shared notes, videos, and reference materials.</p>
           </div>
 
           <button 
             onClick={() => setIsUploadModalOpen(true)}
-            className="px-8 py-4 bg-gradient-to-r from-ctu-gold to-ctu-maroon text-white rounded-2xl flex items-center gap-3 font-bold shadow-[0_10px_20px_rgba(139,26,26,0.2)] hover:scale-105 active:scale-95 transition-all text-sm tracking-wide"
+            className="px-8 py-4 bg-gradient-to-r from-ctu-gold to-ctu-maroon text-white rounded-2xl flex items-center gap-3 font-bold shadow-[0_10px_20px_rgba(139,26,26,0.2)] hover:scale-105 active:scale-95 transition-all text-sm tracking-wide tap-target"
           >
             <Plus size={20} className="text-white" />
             Upload Resource
@@ -172,28 +164,36 @@ export default function Resources() {
 
         <Tabs defaultValue="all" className="space-y-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <TabsList className="neumorphic-pressed border-none p-1.5 rounded-2xl h-auto">
-              <TabsTrigger value="all" className="rounded-xl px-8 py-2.5 text-[10px] font-bold uppercase tracking-widest data-[state=active]:neumorphic-raised data-[state=active]:text-foreground text-foreground/40">Public Library</TabsTrigger>
-              <TabsTrigger value="mine" className="rounded-xl px-8 py-2.5 text-[10px] font-bold uppercase tracking-widest data-[state=active]:neumorphic-raised data-[state=active]:text-foreground text-foreground/40">My Uploads</TabsTrigger>
+            <TabsList className="neumorphic-pressed border-none p-1.5 rounded-2xl h-auto w-full md:w-auto">
+              <TabsTrigger value="all" className="flex-1 md:flex-none rounded-xl px-8 py-2.5 text-[10px] font-bold uppercase tracking-widest data-[state=active]:neumorphic-raised data-[state=active]:text-foreground text-foreground/40 tap-target">Public Library</TabsTrigger>
+              <TabsTrigger value="mine" className="flex-1 md:flex-none rounded-xl px-8 py-2.5 text-[10px] font-bold uppercase tracking-widest data-[state=active]:neumorphic-raised data-[state=active]:text-foreground text-foreground/40 tap-target">My Uploads</TabsTrigger>
             </TabsList>
 
-            <div className="flex flex-1 md:max-w-xl gap-6">
+            <div className="flex flex-col sm:flex-row flex-1 md:max-w-2xl gap-6">
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40" size={18} />
                 <Input 
                   placeholder="Search resources..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="neumorphic-pressed border-none pl-12 h-12 rounded-2xl focus:ring-ctu-gold text-foreground placeholder:text-foreground/20"
+                  className="neumorphic-pressed border-none pl-12 pr-10 h-14 rounded-2xl focus-ring text-foreground placeholder:text-foreground/20"
                 />
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
               </div>
-              <div className="flex gap-2 overflow-x-auto no-scrollbar scroll-smooth pb-2">
+              <div className="flex gap-2 overflow-x-auto no-scrollbar scroll-smooth pb-2 shrink-0">
                 {['All', 'notes', 'youtube', 'document', 'presentation', 'video', 'reference'].map((type) => (
                   <button
                     key={type}
                     onClick={() => setSelectedType(type as any)}
                     className={cn(
-                      "px-3 py-2 rounded-xl text-[9px] font-bold uppercase transition-all tracking-wider whitespace-nowrap",
+                      "px-4 py-2.5 rounded-xl text-[9px] font-bold uppercase transition-all tracking-wider whitespace-nowrap tap-target",
                       selectedType === type 
                         ? "neumorphic-pressed text-foreground" 
                         : "neumorphic-raised text-foreground/40 hover:text-foreground"
@@ -207,52 +207,27 @@ export default function Resources() {
           </div>
 
           <TabsContent value="all" className="mt-0">
-            {resourcesLoading ? (
-              <ListItemSkeleton count={6} />
-            ) : filteredResources.filter(r => r.isPublic).length === 0 ? (
-              <div className="text-center py-16 neumorphic-pressed rounded-3xl">
-                <FolderOpen size={40} className="text-foreground/20 mx-auto mb-4" />
-                <p className="text-foreground/40 font-bold text-sm">No public resources yet</p>
-                <p className="text-foreground/25 text-xs mt-1">Be the first to upload a resource!</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                <AnimatePresence mode="popLayout">
-                  {filteredResources.filter(r => r.isPublic).map((res) => (
-                    <div key={res.id}>
-                      <ResourceCard resource={res} />
-                    </div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <AnimatePresence mode="popLayout">
+                {filteredResources.filter(r => r.isPublic).map((res) => (
+                  <div key={res.id}>
+                    <ResourceCard resource={res} />
+                  </div>
+                ))}
+              </AnimatePresence>
+            </div>
           </TabsContent>
 
           <TabsContent value="mine" className="mt-0">
-            {resourcesLoading ? (
-              <ListItemSkeleton count={4} />
-            ) : filteredResources.filter(r => r.userId === user.uid).length === 0 ? (
-              <div className="text-center py-16 neumorphic-pressed rounded-3xl">
-                <Upload size={40} className="text-foreground/20 mx-auto mb-4" />
-                <p className="text-foreground/40 font-bold text-sm">You haven't uploaded anything yet</p>
-                <button
-                  onClick={() => setIsUploadModalOpen(true)}
-                  className="mt-4 bg-ctu-gold text-white font-bold px-5 py-2.5 rounded-xl text-sm tap-target"
-                >
-                  Upload your first resource
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                <AnimatePresence mode="popLayout">
-                  {filteredResources.filter(r => r.userId === user.uid).map((res) => (
-                    <div key={res.id}>
-                      <ResourceCard resource={res} />
-                    </div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <AnimatePresence mode="popLayout">
+                {filteredResources.filter(r => r.userId === user.uid).map((res) => (
+                  <div key={res.id}>
+                    <ResourceCard resource={res} />
+                  </div>
+                ))}
+              </AnimatePresence>
+            </div>
           </TabsContent>
         </Tabs>
       </main>

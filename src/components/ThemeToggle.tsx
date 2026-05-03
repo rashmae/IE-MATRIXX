@@ -3,15 +3,20 @@ import { Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function ThemeToggle({ className }: { className?: string }) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    // Check if document already has dark class (important for first mount)
+    if (typeof window !== 'undefined') {
+      return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+    }
+    return 'dark';
+  });
 
   useEffect(() => {
+    // Sync theme with local storage on mount if it exists
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
     if (savedTheme) {
       setTheme(savedTheme);
       document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-    } else {
-      document.documentElement.classList.add('dark');
     }
   }, []);
 
