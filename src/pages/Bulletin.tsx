@@ -165,9 +165,8 @@ export default function Bulletin() {
           </AnimatePresence>
         </div>
 
-        {/* Announcement Detail Modal */}
         <Dialog open={!!selectedAnnouncement} onOpenChange={(open) => !open && setSelectedAnnouncement(null)}>
-          <DialogContent className="neumorphic-card border-none text-foreground max-w-2xl p-0 overflow-hidden">
+          <DialogContent className="max-w-[95vw] w-full h-[85dvh] overflow-y-auto overscroll-contain neumorphic-card border-none text-foreground p-0 overflow-hidden">
             {selectedAnnouncement && (
               <div className="p-10">
                 <DialogHeader className="mb-8">

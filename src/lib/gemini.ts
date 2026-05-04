@@ -38,6 +38,9 @@ export async function generateStudyPlan(currentProgress: any, subjects: any[]) {
     - description: String
     - subjects: Array of strings (subject codes)
     - difficulty: "easy" | "medium" | "hard"
+    - priority: "high" | "medium" | "low"
+    - estimatedTime: String (e.g., "2-3 weeks")
+    - breakdown: Array of strings (3-5 specific sub-topics or target outcomes)
   `;
 
   try {

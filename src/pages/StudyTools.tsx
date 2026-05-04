@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Award,
   Clock,
+  Calendar,
   ChevronRight,
   Sparkles,
   HelpCircle,
@@ -25,7 +26,9 @@ import {
   AlertTriangle,
   ShieldAlert,
   MoreVertical,
-  FolderOpen
+  FolderOpen,
+  Maximize,
+  Zap
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
@@ -92,6 +95,48 @@ export default function StudyTools() {
   const [newQuestion, setNewQuestion] = useState({ title: '', content: '', subjectTag: '' });
   const [activeNotebookId, setActiveNotebookId] = useState<string | null>(null);
 
+  // Roadmap Filtering & Status state
+  const [roadmapStatusFilter, setRoadmapStatusFilter] = useState<string>('all');
+  const [roadmapPriorityFilter, setRoadmapPriorityFilter] = useState<string>('all');
+  const [roadmapSortBy, setRoadmapSortBy] = useState<string>('order');
+
+  const filteredRoadmap = useMemo(() => {
+    let result = roadmap.map((step, index) => ({ 
+      ...step, 
+      originalIndex: index,
+      status: step.status || 'todo',
+      priority: step.priority || (step.difficulty === 'hard' ? 'high' : step.difficulty === 'medium' ? 'medium' : 'low')
+    }));
+
+    if (roadmapStatusFilter !== 'all') {
+      result = result.filter(step => step.status === roadmapStatusFilter);
+    }
+
+    if (roadmapPriorityFilter !== 'all') {
+      result = result.filter(step => step.priority === roadmapPriorityFilter);
+    }
+
+    // Sort logic
+    if (roadmapSortBy === 'priority') {
+      const priorityWeight: Record<string, number> = { high: 3, medium: 2, low: 1 };
+      result.sort((a, b) => (priorityWeight[b.priority] || 0) - (priorityWeight[a.priority] || 0));
+    } else if (roadmapSortBy === 'difficulty') {
+      const diffWeight: Record<string, number> = { hard: 3, medium: 2, easy: 1 };
+      result.sort((a, b) => (diffWeight[b.difficulty] || 0) - (diffWeight[a.difficulty] || 0));
+    } else {
+      result.sort((a, b) => a.originalIndex - b.originalIndex);
+    }
+
+    return result;
+  }, [roadmap, roadmapStatusFilter, roadmapPriorityFilter, roadmapSortBy]);
+
+  const updateRoadmapStep = (index: number, updates: any) => {
+    const newRoadmap = [...roadmap];
+    newRoadmap[index] = { ...newRoadmap[index], ...updates };
+    setRoadmap(newRoadmap);
+    localStorage.setItem('ctu_hub_roadmap', JSON.stringify(newRoadmap));
+  };
+
   // Flashcards state
   const [decks, setDecks] = useState<any[]>([]);
   const [deckSearchQuery, setDeckSearchQuery] = useState('');
@@ -138,6 +183,10 @@ export default function StudyTools() {
   const [isSessionLoading, setIsSessionLoading] = useState(false);
 
   const navigate = useNavigate();
+
+  const getSubjectInfo = useCallback((code: string) => {
+    return IE_SUBJECTS.find(s => s.code.toLowerCase() === code.toLowerCase() || s.id.toLowerCase() === code.toLowerCase());
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -610,16 +659,16 @@ export default function StudyTools() {
 
   if (activeSession) {
     return (
-      <div className="min-h-screen bg-background text-foreground p-6 lg:p-10 flex flex-col items-center justify-center relative">
+      <div className="min-h-screen bg-background text-foreground p-3 sm:p-6 lg:p-10 flex flex-col items-center justify-center relative overflow-x-hidden">
         <Button 
           variant="ghost" 
           onClick={() => setActiveSession(null)}
-          className="absolute top-10 left-10 neumorphic-raised rounded-xl"
+          className="absolute top-4 sm:top-10 left-4 sm:left-10 neumorphic-raised rounded-xl h-10 sm:h-auto text-[10px] sm:text-sm"
         >
-          Exit Session
+          <ChevronLeft size={16} className="mr-1" /> Exit Session
         </Button>
 
-        <div className="max-w-xl w-full">
+        <div className="max-w-xl w-full pt-12 sm:pt-0">
           {activeSession.type === 'flashcards' ? (
             <div className="space-y-8">
               <div className="text-center">
@@ -629,19 +678,20 @@ export default function StudyTools() {
                 </div>
               </div>
 
-              <div className="perspective-1000 h-[300px] md:h-[400px]">
+              <div className="perspective-1000 h-[350px] md:h-[450px]">
                 <motion.div 
                   key={currentStep}
                   animate={{ rotateY: isFlipped ? 180 : 0 }}
-                  transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
+                  transition={{ duration: 0.7, type: "spring", stiffness: 200, damping: 25 }}
                   className="relative w-full h-full cursor-pointer preserve-3d"
                   onClick={() => setIsFlipped(!isFlipped)}
                 >
                   {/* Front */}
-                  <div className="absolute inset-0 backface-hidden flex items-center justify-center p-8 text-center bg-white rounded-3xl neumorphic-raised border border-white/20">
-                    <div className="space-y-4">
-                      <span className="text-[10px] font-bold text-foreground/20 uppercase tracking-[0.2em]">Question</span>
-                      <h2 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
+                  <div className="absolute inset-0 backface-hidden flex items-center justify-center p-10 text-center bg-white rounded-[3rem] neumorphic-raised border border-white/20 shadow-2xl">
+                    <div className="space-y-4 sm:space-y-6">
+                      <div className="w-12 h-1 sm:w-16 sm:h-1 bg-ctu-gold/20 rounded-full mx-auto" />
+                      <span className="text-[8px] sm:text-[10px] font-black text-foreground/20 uppercase tracking-[0.4em]">Inquiry Segment</span>
+                      <h2 className="text-xl sm:text-3xl md:text-4xl font-black text-foreground leading-[1.1] tracking-tighter uppercase">
                         {activeSession.data[currentStep].front}
                       </h2>
                     </div>
@@ -649,11 +699,12 @@ export default function StudyTools() {
                   
                   {/* Back */}
                   <div 
-                    className="absolute inset-0 backface-hidden flex items-center justify-center p-8 text-center bg-ctu-maroon/5 rounded-3xl neumorphic-pressed border border-ctu-maroon/10 rotate-y-180"
+                    className="absolute inset-0 backface-hidden flex items-center justify-center p-6 sm:p-10 text-center bg-background rounded-[2rem] sm:rounded-[3rem] neumorphic-pressed border border-foreground/5 rotate-y-180 shadow-inner"
                   >
-                    <div className="space-y-4">
-                      <span className="text-[10px] font-bold text-ctu-maroon/40 uppercase tracking-[0.2em]">Answer</span>
-                      <p className="text-lg md:text-xl font-medium text-foreground">
+                    <div className="space-y-4 sm:space-y-6">
+                      <div className="w-12 h-1 sm:w-16 sm:h-1 bg-ctu-maroon/20 rounded-full mx-auto" />
+                      <span className="text-[8px] sm:text-[10px] font-black text-ctu-maroon/40 uppercase tracking-[0.4em]">Response Synthesis</span>
+                      <p className="text-sm sm:text-xl md:text-2xl font-black text-foreground/80 tracking-tight leading-relaxed uppercase">
                         {activeSession.data[currentStep].back}
                       </p>
                     </div>
@@ -661,26 +712,26 @@ export default function StudyTools() {
                 </motion.div>
               </div>
 
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 sm:gap-6">
                 {!isFlipped ? (
                   <Button 
                     onClick={() => setIsFlipped(true)}
-                    className="w-full h-14 rounded-2xl bg-ctu-maroon text-white font-bold text-lg shadow-lg"
+                    className="w-full h-12 sm:h-16 rounded-[1.5rem] sm:rounded-[2rem] bg-ctu-maroon text-white font-black uppercase tracking-widest text-[9px] sm:text-sm shadow-2xl shadow-ctu-maroon/30 hover:scale-[1.02] active:scale-95 transition-all"
                   >
-                    Reveal Answer
+                    Decrypt Answer
                   </Button>
                 ) : (
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                     {[
-                      { label: 'Again', quality: 0, color: 'bg-red-500 hover:bg-red-600' },
-                      { label: 'Hard', quality: 2, color: 'bg-orange-500 hover:bg-orange-600' },
-                      { label: 'Good', quality: 4, color: 'bg-blue-500 hover:bg-blue-600' },
-                      { label: 'Easy', quality: 5, color: 'bg-green-500 hover:bg-green-600' }
+                      { label: 'Again', quality: 0, color: 'bg-red-500 hover:bg-red-600 shadow-red-500/20' },
+                      { label: 'Hard', quality: 2, color: 'bg-orange-500 hover:bg-orange-600 shadow-orange-500/20' },
+                      { label: 'Good', quality: 4, color: 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/20' },
+                      { label: 'Easy', quality: 5, color: 'bg-green-500 hover:bg-green-600 shadow-green-500/20' }
                     ].map((btn) => (
                       <Button
                         key={btn.label}
                         onClick={() => handleRateCard(activeSession.data[currentStep].id, btn.quality)}
-                        className={cn("h-12 rounded-xl text-white font-bold text-xs", btn.color)}
+                        className={cn("h-11 sm:h-14 rounded-xl sm:rounded-2xl text-white font-black uppercase tracking-wider text-[8px] sm:text-[11px] shadow-lg hover:scale-105 active:scale-95 transition-all", btn.color)}
                       >
                         {btn.label}
                       </Button>
@@ -723,15 +774,15 @@ export default function StudyTools() {
               {!isQuizComplete ? (
                 <>
                   <div className="text-center">
-                    <Badge className="bg-ctu-maroon text-white font-bold mb-4">QUESTION {currentStep + 1}/5</Badge>
-                    <div className="h-2 bg-foreground/5 rounded-full overflow-hidden w-full">
+                    <Badge className="bg-ctu-maroon text-white font-black uppercase tracking-widest mb-3 sm:mb-4 px-3 py-1 text-[8px] sm:text-[10px]">UNIT {currentStep + 1} / 5</Badge>
+                    <div className="h-1.5 sm:h-2 bg-foreground/5 rounded-full overflow-hidden w-full">
                       <div className="h-full bg-ctu-maroon transition-all duration-300" style={{ width: `${((currentStep + 1) / 5) * 100}%` }} />
                     </div>
                   </div>
 
-                  <GlowCard className="p-8" glowColor="blue">
-                    <h3 className="text-xl font-bold mb-8">{activeSession.data[currentStep].question}</h3>
-                    <div className="grid gap-4">
+                  <GlowCard className="p-4 sm:p-8" glowColor="blue">
+                    <h3 className="text-lg sm:text-2xl font-black mb-6 sm:mb-8 leading-tight tracking-tight uppercase">{activeSession.data[currentStep].question}</h3>
+                    <div className="grid gap-2 sm:gap-4">
                       {activeSession.data[currentStep].options.map((opt: string, idx: number) => (
                         <button 
                            key={idx}
@@ -749,9 +800,12 @@ export default function StudyTools() {
                                setIsQuizComplete(true);
                              }
                            }}
-                           className="w-full text-left p-4 rounded-xl neumorphic-raised hover:neumorphic-pressed transition-all text-sm font-medium"
+                           className="w-full text-left p-3 sm:p-5 rounded-xl sm:rounded-2xl neumorphic-raised border-none text-[10px] sm:text-base font-bold text-foreground hover:bg-foreground/5 hover:scale-[1.01] active:scale-95 transition-all flex items-start gap-3 sm:gap-4 shrink-0"
                         >
-                          {opt}
+                           <div className="w-6 h-6 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-foreground/5 flex items-center justify-center shrink-0 text-ctu-maroon font-black text-xs sm:text-base">
+                             {String.fromCharCode(65 + idx)}
+                           </div>
+                           <span className="pt-1">{opt}</span>
                         </button>
                       ))}
                     </div>
@@ -785,152 +839,295 @@ export default function StudyTools() {
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
       <Sidebar user={user} />
       
-      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 lg:mb-12">
+      <main className="flex-1 p-3 sm:p-6 lg:p-10 pb-40 lg:pb-10 pb-safe overflow-x-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-6 mb-6 lg:mb-12">
             <div>
-              <h1 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2 flex items-center gap-4">
-                Study Hub <Sparkles className="text-ctu-gold shrink-0 scale-125" size={32} />
+              <h1 className="text-2xl sm:text-5xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-1 flex items-center flex-wrap gap-2 sm:gap-4 uppercase">
+                Study HUB <Sparkles className="text-ctu-gold shrink-0 scale-90 sm:scale-125" size={24} />
               </h1>
-              <p className="text-sm sm:text-base md:text-xl text-foreground/40 mt-3 font-medium tracking-tight">
+              <p className="text-[9px] sm:text-sm md:text-xl text-foreground/40 mt-1 sm:mt-3 font-medium tracking-tight uppercase">
                 Elevate your learning with AI guidance and community support.
               </p>
             </div>
         </div>
 
-        <Tabs defaultValue="advisor" value={activeTab} onValueChange={setActiveTab} className="space-y-6 md:space-y-10">
-          <div className="sticky top-0 z-30 -mx-4 sm:-mx-6 px-3 sm:px-4 py-2 bg-background/90 backdrop-blur-xl overflow-x-auto no-scrollbar border-b border-foreground/5">
-            <TabsList className="bg-transparent h-auto p-0 gap-1.5 inline-flex min-w-max">
+        <Tabs defaultValue="advisor" value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-10">
+          <div className="sticky top-0 z-30 -mx-3 sm:-mx-6 px-3 sm:px-6 py-3 bg-background/95 backdrop-blur-2xl overflow-x-auto no-scrollbar border-b border-foreground/5 shadow-sm">
+            <TabsList className="bg-transparent h-auto p-0 gap-2 inline-flex min-w-max pb-1">
               {[
-                { id: 'advisor', icon: BrainCircuit, label: 'Advisor', fullLabel: 'AI Advisor' },
-                { id: 'map', icon: Layers, label: 'Map', fullLabel: 'Matrix Map' },
-                { id: 'groups', icon: Users, label: 'Groups', fullLabel: 'Study Groups' },
-                { id: 'qa', icon: MessageSquare, label: 'Forum', fullLabel: 'Q&A Forum' },
-                { id: 'flashcards', icon: BookOpen, label: 'Cards', fullLabel: 'Flashcards' },
-                { id: 'quizzes', icon: Award, label: 'Quiz', fullLabel: 'Practice Quiz' },
-                { id: 'notebooks', icon: FolderOpen, label: 'Notes', fullLabel: 'AI Notebooks' },
+                { id: 'advisor', icon: BrainCircuit, label: 'Advisor' },
+                { id: 'map', icon: Layers, label: 'Matrix' },
+                { id: 'groups', icon: Users, label: 'Squads' },
+                { id: 'qa', icon: MessageSquare, label: 'Forum' },
+                { id: 'flashcards', icon: BookOpen, label: 'Recall' },
+                { id: 'quizzes', icon: Award, label: 'Quizzes' },
+                { id: 'notebooks', icon: FolderOpen, label: 'Vault' },
               ].map(tab => (
                 <TabsTrigger
                   key={tab.id}
                   value={tab.id}
                   className={cn(
-                    "relative flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap tap-target border border-transparent",
+                    "relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap tap-target border border-transparent shadow-sm",
                     activeTab === tab.id 
-                      ? "bg-gradient-to-r from-ctu-maroon to-ctu-gold text-white shadow-lg shadow-ctu-gold/20 scale-[1.02]" 
-                      : "bg-foreground/5 text-foreground/40 hover:bg-foreground/10 hover:text-foreground/70"
+                      ? "bg-gradient-to-br from-ctu-maroon to-ctu-gold text-white shadow-xl shadow-ctu-gold/30 scale-[1.05]" 
+                      : "bg-foreground/5 text-foreground/40 hover:bg-foreground/10 hover:text-foreground/70 neumorphic-raised"
                   )}
                 >
-                  <tab.icon size={12} />
-                  <span className="hidden sm:inline">{tab.fullLabel}</span>
-                  <span className="sm:hidden">{tab.label}</span>
+                  <tab.icon size={14} />
+                  <span>{tab.label}</span>
                   {activeTab === tab.id && (
                     <motion.div 
-                      layoutId="tab-dot"
-                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-ctu-gold" 
+                      layoutId="tab-underline"
+                      className="absolute -bottom-1 left-4 right-4 h-0.5 rounded-full bg-white/50" 
                     />
                   )}
                 </TabsTrigger>
               ))}
             </TabsList>
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none md:hidden" />
           </div>
 
-          <AnimatePresence mode="wait">
+          <TabsContent value="advisor" className="mt-0 space-y-8 outline-none">
             <motion.div
-              key={activeTab}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.3 }}
             >
-              <TabsContent value="advisor" className="mt-0 space-y-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  <GlowCard className="lg:col-span-2 p-5 md:p-8" glowColor="orange">
-                    <div className="flex items-start justify-between mb-8">
-                      <div>
-                        <h2 className="text-4xl font-display font-black flex items-center gap-4 tracking-tight">
-                          Smart Study Roadmap <TrendingUp className="text-ctu-gold" size={32} />
-                        </h2>
-                        <p className="text-base text-foreground/40 mt-2 font-medium">AI-generated sequence based on your progress and subject difficulty.</p>
-                      </div>
-                      <div className="flex gap-4">
-                        <Button 
-                          onClick={() => setIsAdvisorChatOpen(true)}
-                          variant="outline"
-                          className="neumorphic-raised text-ctu-gold font-bold border-none"
-                        >
-                          Chat with AI
-                        </Button>
-                        <Button 
-                          onClick={handleGenerateRoadmap} 
-                          disabled={isGenerating}
-                          className="bg-ctu-gold text-white font-bold rounded-xl px-6 py-2"
-                        >
-                          {isGenerating ? "Analyzing..." : "Generate Plan"}
-                        </Button>
-                      </div>
-                    </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <GlowCard className="lg:col-span-2 p-4 sm:p-8 overflow-visible" glowColor="orange">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 mb-4 sm:mb-10">
+                          <div className="text-center sm:text-left">
+                            <h2 className="text-xl sm:text-4xl font-display font-black flex items-center flex-wrap gap-2 sm:gap-3 tracking-tight justify-center sm:justify-start">
+                               Roadmap <TrendingUp className="text-ctu-gold animate-bounce" size={20} />
+                            </h2>
+                            <p className="text-[10px] sm:text-base text-foreground/40 mt-1 font-medium">AI-generated sequence based on your IE data.</p>
+                          </div>
+                          <div className="flex gap-2 w-full sm:w-auto">
+                            <Button 
+                              onClick={() => setIsAdvisorChatOpen(true)}
+                              className="flex-1 neumorphic-raised text-ctu-gold font-black uppercase tracking-wider border-none h-11 sm:h-12 rounded-xl text-[9px] sm:text-[10px] hover:scale-[1.02] active:scale-95 transition-all"
+                            >
+                               Adviser
+                            </Button>
+                            <Button 
+                              onClick={handleGenerateRoadmap} 
+                              disabled={isGenerating}
+                              className="flex-1 bg-ctu-gold text-white font-black uppercase tracking-wider rounded-xl px-4 h-11 sm:h-12 text-[9px] sm:text-[10px] shadow-xl shadow-ctu-gold/20 hover:scale-[1.05] active:scale-95 transition-all"
+                            >
+                              {isGenerating ? "Compiling..." : "Generate"}
+                            </Button>
+                          </div>
+                        </div>
 
                     <div className="space-y-0 relative">
                       {roadmap.length > 0 ? (
-                          <div className="mt-8 space-y-12">
-                            {roadmap.map((step, idx) => (
-                              <motion.div 
-                                key={idx} 
-                                initial={{ opacity: 0, x: -20 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.1 }}
-                                className="relative group"
-                              >
-                                <Card 
-                                  className="relative p-5 sm:p-8 rounded-[2rem] border backdrop-blur-sm overflow-hidden"
-                                  style={{ background: 'linear-gradient(135deg, rgba(var(--color-ctu-gold)/0.03), rgba(var(--color-ctu-maroon)/0.01))' }}
+                          <div className="mt-4 sm:mt-8 space-y-4 sm:space-y-8">
+                            <div className="flex flex-col gap-3 mb-4 sm:mb-8 p-3 sm:p-4 rounded-2xl bg-foreground/5 neumorphic-pressed">
+                              <div className="flex items-center gap-2">
+                                <Filter size={12} className="text-ctu-gold" />
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/40">Filters</span>
+                              </div>
+                              <div className="grid grid-cols-2 lg:flex lg:flex-wrap gap-2">
+                                <Select value={roadmapStatusFilter} onValueChange={setRoadmapStatusFilter}>
+                                  <SelectTrigger className="h-10 rounded-xl bg-background neumorphic-raised border-none text-[8px] sm:text-[9px] font-black uppercase tracking-widest">
+                                    <SelectValue placeholder="Status" />
+                                  </SelectTrigger>
+                                  <SelectContent className="rounded-2xl border-none shadow-2xl bg-background/95 backdrop-blur-xl">
+                                    <SelectItem value="all" className="text-[10px] font-bold uppercase py-3">All Status</SelectItem>
+                                    <SelectItem value="todo" className="text-[10px] font-bold uppercase py-3">To Do</SelectItem>
+                                    <SelectItem value="in_progress" className="text-[10px] font-bold uppercase py-3">In Progress</SelectItem>
+                                    <SelectItem value="done" className="text-[10px] font-bold uppercase py-3">Done</SelectItem>
+                                  </SelectContent>
+                                </Select>
+
+                                <Select value={roadmapPriorityFilter} onValueChange={setRoadmapPriorityFilter}>
+                                  <SelectTrigger className="h-10 rounded-xl bg-background neumorphic-raised border-none text-[8px] sm:text-[9px] font-black uppercase tracking-widest">
+                                    <SelectValue placeholder="Priority" />
+                                  </SelectTrigger>
+                                  <SelectContent className="rounded-2xl border-none shadow-2xl bg-background/95 backdrop-blur-xl">
+                                    <SelectItem value="all" className="text-[10px] font-bold uppercase py-3">All Priority</SelectItem>
+                                    <SelectItem value="high" className="text-[10px] font-bold uppercase py-3">High</SelectItem>
+                                    <SelectItem value="medium" className="text-[10px] font-bold uppercase py-3">Medium</SelectItem>
+                                    <SelectItem value="low" className="text-[10px] font-bold uppercase py-3">Low</SelectItem>
+                                  </SelectContent>
+                                </Select>
+
+                                <Select value={roadmapSortBy} onValueChange={setRoadmapSortBy}>
+                                  <SelectTrigger className="h-10 rounded-xl bg-background neumorphic-raised border-none text-[8px] sm:text-[9px] font-black uppercase tracking-widest">
+                                    <SelectValue placeholder="Sort" />
+                                  </SelectTrigger>
+                                  <SelectContent className="rounded-2xl border-none shadow-2xl bg-background/95 backdrop-blur-xl">
+                                    <SelectItem value="order" className="text-[10px] font-bold uppercase py-3">Original Order</SelectItem>
+                                    <SelectItem value="priority" className="text-[10px] font-bold uppercase py-3">By Priority</SelectItem>
+                                    <SelectItem value="difficulty" className="text-[10px] font-bold uppercase py-3">By Difficulty</SelectItem>
+                                  </SelectContent>
+                                </Select>
+
+                                {(roadmapStatusFilter !== 'all' || roadmapPriorityFilter !== 'all') && (
+                                  <Button 
+                                    variant="ghost" 
+                                    onClick={() => {
+                                      setRoadmapStatusFilter('all');
+                                      setRoadmapPriorityFilter('all');
+                                    }}
+                                    className="h-9 sm:h-10 rounded-xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-ctu-maroon hover:bg-ctu-maroon/5 col-span-2 sm:col-span-1"
+                                  >
+                                    Reset
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+
+                            <AnimatePresence mode="popLayout">
+                              {filteredRoadmap.map((step, fIdx) => (
+                                <motion.div 
+                                  key={`roadmap-step-${step.originalIndex}`} 
+                                  layout
+                                  initial={{ opacity: 0, y: 30 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, scale: 0.95 }}
+                                  transition={{ 
+                                    duration: 0.5, 
+                                    delay: fIdx * 0.05,
+                                    type: "spring",
+                                    stiffness: 100
+                                  }}
+                                  className="relative group mb-8"
                                 >
-                                  <span className="absolute -right-4 -top-4 text-[120px] font-black opacity-[0.03] select-none text-foreground rotate-12">{idx + 1}</span>
-                                  
-                                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative z-10">
-                                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shrink-0 bg-gradient-to-br from-ctu-gold to-ctu-maroon text-white shadow-xl shadow-ctu-gold/20">
-                                      {idx + 1}
-                                    </div>
-                                    <div className="min-w-0 flex-1 text-center sm:text-left">
-                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
-                                        <div>
-                                          <h5 className="font-black text-lg text-foreground uppercase tracking-tight">
-                                            {step.title}
-                                          </h5>
-                                          <div className="flex items-center justify-center sm:justify-start gap-2 mt-1">
-                                            <Badge variant="outline" className={cn(
-                                              "font-black text-[9px] border-none px-3 py-1",
-                                              step.difficulty === 'hard' ? 'bg-ctu-maroon/10 text-ctu-maroon' : 'bg-green-500/10 text-green-500'
+                                  <Card 
+                                    className={cn(
+                                      "relative p-4 sm:p-8 rounded-3xl sm:rounded-[2.5rem] border backdrop-blur-sm overflow-hidden transition-all duration-500",
+                                      step.status === 'done' ? "bg-emerald-500/[0.02] border-emerald-500/10 grayscale-[0.5] opacity-80" : "neumorphic-raised border-foreground/5 hover:shadow-2xl hover:shadow-ctu-gold/5"
+                                    )}
+                                  >
+                                    <span className="absolute -right-6 -bottom-6 text-[60px] sm:text-[140px] font-black opacity-[0.05] select-none text-foreground rotate-12 group-hover:rotate-6 transition-transform duration-700">{step.originalIndex + 1}</span>
+                                    
+                                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-8 relative z-10">
+                                      <div className={cn(
+                                        "w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-[2rem] flex items-center justify-center font-black text-lg sm:text-2xl shrink-0 shadow-2xl transition-all duration-500 group-hover:scale-110",
+                                        step.status === 'done' ? "bg-emerald-500 text-white shadow-emerald-500/20" : "bg-gradient-to-br from-ctu-gold to-ctu-maroon text-white shadow-ctu-gold/30"
+                                      )}>
+                                        {step.status === 'done' ? '✓' : step.originalIndex + 1}
+                                      </div>
+                                      <div className="min-w-0 flex-1 text-center sm:text-left">
+                                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 mb-2 sm:mb-4">
+                                          <div className="space-y-1 sm:space-y-2">
+                                            <h5 className={cn(
+                                              "font-black text-base sm:text-xl uppercase tracking-tight transition-colors",
+                                              step.status === 'done' ? "text-foreground/40 line-through decoration-ctu-gold/30" : "text-foreground group-hover:text-ctu-gold"
                                             )}>
-                                              {step.difficulty.toUpperCase()}
-                                            </Badge>
-                                            {step.estimatedTime && (
-                                              <span className="text-[10px] font-bold text-foreground/30 flex items-center gap-1 underline decoration-ctu-gold/30">
-                                                <Clock size={10} /> {step.estimatedTime}
-                                              </span >
-                                            )}
+                                              {step.title}
+                                            </h5>
+                                            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-3">
+                                              <Badge variant="outline" className={cn(
+                                                "font-black text-[7px] sm:text-[9px] border-none px-2 py-0.5 sm:py-1 rounded-full uppercase tracking-widest",
+                                                step.difficulty === 'hard' ? 'bg-ctu-maroon/10 text-ctu-maroon' : step.difficulty === 'medium' ? 'bg-ctu-gold/10 text-ctu-gold' : 'bg-green-500/10 text-green-500'
+                                              )}>
+                                                {step.difficulty}
+                                              </Badge>
+                                              
+                                              <Badge variant="outline" className={cn(
+                                                "font-black text-[7px] sm:text-[9px] border-none px-2 py-0.5 sm:py-1 rounded-full uppercase tracking-widest",
+                                                step.priority === 'high' ? 'bg-ctu-maroon text-white animate-pulse' : step.priority === 'medium' ? 'bg-ctu-gold/20 text-ctu-gold' : 'bg-foreground/5 text-foreground/40'
+                                              )}>
+                                                {step.priority}
+                                              </Badge>
+
+                                              <div className="h-4 w-px bg-foreground/5 hidden sm:block" />
+
+                                              {step.estimatedTime && (
+                                                <span className="text-[7px] sm:text-[10px] font-black text-foreground/20 flex items-center gap-1 sm:gap-1.5 uppercase tracking-widest">
+                                                  <Clock size={10} className="text-ctu-gold/50" /> {step.estimatedTime}
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          <div className="grid grid-cols-2 sm:flex items-center sm:items-end justify-center sm:justify-end gap-2 shrink-0">
+                                            <Select 
+                                              value={step.status} 
+                                              onValueChange={(val) => updateRoadmapStep(step.originalIndex, { status: val })}
+                                            >
+                                              <SelectTrigger className="w-full sm:w-[110px] h-10 sm:h-9 rounded-xl bg-foreground/5 border-none text-[8px] sm:text-[9px] font-black uppercase tracking-widest">
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent className="rounded-xl border-none shadow-xl">
+                                                <SelectItem value="todo">To Do</SelectItem>
+                                                <SelectItem value="in_progress">In Progress</SelectItem>
+                                                <SelectItem value="done">Done</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+
+                                            <Select 
+                                              value={step.priority} 
+                                              onValueChange={(val) => updateRoadmapStep(step.originalIndex, { priority: val })}
+                                            >
+                                              <SelectTrigger className="w-full sm:w-[110px] h-10 sm:h-9 rounded-xl bg-foreground/5 border-none text-[8px] sm:text-[9px] font-black uppercase tracking-widest">
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent className="rounded-xl border-none shadow-xl">
+                                                <SelectItem value="high">High Priority</SelectItem>
+                                                <SelectItem value="medium">Mid Priority</SelectItem>
+                                                <SelectItem value="low">Low Priority</SelectItem>
+                                              </SelectContent>
+                                            </Select>
                                           </div>
                                         </div>
-                                      </div>
-                                      <p className="text-sm text-foreground/60 leading-relaxed mb-6 font-medium max-w-2xl">{step.description}</p>
-                                      
-                                      <div className="flex flex-wrap justify-center sm:justify-start gap-2">
-                                        {step.subjects?.map((sCode: string) => (
-                                          <Badge key={sCode} className="bg-white/50 dark:bg-black/20 text-foreground/60 hover:text-ctu-gold transition-colors cursor-pointer border border-foreground/5 text-[10px] font-black px-4 py-1.5 rounded-xl backdrop-blur-md">
-                                            {sCode}
-                                          </Badge>
-                                        ))}
+                                        <p className="text-[11px] sm:text-base text-foreground/60 leading-relaxed mb-4 sm:mb-6 font-medium max-w-2xl">{step.description}</p>
+                                        
+                                        {step.breakdown && step.breakdown.length > 0 && (
+                                          <div className="mb-4 sm:mb-8 space-y-2 sm:space-y-3 bg-foreground/5 p-3 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-white/5">
+                                            <h6 className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-ctu-gold flex items-center gap-2 mb-2 sm:mb-4">
+                                              <Layers size={12} className="sm:size-4" /> Requirements
+                                            </h6>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
+                                              {step.breakdown.map((item: string, i: number) => (
+                                                <div key={i} className="flex items-start gap-2 group/item text-left">
+                                                  <div className="w-1 h-1 rounded-full bg-ctu-gold mt-1.5 shrink-0 group-hover/item:scale-150 transition-transform" />
+                                                  <span className="text-[9px] sm:text-xs font-medium text-foreground/70 leading-relaxed">{item}</span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                        
+                                        <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                                          {step.subjects?.map((sCode: string) => {
+                                            const subjectInfo = getSubjectInfo(sCode);
+                                            return (
+                                              <Badge 
+                                                key={sCode} 
+                                                onClick={() => navigate(`/catalog/${subjectInfo?.id || sCode.toLowerCase()}`)}
+                                                className="bg-foreground/[0.03] text-foreground/50 hover:bg-ctu-gold hover:text-white transition-all cursor-pointer border border-foreground/5 text-[8px] sm:text-[9px] font-black px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl backdrop-blur-md uppercase tracking-wider flex items-center gap-1.5 sm:gap-2"
+                                                title={subjectInfo?.name}
+                                              >
+                                                <BookOpen size={10} />
+                                                <span>{subjectInfo ? subjectInfo.code : sCode}</span>
+                                                {subjectInfo && <span className="opacity-40 font-bold ml-1 sm:ml-1.5 border-l border-foreground/10 pl-1 sm:pl-1.5 hidden xs:inline">{subjectInfo.name}</span>}
+                                              </Badge>
+                                            );
+                                          })}
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                </Card>
-                                
-                                {idx < roadmap.length - 1 && (
-                                  <div className="flex justify-center -my-2 relative z-20">
-                                    <div className="w-0.5 h-12 bg-gradient-to-b from-ctu-gold/30 to-transparent" />
-                                  </div>
-                                )}
-                              </motion.div>
-                            ))}
+                                  </Card>
+                                </motion.div>
+                              ))}
+                            </AnimatePresence>
+
+                            {filteredRoadmap.length === 0 && (
+                              <div className="text-center py-20 bg-foreground/5 rounded-[2.5rem] border border-dashed border-foreground/10">
+                                <Filter size={48} className="mx-auto text-foreground/10 mb-4" />
+                                <h4 className="text-xl font-black text-foreground/40 uppercase tracking-tighter">No tasks match these filters</h4>
+                                <Button 
+                                  variant="link" 
+                                  onClick={() => { setRoadmapStatusFilter('all'); setRoadmapPriorityFilter('all'); }}
+                                  className="text-ctu-gold text-xs font-black uppercase tracking-widest mt-2"
+                                >
+                                  Clear all filters
+                                </Button>
+                              </div>
+                            )}
                           </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center py-24 text-center space-y-6">
@@ -950,57 +1147,74 @@ export default function StudyTools() {
                   </GlowCard>
 
                   <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 items-start">
                       {/* Current Focus */}
-                      <div className="space-y-6">
-                        <h4 className="text-xs font-black uppercase tracking-[0.2em] text-foreground/30 flex items-center gap-2">
-                          <Clock size={14} className="text-ctu-maroon" /> Current Focus
+                      <div className="space-y-4 sm:space-y-6">
+                        <h4 className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-foreground/30 flex items-center gap-2">
+                          <Clock size={12} className="text-ctu-maroon" /> Current Focus
                         </h4>
                         {roadmap.length > 0 ? (
                           <Card 
-                            className="relative p-6 rounded-3xl border backdrop-blur-sm overflow-hidden min-h-[140px] flex flex-col justify-center cursor-pointer group hover:scale-[1.02] transition-all"
+                            className="relative p-4 sm:p-6 rounded-2xl sm:rounded-3xl border backdrop-blur-sm overflow-hidden min-h-[120px] sm:min-h-[140px] flex flex-col justify-center cursor-pointer group hover:scale-[1.02] transition-all"
                             style={{ background: 'linear-gradient(135deg, rgba(var(--color-ctu-gold)/0.05), rgba(var(--color-ctu-maroon)/0.03))' }}
                             onClick={() => setActiveTab('advisor')}
                           >
                             <div className="absolute -right-4 -bottom-4 text-ctu-gold opacity-10 rotate-12 shrink-0 group-hover:scale-110 transition-transform">
-                              <BrainCircuit size={100} />
+                              <BrainCircuit size={60} className="sm:size-[100px]" />
                             </div>
-                            <div className="relative z-10 flex items-start gap-4 min-w-0">
-                              <div className="w-12 h-12 rounded-2xl bg-ctu-gold/10 flex items-center justify-center text-ctu-gold shrink-0">
-                                <TrendingUp size={24} />
+                            <div className="relative z-10 flex items-start gap-3 sm:gap-4 min-w-0">
+                              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-ctu-gold/10 flex items-center justify-center text-ctu-gold shrink-0">
+                                <TrendingUp size={20} className="sm:size-[24px]" />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <h5 className="text-base sm:text-lg font-bold text-foreground leading-tight text-clamp-2">
-                                  {roadmap[0].subjects[0] || 'Curriculum Path'}
+                                <h5 className="text-sm sm:text-lg font-bold text-foreground leading-tight line-clamp-2">
+                                  {roadmap[0].subjects?.[0] || 'Curriculum Path'}
                                 </h5>
-                                <p className="text-[10px] sm:text-xs text-foreground/40 mt-1 font-medium">{roadmap[0].title}</p>
+                                <p className="text-[9px] sm:text-xs text-foreground/40 mt-1 font-medium line-clamp-1">{roadmap[0].title}</p>
                               </div>
                             </div>
                           </Card>
                         ) : (
-                          <div className="neumorphic-pressed rounded-3xl p-8 text-center min-h-[140px] flex items-center justify-center">
-                            <p className="text-xs text-foreground/40 leading-relaxed font-medium break-words">
+                          <div className="neumorphic-pressed rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-center min-h-[120px] sm:min-h-[140px] flex items-center justify-center">
+                            <p className="text-[10px] sm:text-xs text-foreground/40 leading-relaxed font-medium">
                               Initialization required. Click Analyze to synthesize subject data.
                             </p>
                           </div>
                         )}
                       </div>
 
-                    <Card className="neumorphic-card border-none p-6 bg-ctu-maroon/5 border border-ctu-maroon/10">
-                      <h3 className="font-bold text-foreground mb-2 flex items-center gap-2">
-                        <Info size={16} className="text-ctu-maroon" /> AI Insight
+                    <Card className="neumorphic-card border-none p-4 sm:p-6 bg-ctu-maroon/5 border border-ctu-maroon/10">
+                      <h3 className="font-bold text-sm sm:text-base text-foreground mb-2 flex items-center gap-2">
+                        <Info size={14} className="text-ctu-maroon" /> AI Insight
                       </h3>
-                      <p className="text-xs text-foreground/60 leading-relaxed font-medium">
-                        Based on your interest in "Manufacturing," we suggest focusing on <b className="text-foreground">IE 311: Production Systems</b> next semester.
+                      <p className="text-[10px] sm:text-xs text-foreground/60 leading-relaxed font-medium">
+                        Focus on <b className="text-foreground">IE 311: Production Systems</b> next semester to advance your specialization.
                       </p>
                     </Card>
                   </div>
                 </div>
               </div>
-            </TabsContent>
+            </motion.div>
+          </TabsContent>
 
-              <TabsContent value="map" className="mt-0 focus:outline-none">
-                <GlowCard className="p-6 sm:p-10 flex flex-col gap-8 relative overflow-hidden" glowColor="blue">
+          <TabsContent value="map" className="mt-0 focus:outline-none">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 mb-8 sm:mb-12">
+                  <div>
+                    <h2 className="text-2xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2">
+                       Matrix Map
+                    </h2>
+                    <p className="text-[10px] sm:text-base md:text-xl text-foreground/40 font-medium mt-1 sm:mt-2 tracking-tight">Interactive dependency graph of the IE curriculum.</p>
+                  </div>
+                  <Button variant="outline" className="h-10 sm:h-12 rounded-xl border-none neumorphic-raised text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-ctu-gold w-full md:w-auto">
+                    <Maximize size={16} className="mr-2" /> Expand Data Map
+                  </Button>
+                </div>
+                <GlowCard className="p-4 sm:p-10 flex flex-col gap-4 sm:gap-8 relative overflow-hidden" glowColor="blue">
                   <div className="relative z-20 text-left px-2">
                     <h2 className="text-2xl sm:text-4xl font-display font-black mb-2 tracking-tight">Academic Matrix Map</h2>
                     <p className="text-sm text-foreground/40 max-w-xs sm:max-w-sm font-medium">
@@ -1059,22 +1273,28 @@ export default function StudyTools() {
                     ))}
                   </div>
                 </GlowCard>
-              </TabsContent>
+            </motion.div>
+          </TabsContent>
 
-              <TabsContent value="groups" className="mt-0 space-y-8 lg:space-y-12">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+          <TabsContent value="groups" className="mt-0 space-y-6 sm:space-y-12 outline-none">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-8">
                   <div>
-                    <h2 className="text-3xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
-                       Active Groups
+                    <h2 className="text-xl sm:text-5xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 flex items-center gap-2 uppercase">
+                       Active Squads <Users size={20} className="text-ctu-gold sm:size-16" />
                     </h2>
-                    <p className="text-xl text-foreground/40 font-medium mt-3 tracking-tight">Connect with peers and navigate the IE curriculum together.</p>
+                    <p className="text-[10px] sm:text-xl text-foreground/40 font-medium mt-1 tracking-tight uppercase">Peer-to-peer intelligence networks.</p>
                   </div>
-                  <div className="flex flex-wrap gap-4 w-full md:w-auto">
-                    <div className="relative flex-1 md:w-72">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/20" size={18} />
+                  <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <div className="relative w-full md:w-72">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/20" size={14} />
                       <Input 
-                        placeholder="Search groups or subjects..." 
-                        className="pl-12 neumorphic-pressed border-none h-14 rounded-2xl text-sm font-medium focus:ring-ctu-gold/50"
+                        placeholder="Scan Squads..." 
+                        className="pl-12 neumorphic-pressed border-none h-11 sm:h-14 rounded-xl sm:rounded-2xl text-[10px] sm:text-sm font-medium"
                         value={groupSearchQuery}
                         onChange={(e) => setGroupSearchQuery(e.target.value)}
                       />
@@ -1082,8 +1302,8 @@ export default function StudyTools() {
                     <Dialog open={isNewGroupModalOpen} onOpenChange={setIsNewGroupModalOpen}>
                       <DialogTrigger 
                         render={
-                          <Button className="rounded-2xl bg-ctu-maroon text-white font-black uppercase tracking-[0.2em] text-[11px] gap-3 h-14 px-8 shadow-xl shadow-ctu-maroon/20 hover:scale-105 active:scale-95 transition-all">
-                            <Plus size={18} /> Create Group
+                          <Button className="rounded-xl sm:rounded-2xl bg-ctu-maroon text-white font-black uppercase tracking-widest text-[9px] sm:text-[11px] gap-2 h-11 sm:h-14 px-4 sm:px-8 shadow-xl w-full">
+                            <Plus size={16} /> New Squad
                           </Button>
                         }
                       />
@@ -1124,55 +1344,62 @@ export default function StudyTools() {
                   {filteredStudyGroups.length > 0 ? filteredStudyGroups.map((group, idx) => (
                     <motion.div
                       key={group.id}
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, y: 30 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.05 }}
+                      whileHover={{ y: -8 }}
+                      transition={{ 
+                        delay: idx * 0.05,
+                        type: "spring",
+                        stiffness: 150,
+                        damping: 15
+                      }}
+                      className="h-full"
                     >
-                      <GlowCard className="p-8 h-full flex flex-col justify-between group hover:border-ctu-gold/30 transition-all duration-300" glowColor="blue">
+                      <GlowCard className="p-5 sm:p-8 h-full flex flex-col justify-between group neumorphic-raised border-foreground/5 hover:border-blue-500/30 transition-all duration-500 rounded-3xl sm:rounded-[2.5rem]" glowColor="blue">
                         <div>
-                          <div className="flex items-center justify-between mb-6">
+                          <div className="flex items-center justify-between mb-4 sm:mb-8">
                             <div className="flex items-center gap-3">
-                               <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                               <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 shadow-inner group-hover:rotate-12 transition-transform">
                                  <Users size={20} />
                                </div>
-                               <Badge className="bg-foreground/[0.03] text-foreground/40 border-none text-[10px] font-black uppercase tracking-widest">{group.subjectCode}</Badge>
+                               <Badge className="bg-foreground/[0.03] text-foreground/40 border-none text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] px-2 py-1 rounded-md">{group.subjectCode}</Badge>
                             </div>
-                            <div className="flex -space-x-2.5">
-                              {(group.members || []).slice(0, 4).map((mId: string, i: number) => (
-                                <div key={i} className="w-8 h-8 rounded-full border-2 border-background bg-foreground/5 flex items-center justify-center text-[10px] font-bold ring-2 ring-transparent group-hover:ring-blue-500/20 transition-all">
+                            <div className="flex -space-x-2 sm:-space-x-3">
+                              {(group.members || []).slice(0, 3).map((mId: string, i: number) => (
+                                <div key={i} className="w-7 h-7 sm:w-9 sm:h-9 rounded-full border-2 sm:border-[3px] border-background bg-foreground/5 flex items-center justify-center text-[8px] sm:text-[10px] font-black ring-1 ring-foreground/5 shadow-md">
                                   {mId.slice(0, 2).toUpperCase()}
                                 </div>
                               ))}
-                              {(group.members || []).length > 4 && (
-                                <div className="w-8 h-8 rounded-full border-2 border-background bg-ctu-gold flex items-center justify-center text-[10px] font-black text-white shadow-lg">
-                                  +{(group.members || []).length - 4}
+                              {(group.members || []).length > 3 && (
+                                <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full border-2 sm:border-[3px] border-background bg-gradient-to-br from-ctu-gold to-ctu-maroon flex items-center justify-center text-[8px] sm:text-[10px] font-black text-white shadow-lg ring-1 ring-ctu-gold/20">
+                                  +{(group.members || []).length - 3}
                                 </div>
                               )}
                             </div>
                           </div>
-                          <h3 className="text-2xl font-bold text-foreground mb-4 leading-tight group-hover:text-blue-500 transition-colors uppercase tracking-tighter">{group.name}</h3>
-                          <p className="text-sm font-medium text-foreground/40 leading-relaxed line-clamp-3 mb-6">{group.description || "No description provided for this squadron mission."}</p>
+                          <h3 className="text-xl sm:text-2xl font-black text-foreground mb-2 leading-tight group-hover:text-blue-500 transition-colors uppercase tracking-tighter truncate">{group.name}</h3>
+                          <p className="text-[11px] sm:text-sm font-medium text-foreground/40 leading-relaxed line-clamp-2 mb-4 sm:mb-8">{group.description || "Mission brief encrypted. Join to decrypt."}</p>
                         </div>
                         
-                        <div className="mt-auto pt-6 border-t border-foreground/5 flex items-center justify-between">
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-foreground/20 uppercase tracking-widest">Active Members</span>
-                            <span className="text-sm font-bold text-foreground/60 tracking-tight">{(group.members || []).length} / 50</span>
+                        <div className="mt-auto pt-4 sm:pt-8 border-t border-foreground/5 flex items-center justify-between">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[8px] sm:text-[10px] font-black text-foreground/20 uppercase tracking-[0.2em]">Intel</span>
+                            <span className="text-xs font-black text-foreground/60 tracking-tight">{(group.members || []).length} / 50</span>
                           </div>
                           <div className="flex gap-2">
-                            {group.members?.includes(user.uid) ? (
+                            {group.members?.includes(user?.uid) ? (
                               <Button 
                                 onClick={() => setActiveChatGroup(group)}
-                                className="bg-blue-500 text-white rounded-xl h-11 px-5 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20 hover:bg-blue-600 transition-all"
+                                className="bg-blue-500 text-white rounded-xl sm:rounded-2xl h-10 sm:h-12 px-4 sm:px-6 font-black text-[9px] sm:text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:scale-[1.05] active:scale-95 transition-all"
                               >
-                                Join Chat
+                                Hub
                               </Button>
                             ) : (
                               <Button 
                                 onClick={() => handleJoinGroup(group.id)}
-                                className="neumorphic-raised hover:neumorphic-pressed text-ctu-gold rounded-xl h-11 px-6 font-black text-[10px] uppercase tracking-widest transition-all gap-2"
+                                className="neumorphic-raised hover:neumorphic-pressed text-ctu-gold border-none rounded-xl sm:rounded-2xl h-10 sm:h-12 px-4 sm:px-8 font-black text-[9px] sm:text-[10px] uppercase tracking-widest transition-all gap-1 sm:gap-2 hover:scale-[1.05] active:scale-95"
                               >
-                                Join squad <ChevronRight size={14} />
+                                Join Squad
                               </Button>
                             )}
                           </div>
@@ -1189,128 +1416,141 @@ export default function StudyTools() {
                     ))
                   )}
                 </div>
-              </TabsContent>
+            </motion.div>
+          </TabsContent>
 
-              <TabsContent value="qa" className="mt-0 space-y-8 lg:space-y-12">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+          <TabsContent value="qa" className="mt-0 space-y-4 sm:space-y-12 outline-none">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 sm:gap-6">
                   <div>
-                    <h2 className="text-3xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
-                       Q&A Forum
+                    <h2 className="text-xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 flex items-center gap-2 uppercase">
+                       Forum Hub <MessageSquare size={20} className="text-ctu-gold shrink-0 sm:size-16" />
                     </h2>
-                    <p className="text-xl text-foreground/40 font-medium mt-3 tracking-tight">Rapid knowledge exchange with the IE community.</p>
+                    <p className="text-[10px] sm:text-base md:text-xl text-foreground/40 font-medium mt-1 tracking-tight uppercase">Collective intelligence pool.</p>
                   </div>
                   <Dialog open={isAskQuestionModalOpen} onOpenChange={setIsAskQuestionModalOpen}>
-                    <DialogTrigger 
+                    <DialogTrigger
                       render={
-                        <Button className="h-14 px-8 rounded-2xl bg-ctu-maroon text-white font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-3 shadow-xl shadow-ctu-maroon/20 hover:scale-105 active:scale-95 transition-all">
-                          <Plus size={18} /> Ask Question
+                        <Button 
+                          className="h-11 sm:h-14 px-6 sm:px-8 rounded-xl sm:rounded-2xl bg-ctu-maroon text-white font-black uppercase tracking-widest text-[9px] sm:text-[11px] gap-2 shadow-xl w-full md:w-auto"
+                        >
+                          <Plus size={16} /> Signal Question
                         </Button>
                       }
                     />
-                    <DialogContent className="sm:max-w-[425px] neumorphic-card border-none p-8">
+                    <DialogContent className="sm:max-w-[425px] neumorphic-card border-none p-6 sm:p-8">
                       <DialogHeader>
-                        <DialogTitle className="text-2xl font-black italic tracking-tight">TRANSMIT INQUIRY</DialogTitle>
+                        <DialogTitle className="text-xl sm:text-2xl font-black italic tracking-tight">TRANSMIT INQUIRY</DialogTitle>
                       </DialogHeader>
-                      <div className="grid gap-6 py-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="q-title" className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Question Headline</Label>
-                          <Input id="q-title" value={newQuestion.title} onChange={e => setNewQuestion({...newQuestion, title: e.target.value})} className="neumorphic-pressed border-none h-12 rounded-xl" placeholder="What are you struggling with?" />
+                      <div className="grid gap-4 sm:gap-6 py-2 sm:py-4">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="q-title" className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/30">Question Headline</Label>
+                          <Input id="q-title" value={newQuestion.title} onChange={e => setNewQuestion({...newQuestion, title: e.target.value})} className="neumorphic-pressed border-none h-11 sm:h-12 rounded-xl text-xs" placeholder="Headline..." />
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="q-subject" className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Target Topic</Label>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="q-subject" className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/30">Target Topic</Label>
                           <Select onValueChange={(val: string) => setNewQuestion({...newQuestion, subjectTag: val})}>
-                            <SelectTrigger className="neumorphic-pressed border-none h-12 rounded-xl">
+                            <SelectTrigger className="neumorphic-pressed border-none h-11 sm:h-12 rounded-xl text-xs">
                               <SelectValue placeholder="Select topic" />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-none shadow-2xl">
-                              {IE_SUBJECTS.map(s => <SelectItem key={s.id} value={s.code}>{s.code}</SelectItem>)}
+                              {IE_SUBJECTS.map(s => <SelectItem key={s.id} value={s.code} className="text-xs uppercase font-bold">{s.code}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="q-content" className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Full Context</Label>
-                          <Textarea id="q-content" value={newQuestion.content} onChange={e => setNewQuestion({...newQuestion, content: e.target.value})} className="neumorphic-pressed border-none h-32 rounded-xl" placeholder="Provide context or specific examples..." />
+                        <div className="space-y-1.5">
+                          <Label htmlFor="q-content" className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/30">Full Context</Label>
+                          <Textarea id="q-content" value={newQuestion.content} onChange={e => setNewQuestion({...newQuestion, content: e.target.value})} className="neumorphic-pressed border-none h-24 sm:h-32 rounded-xl text-xs p-3" placeholder="Context..." />
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button onClick={handleAskQuestion} className="bg-ctu-maroon text-white font-black uppercase tracking-widest w-full h-14 rounded-2xl shadow-lg shadow-ctu-maroon/20">Post Question</Button>
+                        <Button onClick={handleAskQuestion} className="bg-ctu-maroon text-white font-black uppercase tracking-widest w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl shadow-lg shadow-ctu-maroon/20 text-[10px]">Post Question</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/20" size={18} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/20" size={14} />
                     <Input 
-                      placeholder="Search questions or ask anything..." 
+                      placeholder="Search matrix data..." 
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="bg-background border-none neumorphic-pressed pl-12 pr-12 h-14 rounded-2xl focus:ring-ctu-gold text-foreground placeholder:text-foreground/30 font-medium"
+                      className="bg-background border-none neumorphic-pressed pl-10 pr-10 h-11 sm:h-14 rounded-xl sm:rounded-2xl focus:ring-ctu-gold text-[10px] sm:text-sm text-foreground font-medium"
                     />
                     {searchQuery && (
                       <button 
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full hover:bg-foreground/5 text-foreground/40 transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full hover:bg-foreground/5 text-foreground/40 transition-colors"
                       >
-                        <X size={16} />
+                        <X size={14} />
                       </button>
                     )}
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  {filteredQuestions.length > 0 ? filteredQuestions.map((q) => (
-                    <Card 
-                      key={q.id} 
-                      onClick={() => setSelectedQuestion(q)}
-                      className="neumorphic-card border-none p-6 hover:translate-x-1 transition-transform cursor-pointer"
+                <div className="space-y-3 sm:space-y-4">
+                  {filteredQuestions.length > 0 ? filteredQuestions.map((q, idx) => (
+                    <motion.div
+                      key={q.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      whileHover={{ x: 5 }}
+                      transition={{ delay: idx * 0.03 }}
                     >
-                      <div className="flex gap-6">
-                        <div className="flex flex-col items-center gap-1 shrink-0">
-                          <Button 
-                            variant="ghost" 
-                            onClick={() => handleVote(q.id, q.votes || 0)}
-                            className="p-1 h-auto hover:bg-transparent"
-                          >
-                            <TrendingUp size={16} className={cn("text-foreground/20 hover:text-ctu-gold transition-colors", (q.votes || 0) > 0 && "text-ctu-gold")} />
-                          </Button>
-                          <span className="font-bold text-sm">{q.votes || 0}</span>
-                          <span className="text-[10px] font-bold text-foreground/20 uppercase">Votes</span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between gap-4 mb-2">
-                             <div className="flex items-center gap-3">
-                               <Badge className="bg-blue-500/10 text-blue-500 border-none text-[10px] font-bold">{q.subjectTag || 'General'}</Badge>
-                               <span className="text-[10px] font-bold text-foreground/20 uppercase tracking-widest">{q.createdAt ? (q.createdAt.toDate ? new Date(q.createdAt.toDate()).toLocaleDateString() : 'Just now') : 'Just now'}</span>
-                               {q.isFlagged && (
-                                 <Badge className="bg-red-500/10 text-red-500 border-none text-[10px] font-bold flex items-center gap-1">
-                                   <ShieldAlert size={10} /> Flagged
-                                 </Badge>
+                      <Card 
+                        onClick={() => setSelectedQuestion(q)}
+                        className="neumorphic-card border-none p-3 sm:p-8 hover:shadow-2xl transition-all cursor-pointer group rounded-2xl sm:rounded-[2.5rem]"
+                      >
+                        <div className="flex gap-3 sm:gap-8">
+                          <div className="flex flex-col items-center gap-1 shrink-0 neumorphic-pressed px-1.5 sm:px-3 py-2 sm:py-4 rounded-xl sm:rounded-3xl h-fit border border-white/5">
+                            <Button 
+                              variant="ghost" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleVote(q.id, q.votes || 0);
+                              }}
+                              className="p-1 h-9 w-9 sm:h-auto sm:w-auto hover:bg-transparent group-hover:scale-125 transition-transform"
+                            >
+                              <TrendingUp size={20} className={cn("text-foreground/10 hover:text-ctu-gold transition-colors sm:size-4", (q.votes || 0) > 0 && "text-ctu-gold")} />
+                            </Button>
+                            <span className="font-black text-xs sm:text-xl tracking-tighter">{(q.votes || 0)}</span>
+                            <span className="text-[6px] sm:text-[9px] font-black text-foreground/20 uppercase tracking-widest leading-[0.5]">Votes</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-3">
+                               <div className="flex items-center gap-2">
+                                 <Badge className="bg-blue-500/10 text-blue-500 border-none text-[7px] sm:text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">{q.subjectTag || 'General'}</Badge>
+                                 <span className="text-[7px] sm:text-[10px] font-black text-foreground/20 uppercase tracking-widest hidden sm:inline">{q.createdAt ? (q.createdAt.toDate ? new Date(q.createdAt.toDate()).toLocaleDateString() : 'Just now') : 'Just now'}</span>
+                               </div>
+                               {(user?.role === 'admin' || (user && user.uid !== q.userId)) && (
+                                 <Button 
+                                   variant="ghost" 
+                                   size="sm"
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     handleReportQuestion(q);
+                                   }}
+                                   className="h-6 w-6 sm:h-10 sm:w-10 p-0 rounded-full text-foreground/10 hover:text-red-500 hover:bg-red-500/5 transition-all"
+                                 >
+                                   <Flag size={12} />
+                                 </Button>
                                )}
-                             </div>
-                             {(user?.role === 'admin' || user?.uid !== q.userId) && (
-                               <Button 
-                                 variant="ghost" 
-                                 size="sm"
-                                 onClick={(e) => {
-                                   e.stopPropagation();
-                                   handleReportQuestion(q);
-                                 }}
-                                 className="h-8 w-8 p-0 rounded-full text-foreground/20 hover:text-red-500 hover:bg-red-500/5 transition-colors"
-                               >
-                                 <Flag size={14} />
-                               </Button>
-                             )}
-                          </div>
-                          <h3 className="text-lg font-bold text-foreground mb-2 line-clamp-1">{q.title}</h3>
-                          <p className="text-sm text-foreground/60 line-clamp-2 mb-4">{q.content}</p>
-                          <div className="flex items-center gap-4 text-[10px] font-bold text-foreground/40 uppercase tracking-widest">
-                            <span className="flex items-center gap-1.5"><MessageSquare size={12} /> {q.answerCount || 0} Answers</span>
-                            <span className="flex items-center gap-1.5"><Users size={12} /> {q.userName || 'Anonymous'}</span>
+                            </div>
+                            <h3 className="text-sm sm:text-2xl font-black text-foreground mb-1 sm:mb-3 leading-tight group-hover:text-ctu-gold transition-colors tracking-tight line-clamp-1 uppercase truncate">{q.title}</h3>
+                            <p className="text-[10px] sm:text-base text-foreground/50 line-clamp-2 mb-3 sm:mb-6 font-medium leading-relaxed">{q.content}</p>
+                            <div className="flex items-center gap-2 sm:gap-6 text-[7px] sm:text-[10px] font-black text-foreground/30 uppercase tracking-widest">
+                              <span className="flex items-center gap-1 sm:gap-2 bg-foreground/5 px-2 sm:px-4 py-1 sm:py-2 rounded-lg sm:rounded-xl"><MessageSquare size={10} className="text-ctu-gold sm:size-3" /> {q.answerCount || 0}</span>
+                              <span className="flex items-center gap-1 sm:gap-2 bg-foreground/5 px-2 sm:px-4 py-1 sm:py-2 rounded-lg sm:rounded-xl"><Users size={10} className="text-blue-500 sm:size-3" /> {q.userName?.split(' ')[0] || 'Member'}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </Card>
+                      </Card>
+                    </motion.div>
                   )) : (
                     <div className="flex flex-col items-center justify-center py-20 opacity-20 text-center">
                       <HelpCircle size={48} className="mb-4" />
@@ -1318,145 +1558,157 @@ export default function StudyTools() {
                     </div>
                   )}
                 </div>
-              </TabsContent>
+              </motion.div>
+            </TabsContent>
 
-              <TabsContent value="flashcards" className="mt-0 space-y-8 lg:space-y-12">
+          <TabsContent value="flashcards" className="mt-0 space-y-6 md:space-y-12 outline-none">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
                 {!selectedDeck ? (
-                  <div className="space-y-8 lg:space-y-12">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
-                      <div>
-                        <h2 className="text-3xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
-                           Flash Decks
-                        </h2>
-                        <p className="text-xl text-foreground/40 font-medium mt-3 tracking-tight">Accelerate mastery through strategic retention cycles.</p>
-                      </div>
-                      <div className="flex flex-wrap gap-3 w-full md:w-auto">
-                        <Dialog open={isNewDeckModalOpen} onOpenChange={setIsNewDeckModalOpen}>
-                          <DialogTrigger 
-                            render={
-                              <Button className="h-14 px-8 rounded-2xl bg-ctu-maroon text-white font-black uppercase tracking-[0.2em] text-[11px] flex items-center gap-3 shadow-xl shadow-ctu-maroon/20 hover:scale-105 active:scale-95 transition-all">
-                                <Plus size={18} /> New Deck
-                              </Button>
-                            }
-                          />
-                          <DialogContent className="sm:max-w-[425px] neumorphic-card border-none p-8">
-                          <DialogHeader>
-                            <DialogTitle className="text-2xl font-black italic tracking-tight">INITIALIZE DECK</DialogTitle>
-                          </DialogHeader>
-                          <div className="grid gap-6 py-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="deck-name" className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Deck Codename</Label>
-                              <Input id="deck-name" value={newDeck.name} onChange={e => setNewDeck({...newDeck, name: e.target.value})} className="neumorphic-pressed border-none h-12 rounded-xl" placeholder="e.g., Ergonomics Mastery" />
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Target Subject</Label>
-                              <Select value={newDeck.subjectId} onValueChange={(val) => setNewDeck({...newDeck, subjectId: val})}>
-                                <SelectTrigger className="neumorphic-pressed border-none h-12 rounded-xl">
-                                  <SelectValue placeholder="Select Subject" />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl border-none shadow-2xl">
-                                  {IE_SUBJECTS.map(s => (
-                                    <SelectItem key={s.code} value={s.code}>{s.name}</SelectItem>
+                  <>
+                    <div className="space-y-6 md:space-y-12">
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 md:gap-8">
+                        <div>
+                          <h2 className="text-3xl sm:text-5xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
+                             Flash Decks
+                          </h2>
+                          <p className="text-sm sm:text-base md:text-xl text-foreground/40 font-medium mt-2 sm:mt-3 tracking-tight">Accelerate mastery through strategic retention cycles.</p>
+                        </div>
+                        <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                          <Dialog open={isNewDeckModalOpen} onOpenChange={setIsNewDeckModalOpen}>
+                            <DialogTrigger 
+                              render={
+                                <Button className="h-12 sm:h-14 px-6 sm:px-8 rounded-2xl bg-ctu-maroon text-white font-black uppercase tracking-widest text-[9px] sm:text-[11px] flex items-center gap-2 sm:gap-3 shadow-xl">
+                                  <Plus size={16} /> New Deck
+                                </Button>
+                              }
+                            />
+                            <DialogContent className="max-w-[95vw] w-full h-[85dvh] overflow-y-auto overscroll-contain neumorphic-card border-none p-6 sm:p-8">
+                            <DialogHeader>
+                              <DialogTitle className="text-2xl font-black italic tracking-tight">INITIALIZE DECK</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-6 py-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="deck-name" className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Deck Codename</Label>
+                                <Input id="deck-name" value={newDeck.name} onChange={e => setNewDeck({...newDeck, name: e.target.value})} className="neumorphic-pressed border-none h-12 rounded-xl" placeholder="e.g., Ergonomics Mastery" />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Target Subject</Label>
+                                <Select value={newDeck.subjectId} onValueChange={(val) => setNewDeck({...newDeck, subjectId: val})}>
+                                  <SelectTrigger className="neumorphic-pressed border-none h-12 rounded-xl">
+                                    <SelectValue placeholder="Select Subject" />
+                                  </SelectTrigger>
+                                  <SelectContent className="rounded-xl border-none shadow-2xl">
+                                    {IE_SUBJECTS.map(s => (
+                                      <SelectItem key={s.code} value={s.code}>{s.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="deck-desc" className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Intelligence Summary</Label>
+                                <Textarea id="deck-desc" value={newDeck.description} onChange={e => setNewDeck({...newDeck, description: e.target.value})} className="neumorphic-pressed border-none min-h-[80px] rounded-xl" placeholder="What will you study in this deck?" />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Visual ID (Theme)</Label>
+                                <div className="flex gap-4">
+                                  {['maroon', 'gold', 'blue', 'green'].map(c => (
+                                    <button
+                                      key={c}
+                                      onClick={() => setNewDeck({...newDeck, color: c})}
+                                      className={cn(
+                                        "w-10 h-10 rounded-full border-4 transition-all shadow-lg",
+                                        newDeck.color === c ? "border-foreground scale-110 shadow-foreground/10" : "border-transparent opacity-40 hover:opacity-100",
+                                        c === 'maroon' ? 'bg-ctu-maroon' : c === 'gold' ? 'bg-ctu-gold' : c === 'blue' ? 'bg-blue-500' : 'bg-green-500'
+                                      )}
+                                    />
                                   ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="deck-desc" className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Intelligence Summary</Label>
-                              <Textarea id="deck-desc" value={newDeck.description} onChange={e => setNewDeck({...newDeck, description: e.target.value})} className="neumorphic-pressed border-none min-h-[80px] rounded-xl" placeholder="What will you study in this deck?" />
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Visual ID (Theme)</Label>
-                              <div className="flex gap-4">
-                                {['maroon', 'gold', 'blue', 'green'].map(c => (
-                                  <button
-                                    key={c}
-                                    onClick={() => setNewDeck({...newDeck, color: c})}
-                                    className={cn(
-                                      "w-10 h-10 rounded-full border-4 transition-all shadow-lg",
-                                      newDeck.color === c ? "border-foreground scale-110 shadow-foreground/10" : "border-transparent opacity-40 hover:opacity-100",
-                                      c === 'maroon' ? 'bg-ctu-maroon' : c === 'gold' ? 'bg-ctu-gold' : c === 'blue' ? 'bg-blue-500' : 'bg-green-500'
-                                    )}
-                                  />
-                                ))}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <DialogFooter>
-                            <Button onClick={handleCreateDeck} className="bg-ctu-maroon text-white font-black uppercase tracking-widest w-full h-14 rounded-2xl shadow-xl shadow-ctu-maroon/20">Forge Deck</Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
+                            <DialogFooter>
+                              <Button onClick={handleCreateDeck} className="bg-ctu-maroon text-white font-black uppercase tracking-widest w-full h-14 rounded-2xl shadow-xl shadow-ctu-maroon/20">Forge Deck</Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col md:flex-row gap-4 mb-8">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/20" size={18} />
-                      <Input 
-                        placeholder="Search decks..." 
-                        className="pl-12 neumorphic-pressed border-none h-14 rounded-2xl text-sm font-medium focus:ring-blue-500/30"
-                        value={deckSearchQuery}
-                        onChange={(e) => setDeckSearchQuery(e.target.value)}
-                      />
+                  <div className="flex flex-col md:flex-row gap-4 mb-4 sm:mb-8">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/20" size={16} />
+                        <Input 
+                          placeholder="Search decks..." 
+                          className="pl-12 neumorphic-pressed border-none h-12 sm:h-14 rounded-2xl text-xs sm:text-sm font-medium"
+                          value={deckSearchQuery}
+                          onChange={(e) => setDeckSearchQuery(e.target.value)}
+                        />
+                      </div>
+                      <Select value={deckSubjectFilter} onValueChange={setDeckSubjectFilter}>
+                        <SelectTrigger className="w-full sm:w-[180px] neumorphic-pressed border-none h-12 sm:h-14 rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest">
+                          <SelectValue placeholder="All Subjects" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-none shadow-2xl">
+                          <SelectItem value="all">ALL SECTORS</SelectItem>
+                          {IE_SUBJECTS.map(s => (
+                            <SelectItem key={s.code} value={s.code}>{s.code}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Select value={deckSubjectFilter} onValueChange={setDeckSubjectFilter}>
-                      <SelectTrigger className="w-[180px] neumorphic-pressed border-none h-14 rounded-2xl text-[10px] font-black uppercase tracking-widest">
-                        <SelectValue placeholder="All Subjects" />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-2xl border-none shadow-2xl">
-                        <SelectItem value="all">ALL SECTORS</SelectItem>
-                        {IE_SUBJECTS.map(s => (
-                          <SelectItem key={s.code} value={s.code}>{s.code}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
                       <AnimatePresence mode="popLayout">
                         {filteredDecks.length > 0 ? filteredDecks.map((deck, i) => (
                           <motion.div
                             key={deck.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ delay: i * 0.05 }}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            whileHover={{ y: -10 }}
+                            transition={{ 
+                              delay: i * 0.05,
+                              type: "spring",
+                              stiffness: 200,
+                              damping: 20
+                            }}
                           >
                             <GlowCard 
-                              className="p-6 text-center cursor-pointer hover:scale-[1.02] transition-all h-full" 
+                              className="p-5 sm:p-8 text-center cursor-pointer hover:shadow-3xl transition-all h-full neumorphic-raised border-foreground/5 rounded-[1.5rem] sm:rounded-[2.5rem]" 
                               glowColor={deck.color as any || 'maroon'}
                               onClick={() => setSelectedDeck(deck)}
                             >
                               <div className={cn(
-                                "w-16 h-16 rounded-2xl neumorphic-pressed flex items-center justify-center mx-auto mb-6",
+                                "w-14 h-14 sm:w-20 sm:h-20 rounded-[1.25rem] sm:rounded-[2rem] neumorphic-pressed flex items-center justify-center mx-auto mb-4 sm:mb-8 transition-transform group-hover:scale-110 shadow-inner",
                                 deck.color === 'maroon' ? 'text-ctu-maroon' : 
                                 deck.color === 'gold' ? 'text-ctu-gold' :
                                 deck.color === 'blue' ? 'text-blue-500' : 'text-green-500'
                               )}>
-                                <Layers size={32} />
+                                <Layers size={30} className="sm:size-[40px] drop-shadow-sm" />
                               </div>
-                              <h3 className="font-bold text-foreground mb-1 line-clamp-1">{deck.name}</h3>
+                              <h3 className="text-lg sm:text-xl font-black text-foreground mb-1 line-clamp-1 truncate uppercase tracking-tighter">{deck.name}</h3>
                               {deck.subjectId && (
-                                <Badge variant="secondary" className="mb-2 text-[10px] h-4 font-bold bg-foreground/5 text-foreground/40">{deck.subjectId}</Badge>
+                                <Badge variant="secondary" className="mb-3 sm:mb-4 text-[8px] sm:text-[10px] h-5 font-black bg-foreground/5 text-foreground/40 px-3 tracking-[0.2em] rounded-lg">{deck.subjectId}</Badge>
                               )}
-                              <p className="text-xs text-foreground/40 font-bold uppercase tracking-widest">{deck.cardCount || 0} Cards</p>
-                              <div className="mt-6 flex gap-2">
+                              <p className="text-[8px] sm:text-[10px] text-foreground/40 font-black uppercase tracking-[0.3em] bg-foreground/5 py-1.5 sm:py-2 rounded-xl mb-6 sm:mb-8">{deck.cardCount || 0} Retention Units</p>
+                              <div className="flex gap-3">
                                 <Button 
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     startFlashcardSession(deck);
                                   }}
-                                  variant="ghost" 
-                                  className="flex-1 rounded-xl text-xs font-bold border border-foreground/5 shadow-sm"
+                                  className={cn(
+                                    "flex-1 rounded-xl sm:rounded-2xl h-10 sm:h-12 text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95",
+                                    deck.color === 'maroon' ? 'bg-ctu-maroon text-white shadow-ctu-maroon/20' : 
+                                    deck.color === 'gold' ? 'bg-ctu-gold text-white shadow-ctu-gold/20' :
+                                    deck.color === 'blue' ? 'bg-blue-500 text-white shadow-blue-500/20' : 'bg-green-500 text-white shadow-green-500/20'
+                                  )}
                                 >
-                                  Study
-                                </Button>
-                                <Button 
-                                  className="px-3 rounded-xl border border-foreground/5"
-                                  variant="ghost"
-                                >
-                                  <ChevronRight size={14} />
+                                  Deploy Study
                                 </Button>
                               </div>
                             </GlowCard>
@@ -1473,92 +1725,92 @@ export default function StudyTools() {
                         )}
                       </AnimatePresence>
                     </div>
-                  </div>
+                  </>
                 ) : (
                   <div className="space-y-6">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        <div className="flex items-center gap-6">
-                          <Button 
-                            variant="ghost" 
-                            onClick={() => {
-                              setSelectedDeck(null);
-                              setCardSearchQuery('');
-                            }}
-                            className="p-3 h-auto rounded-xl hover:bg-foreground/5 neumorphic-raised"
-                          >
-                             <ChevronLeft size={24} />
-                          </Button>
-                          <div>
-                            <h2 className="text-4xl font-display font-black tracking-tight">{selectedDeck.name}</h2>
-                            <p className="text-lg text-foreground/40 font-medium mt-1 tracking-tight">{selectedDeck.description || 'No description provided.'}</p>
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-4">
+                          <div className="flex items-center gap-6">
+                            <Button 
+                              variant="ghost" 
+                              onClick={() => {
+                                setSelectedDeck(null);
+                                setCardSearchQuery('');
+                              }}
+                              className="w-14 h-14 rounded-[1.5rem] p-0 hover:bg-foreground/5 neumorphic-raised border-none text-ctu-maroon"
+                            >
+                               <ChevronLeft size={28} />
+                            </Button>
+                            <div>
+                               <h2 className="text-3xl sm:text-5xl font-black tracking-tighter uppercase text-foreground leading-none">{selectedDeck.name}</h2>
+                               <p className="text-base sm:text-lg text-foreground/40 font-medium mt-2 tracking-tight line-clamp-2 max-w-2xl">{selectedDeck.description || 'Core Industrial Engineering concepts for deep retention.'}</p>
+                            </div>
                           </div>
-                        </div>
-                      
-                      <div className="flex flex-wrap gap-4 items-center">
-                        <div className="relative w-full md:w-64">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/30" size={16} />
-                          <Input 
-                            placeholder="Search cards..." 
-                            className="pl-10 neumorphic-pressed border-none h-10 rounded-xl text-sm"
-                            value={cardSearchQuery}
-                            onChange={(e) => setCardSearchQuery(e.target.value)}
-                          />
-                        </div>
+                       
+                          <div className="flex flex-wrap gap-4 items-center">
+                            <div className="relative w-full md:w-64">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/30" size={16} />
+                              <Input 
+                                placeholder="Filter units..." 
+                                className="pl-10 neumorphic-pressed border-none h-12 rounded-2xl text-sm"
+                                value={cardSearchQuery}
+                                onChange={(e) => setCardSearchQuery(e.target.value)}
+                              />
+                            </div>
 
-                        <div className="flex gap-4 neumorphic-card border-none px-4 py-2 items-center">
-                          <div className="text-center border-r border-foreground/5 pr-4">
-                            <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest leading-tight">Total</p>
-                            <p className="font-bold leading-tight">{deckCards.length}</p>
-                          </div>
-                          <div className="text-center border-r border-foreground/5 pr-4">
-                            <p className="text-[10px] font-bold text-green-500 uppercase tracking-widest leading-tight">Learned</p>
-                            <p className="font-bold leading-tight">{deckCards.filter(c => c.status === 'known').length}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-[10px] font-bold text-ctu-gold uppercase tracking-widest leading-tight">Due</p>
-                            <p className="font-bold leading-tight">
-                              {deckCards.filter(c => !c.nextReview || new Date(c.nextReview) <= new Date()).length}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Dialog open={isAddCardModalOpen} onOpenChange={setIsAddCardModalOpen}>
-                            <DialogTrigger 
-                              render={
-                                <Button variant="outline" className="rounded-xl font-bold gap-2 neumorphic-raised border-none h-10 whitespace-nowrap">
-                                  <Plus size={16} /> Add Card
-                                </Button>
-                              }
-                            />
-                            <DialogContent className="sm:max-w-[425px] neumorphic-card border-none">
-                              <DialogHeader>
-                                <DialogTitle className="text-xl font-bold">Add Flashcard</DialogTitle>
-                              </DialogHeader>
-                              <div className="grid gap-6 py-4">
-                                <div className="space-y-2">
-                                  <Label htmlFor="card-front" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Front Content</Label>
-                                  <Textarea id="card-front" value={newCard.front} onChange={e => setNewCard({...newCard, front: e.target.value})} className="neumorphic-pressed border-none" placeholder="Question or term..." />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor="card-back" className="text-xs font-bold uppercase tracking-wider text-foreground/40">Back Content</Label>
-                                  <Textarea id="card-back" value={newCard.back} onChange={e => setNewCard({...newCard, back: e.target.value})} className="neumorphic-pressed border-none" placeholder="Answer or definition..." />
-                                </div>
+                            <div className="flex gap-6 neumorphic-card border-none px-6 py-2 items-center rounded-2xl">
+                              <div className="text-center border-r border-foreground/5 pr-6">
+                                <p className="text-[9px] font-black text-foreground/20 uppercase tracking-widest leading-tight">Units</p>
+                                <p className="font-black text-lg leading-tight">{deckCards.length}</p>
                               </div>
-                              <DialogFooter>
-                                <Button onClick={handleAddCard} className="bg-ctu-gold text-white font-bold w-full rounded-xl">Add Card</Button>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
-                          <Button 
-                            onClick={() => startFlashcardSession(selectedDeck)}
-                            className="rounded-xl bg-ctu-gold text-white font-bold gap-2 px-6 h-10 whitespace-nowrap shadow-lg shadow-ctu-gold/20"
-                          >
-                            Study Now
-                          </Button>
+                              <div className="text-center">
+                                <p className="text-[9px] font-black text-ctu-gold uppercase tracking-widest leading-tight">Due</p>
+                                <p className="font-black text-lg leading-tight">
+                                  {deckCards.filter(c => !c.nextReview || new Date(c.nextReview) <= new Date()).length}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2 w-full sm:w-auto">
+                              <Dialog open={isAddCardModalOpen} onOpenChange={setIsAddCardModalOpen}>
+                                <DialogTrigger 
+                                  render={
+                                    <Button variant="outline" className="flex-1 sm:flex-none rounded-2xl font-black uppercase text-[10px] tracking-widest neumorphic-raised border-none h-12 px-6 whitespace-nowrap">
+                                      <Plus size={16} /> NEW UNIT
+                                    </Button>
+                                  } 
+                                />
+                                <DialogContent className="max-w-[95vw] w-full h-[85dvh] overflow-y-auto overscroll-contain bg-background rounded-[1.5rem] sm:rounded-[2.5rem] border-none shadow-3xl p-6 sm:p-8">
+                                  <DialogHeader>
+                                    <DialogTitle className="text-2xl font-black uppercase tracking-tighter">Initialize Card</DialogTitle>
+                                  </DialogHeader>
+                                  <div className="space-y-6 py-6">
+                                    <div className="space-y-3">
+                                      <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30 ml-2">Front Side</Label>
+                                      <div className="neumorphic-pressed p-2 rounded-2xl">
+                                        <Textarea value={newCard.front} onChange={e => setNewCard({...newCard, front: e.target.value})} className="bg-transparent border-none focus-visible:ring-0 resize-none h-24 text-sm font-medium" placeholder="Operational term..." />
+                                      </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                      <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30 ml-2">Back Side</Label>
+                                      <div className="neumorphic-pressed p-2 rounded-2xl">
+                                        <Textarea value={newCard.back} onChange={e => setNewCard({...newCard, back: e.target.value})} className="bg-transparent border-none focus-visible:ring-0 resize-none h-24 text-sm font-medium" placeholder="Synthetic response..." />
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <DialogFooter>
+                                    <Button onClick={handleAddCard} className="bg-ctu-maroon text-white font-black w-full rounded-2xl h-14 shadow-xl shadow-ctu-maroon/20">DEPLOY</Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                              <Button 
+                                onClick={() => startFlashcardSession(selectedDeck)}
+                                className="flex-1 sm:flex-none rounded-2xl bg-ctu-gold text-white font-black uppercase text-[10px] tracking-widest h-12 px-8 whitespace-nowrap shadow-xl shadow-ctu-gold/20 hover:scale-[1.02] transition-all"
+                              >
+                                STUDY NOW
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       <AnimatePresence mode="popLayout">
@@ -1570,36 +1822,37 @@ export default function StudyTools() {
                             exit={{ opacity: 0, scale: 0.9 }}
                             transition={{ delay: idx * 0.05 }}
                           >
-                            <Card className="neumorphic-card border-none p-6 relative group overflow-hidden h-full group">
-                              <div className="flex flex-col gap-4">
+                            <Card className="neumorphic-card border-none p-8 relative group overflow-hidden h-full rounded-[2.5rem] flex flex-col justify-between hover:shadow-2xl transition-all duration-500">
+                              <div className="space-y-6">
                                 <div className="flex justify-between items-start">
                                   <Badge className={cn(
-                                    "text-[8px] font-bold uppercase",
-                                    card.status === 'known' ? "bg-green-500 text-white" : "bg-ctu-gold/20 text-ctu-gold"
+                                    "text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 border-none",
+                                    card.status === 'known' ? "bg-green-500/10 text-green-500" : "bg-ctu-gold/10 text-ctu-gold"
                                   )}>
-                                    {card.status || 'learning'}
+                                    {card.status?.toUpperCase() || 'LEARNING'}
                                   </Badge>
                                   {card.nextReview && (
-                                    <span className="text-[10px] font-bold text-foreground/30">
-                                      Due: {new Date(card.nextReview).toLocaleDateString()}
+                                    <span className="text-[10px] font-black text-foreground/20 uppercase tracking-widest flex items-center gap-2">
+                                      <Calendar size={10} /> {new Date(card.nextReview).toLocaleDateString()}
                                     </span>
                                   )}
                                 </div>
-                                <div>
-                                  <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-1">Front</p>
-                                  <p className="font-bold text-base leading-relaxed">{card.front}</p>
+                                <div className="space-y-2">
+                                   <p className="text-[9px] font-black text-foreground/10 uppercase tracking-[0.4em]">Inquiry</p>
+                                   <p className="text-xl font-black text-foreground/80 tracking-tight leading-[1.2]">{card.front}</p>
                                 </div>
-                                <div className="pt-4 border-t border-foreground/5">
-                                  <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-1">Back</p>
-                                  <p className="text-sm font-medium text-foreground/70">{card.back}</p>
-                                </div>
+                              </div>
+                              
+                              <div className="mt-10 pt-6 border-t border-foreground/5 flex justify-between items-center">
+                                <p className="text-[10px] font-black text-foreground/40 italic line-clamp-1 flex-1 pr-4">{card.back}</p>
                                 {card.status !== 'known' && (
                                   <Button 
                                     onClick={() => handleMarkCardKnown(card.id)}
+                                    size="sm"
                                     variant="ghost" 
-                                    className="mt-2 text-xs font-bold text-green-500 hover:text-green-600 p-0 h-auto self-start group-hover:translate-x-1 transition-transform"
+                                    className="h-8 rounded-lg text-[9px] font-black uppercase tracking-widest text-green-500 hover:bg-green-500/10 transition-colors whitespace-nowrap"
                                   >
-                                    Mark as Learned →
+                                    Mark Learned
                                   </Button>
                                 )}
                               </div>
@@ -1619,12 +1872,33 @@ export default function StudyTools() {
                     </div>
                   </div>
                 )}
-              </TabsContent>
+            </motion.div>
+          </TabsContent>
               
-              <TabsContent value="quizzes" className="mt-0 focus:outline-none">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <TabsContent value="quizzes" className="mt-0 focus:outline-none space-y-6 md:space-y-12 outline-none">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 mb-2 sm:mb-0">
+                  <div>
+                    <h2 className="text-2xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2">
+                       AI Quizzes
+                    </h2>
+                    <p className="text-[10px] sm:text-base md:text-xl text-foreground/40 font-medium mt-1 sm:mt-2 tracking-tight">Challenge yourself with dynamically generated assessments.</p>
+                  </div>
+                  <Button 
+                    onClick={() => startQuizSession('Industrial Engineering')}
+                    disabled={isGenerating}
+                    className="h-10 sm:h-14 px-6 sm:px-8 rounded-xl sm:rounded-2xl bg-ctu-gold text-white font-black uppercase tracking-widest text-[9px] sm:text-[11px] gap-2 sm:gap-3 shadow-xl w-full md:w-auto mt-2 sm:mt-0"
+                  >
+                    <Zap size={16} /> {isGenerating ? "Synthesizing..." : "New Quick Quiz"}
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-8">
                   {/* Gen Quiz Card */}
-                  <GlowCard className="p-8 sm:p-10 flex flex-col justify-between min-h-0" glowColor="orange">
+                  <GlowCard className="p-6 sm:p-10 flex flex-col justify-between min-h-0" glowColor="orange">
                     <div>
                       <h3 className="text-2xl sm:text-4xl font-black mb-4 tracking-tight">Start Quiz Session</h3>
                       <p className="text-sm text-foreground/60 leading-relaxed mb-8 font-medium">
@@ -1661,21 +1935,31 @@ export default function StudyTools() {
                       </div>
                       Your Achievements
                     </h3>
-                    <div className="grid grid-cols-4 gap-4">
+                    <div className="grid grid-cols-4 gap-6">
                       {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
                         <div key={i} className="group relative flex flex-col items-center">
-                          <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full">
-                            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-ctu-gold to-ctu-maroon opacity-20" />
-                            <div className="absolute inset-0 rounded-full neumorphic-pressed flex items-center justify-center">
-                              <Award size={20} className={cn("transition-all duration-500", i <= 3 ? "text-ctu-gold scale-110" : "text-foreground/10 grayscale")} />
+                          <motion.div 
+                            whileHover={{ scale: 1.1, rotate: 5 }}
+                            className="relative w-14 h-14 sm:w-20 sm:h-20 rounded-full p-1"
+                          >
+                            <div className={cn(
+                              "absolute inset-0 rounded-full transition-all duration-500",
+                              i <= 3 ? "bg-gradient-to-br from-ctu-gold via-white to-ctu-maroon shadow-lg" : "bg-foreground/5 opacity-50"
+                            )} />
+                            <div className="absolute inset-1 rounded-full bg-background neumorphic-pressed flex items-center justify-center">
+                              <Award size={24} className={cn("transition-all duration-700", i <= 3 ? "text-ctu-gold drop-shadow-[0_0_8px_rgba(var(--color-ctu-gold)/0.5)]" : "text-foreground/10 grayscale")} />
                             </div>
                             {i <= 3 && (
-                              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-ctu-gold border-2 border-background flex items-center justify-center shadow-lg">
-                                <span className="text-[8px] font-black text-white">{i}</span>
-                              </div>
+                              <motion.div 
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-ctu-gold border-2 border-background flex items-center justify-center shadow-xl ring-2 ring-ctu-gold/20"
+                              >
+                                <Sparkles size={10} className="text-white animate-pulse" />
+                              </motion.div>
                             )}
-                          </div>
-                          <span className="text-[8px] font-black text-foreground/30 uppercase tracking-tighter mt-3 text-center">Badge {i}</span>
+                          </motion.div>
+                          <span className="text-[9px] font-black text-foreground/20 uppercase tracking-widest mt-4 text-center group-hover:text-ctu-gold transition-colors">{i <= 3 ? `Elite Tier ${i}` : 'LOCKED'}</span>
                         </div>
                       ))}
                     </div>
@@ -1704,9 +1988,26 @@ export default function StudyTools() {
                     </div>
                   </GlowCard>
                 </div>
+              </motion.div>
               </TabsContent>
 
-              <TabsContent value="notebooks" className="mt-0">
+            <TabsContent value="notebooks" className="mt-0 space-y-6 md:space-y-12 outline-none">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
+                  <div>
+                    <h2 className="text-2xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2">
+                       AI Notebooks
+                    </h2>
+                    <p className="text-[10px] sm:text-base md:text-xl text-foreground/40 font-medium mt-1 sm:mt-2 tracking-tight">Structured knowledge repositories enhanced by AI analysis.</p>
+                  </div>
+                  <Button className="h-10 sm:h-14 px-6 sm:px-8 rounded-xl sm:rounded-2xl bg-foreground text-background font-black uppercase tracking-widest text-[9px] sm:text-[11px] gap-2 sm:gap-3 w-full md:w-auto">
+                    <Plus size={16} /> Create Terminal
+                  </Button>
+                </div>
                 {activeNotebookId ? (
                   <NotebookWorkspace 
                     notebookId={activeNotebookId} 
@@ -1715,15 +2016,14 @@ export default function StudyTools() {
                 ) : (
                   <NotebookList onSelect={(id) => setActiveNotebookId(id)} />
                 )}
-              </TabsContent>
             </motion.div>
-          </AnimatePresence>
+          </TabsContent>
         </Tabs>
 
         {/* Group Chat Modal */}
         <Dialog open={!!activeChatGroup} onOpenChange={(open) => !open && setActiveChatGroup(null)}>
-          <DialogContent className="max-w-md bg-background rounded-3xl border-none p-0 overflow-hidden flex flex-col h-[600px]">
-            <DialogHeader className="p-6 border-b border-foreground/5 bg-background/50 backdrop-blur-md">
+          <DialogContent className="max-w-md w-[95vw] h-[85dvh] bg-background rounded-3xl border-none p-0 overflow-hidden flex flex-col overscroll-contain">
+            <DialogHeader className="p-4 sm:p-6 border-b border-foreground/5 bg-background/50 backdrop-blur-md shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl neumorphic-pressed flex items-center justify-center text-ctu-gold shrink-0">
                   <MessageSquare size={20} />
@@ -1786,80 +2086,91 @@ export default function StudyTools() {
 
         {/* Question Detail Modal */}
         <Dialog open={!!selectedQuestion} onOpenChange={(open) => !open && setSelectedQuestion(null)}>
-          <DialogContent className="max-w-2xl bg-background rounded-3xl border-none p-8">
-            <DialogHeader>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <Badge className="bg-blue-500/10 text-blue-500 border-none text-[10px] font-bold">{selectedQuestion?.subjectTag || 'General'}</Badge>
-                  <span className="text-[10px] font-bold text-foreground/20 uppercase tracking-widest">{selectedQuestion?.userName}</span>
-                  {selectedQuestion?.isFlagged && (
-                    <Badge className="bg-red-500/10 text-red-500 border-none text-[10px] font-bold flex items-center gap-1">
-                      <ShieldAlert size={10} /> Flagged by Moderation
-                    </Badge>
-                  )}
+          <DialogContent className="max-w-2xl w-[95vw] h-[85dvh] bg-background rounded-3xl border-none p-0 overflow-hidden flex flex-col overscroll-contain">
+            <DialogHeader className="p-4 sm:p-8 border-b border-foreground/5 bg-background shadow-sm shrink-0">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-4">
+                  <Badge className="bg-blue-500/10 text-blue-500 border-none text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg">{selectedQuestion?.subjectTag || 'General'}</Badge>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-foreground/40 uppercase tracking-[0.2em]">Intel by</span>
+                    <span className="text-sm font-black text-foreground/80 tracking-tight">{selectedQuestion?.userName || 'Anonymous'}</span>
+                  </div>
                 </div>
                 
-                {user?.role === 'admin' && (
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleFlagQuestion(selectedQuestion)}
-                      className={cn(
-                        "h-8 px-3 rounded-lg text-[10px] font-bold uppercase tracking-widest border-none transition-all",
-                        selectedQuestion?.isFlagged 
-                          ? "bg-red-500 text-white shadow-lg shadow-red-500/20" 
-                          : "neumorphic-raised text-red-500 hover:bg-red-500/5"
-                      )}
-                    >
-                      {selectedQuestion?.isFlagged ? 'Unflag' : 'Flag'}
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDeleteQuestion(selectedQuestion.id)}
-                      className="h-8 w-8 p-0 rounded-lg text-foreground/20 hover:text-red-500 hover:bg-red-500/5 transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                )}
+                <div className="flex gap-3">
+                  {selectedQuestion?.isFlagged && (
+                    <Badge className="bg-red-500/10 text-red-500 border-none text-[10px] font-black flex items-center gap-2 uppercase tracking-widest px-3 py-1.5 shadow-sm">
+                      <ShieldAlert size={14} /> Critical Flag
+                    </Badge>
+                  )}
+                  {user?.role === 'admin' && (
+                    <div className="flex gap-2 neumorphic-pressed px-3 py-1.5 rounded-2xl">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleFlagQuestion(selectedQuestion)}
+                        className={cn(
+                          "h-8 w-8 p-0 rounded-xl transition-all",
+                          selectedQuestion?.isFlagged ? "bg-red-500 text-white" : "text-red-500 hover:bg-red-500/10"
+                        )}
+                      >
+                         <Flag size={14} />
+                      </Button>
+                      <div className="w-[1px] h-4 bg-foreground/5 self-center mx-1" />
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleDeleteQuestion(selectedQuestion.id)}
+                        className="h-8 w-8 p-0 rounded-xl text-foreground/20 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
-              <DialogTitle className="text-2xl font-bold">{selectedQuestion?.title}</DialogTitle>
+              <DialogTitle className="text-3xl font-black tracking-tighter leading-tight text-foreground uppercase">{selectedQuestion?.title}</DialogTitle>
             </DialogHeader>
-            <div className="py-6 space-y-8">
-              <div className="p-6 rounded-2xl neumorphic-pressed relative group">
-                <p className="text-foreground/80 leading-relaxed font-medium">{selectedQuestion?.content}</p>
+            <div className="py-8 p-8 space-y-10 overflow-y-auto max-h-[60vh] custom-scrollbar">
+              <div className="p-8 rounded-[2.5rem] neumorphic-pressed relative group border border-foreground/5">
+                <p className="text-foreground/70 leading-relaxed font-medium text-base sm:text-lg">{selectedQuestion?.content}</p>
                 {selectedQuestion?.reportCount > 0 && user?.role === 'admin' && (
-                  <div className="absolute top-2 right-2 flex items-center gap-1 bg-red-500 text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest">
-                    <AlertTriangle size={8} /> {selectedQuestion.reportCount} Reports
+                  <div className="absolute -top-3 -right-3 flex items-center gap-2 bg-red-500 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-500/30">
+                    <AlertTriangle size={12} /> {selectedQuestion.reportCount} Signal Intercepts
                   </div>
                 )}
               </div>
               
-              <div className="space-y-4">
-                <h4 className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Responses ({selectedQuestion?.answerCount || 0})</h4>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.3em]">Knowledge Feed ({selectedQuestion?.answerCount || 0})</h4>
+                  <div className="h-[1px] flex-1 bg-foreground/5 mx-6" />
+                </div>
+                
                 {selectedQuestion?.latestAnswer ? (
                   <div className={cn(
-                    "p-5 rounded-2xl transition-all relative group",
-                    selectedQuestion.latestAnswer.isFlagged ? "bg-red-500/5 border border-red-500/10" : "neumorphic-pressed"
+                    "p-8 rounded-[2.5rem] transition-all relative group border",
+                    selectedQuestion.latestAnswer.isFlagged ? "bg-red-500/5 border-red-500/20" : "neumorphic-raised border-foreground/5"
                   )}>
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-ctu-gold uppercase tracking-widest">{selectedQuestion.latestAnswer.userName}</span>
-                        {selectedQuestion.latestAnswer.isFlagged && (
-                          <Badge className="bg-red-500/10 text-red-500 border-none text-[8px] font-bold py-0 h-4">FLAGGED</Badge>
-                        )}
+                    <div className="flex justify-between items-center mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-ctu-gold/10 flex items-center justify-center text-ctu-gold">
+                           <Award size={20} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black text-ctu-gold uppercase tracking-[0.2em]">{selectedQuestion.latestAnswer.userName}</span>
+                          <span className="text-[9px] font-bold text-foreground/20 uppercase">Core Contributor</span>
+                        </div>
                       </div>
                       
                       <div className="flex gap-2">
-                        {user?.role === 'admin' && (
-                          <>
+                        {user?.role === 'admin' ? (
+                          <div className="flex gap-2 neumorphic-pressed px-2 py-1 rounded-xl">
                             <Button 
                               variant="ghost" 
                               size="sm"
                               onClick={() => handleFlagAnswer(selectedQuestion)}
-                              className="h-6 w-6 p-0 rounded-md text-foreground/20 hover:text-red-500 transition-colors"
+                              className="h-6 w-6 p-0 rounded-lg text-foreground/20 hover:text-red-500 transition-colors"
                             >
                               <Flag size={12} />
                             </Button>
@@ -1867,53 +2178,56 @@ export default function StudyTools() {
                               variant="ghost" 
                               size="sm"
                               onClick={() => handleDeleteAnswer(selectedQuestion)}
-                              className="h-6 w-6 p-0 rounded-md text-foreground/20 hover:text-red-500 transition-colors"
+                              className="h-6 w-6 p-0 rounded-lg text-foreground/20 hover:text-red-500 transition-colors"
                             >
                               <Trash2 size={12} />
                             </Button>
-                          </>
-                        )}
-                        {!user?.role || user.role !== 'admin' && (
+                          </div>
+                        ) : (
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            className="h-6 w-6 p-0 rounded-md text-foreground/20 hover:text-red-500 transition-colors"
-                            onClick={() => toast.success("Answer reported.")}
+                            className="h-10 w-10 p-0 rounded-full bg-foreground/5 text-foreground/20 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
+                            onClick={() => toast.success("Signal Reported.")}
                           >
-                            <Flag size={12} />
+                            <Flag size={16} />
                           </Button>
                         )}
                       </div>
                     </div>
                     <p className={cn(
-                      "text-sm font-medium",
-                      selectedQuestion.latestAnswer.isFlagged ? "text-foreground/40 blur-[1px] hover:blur-0 transition-all cursor-help" : "text-foreground/80"
-                    )} title={selectedQuestion.latestAnswer.isFlagged ? "This content has been flagged" : ""}>
+                      "text-base font-medium leading-relaxed",
+                      selectedQuestion.latestAnswer.isFlagged ? "text-foreground/40 italic" : "text-foreground/80"
+                    )}>
                       {selectedQuestion.latestAnswer.content}
                     </p>
                   </div>
                 ) : (
-                  <p className="text-xs text-foreground/20 font-bold uppercase italic tracking-widest text-center py-6">No answers yet. Be the first to help!</p>
+                  <div className="text-center py-12 border-2 border-dashed border-foreground/5 rounded-[2rem]">
+                    <p className="text-[10px] font-black text-foreground/20 uppercase tracking-[0.3em]">No knowledge transmitted yet</p>
+                  </div>
                 )}
               </div>
 
-              <div className="space-y-3">
-                <Label className="text-[10px] font-bold uppercase tracking-widest">Your Answer</Label>
-                <Textarea 
-                  placeholder="Share your explanation or advice..."
-                  value={newAnswer}
-                  onChange={(e) => setNewAnswer(e.target.value)}
-                  className="bg-background border-none neumorphic-pressed rounded-xl resize-none h-24"
-                />
+              <div className="space-y-4">
+                <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/30 ml-2">Your Contribution</Label>
+                <div className="neumorphic-pressed p-2 rounded-3xl">
+                  <Textarea 
+                    placeholder="Share your synthesis..."
+                    value={newAnswer}
+                    onChange={(e) => setNewAnswer(e.target.value)}
+                    className="bg-transparent border-none focus-visible:ring-0 resize-none h-32 px-6 py-4 text-sm font-medium"
+                  />
+                </div>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="p-8 pt-0">
               <Button 
                 onClick={() => handlePostAnswer(selectedQuestion.id)}
                 disabled={isAnswering}
-                className="bg-ctu-maroon text-white font-bold w-full rounded-xl py-6"
+                className="bg-ctu-maroon text-white font-black uppercase tracking-[0.2em] w-full h-16 rounded-2xl shadow-2xl shadow-ctu-maroon/30 hover:scale-[1.01] active:scale-95 transition-all text-xs"
               >
-                {isAnswering ? "Posting..." : "Post Answer"}
+                {isAnswering ? "TRANSMITTING..." : "POST SYNTHESIS"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1921,8 +2235,8 @@ export default function StudyTools() {
 
         {/* AI Advisor Chat Sidebar/Modal */}
         <Dialog open={isAdvisorChatOpen} onOpenChange={setIsAdvisorChatOpen}>
-          <DialogContent className="max-w-md h-[80vh] flex flex-col bg-background rounded-3xl border-none p-0 overflow-hidden">
-            <DialogHeader className="p-6 border-b border-foreground/5 bg-background z-10 shrink-0">
+          <DialogContent className="max-w-md w-[95vw] h-[85dvh] flex flex-col bg-background rounded-3xl border-none p-0 overflow-hidden overscroll-contain">
+            <DialogHeader className="p-4 sm:p-6 border-b border-foreground/5 bg-background z-10 shrink-0">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-full neumorphic-raised flex items-center justify-center text-ctu-gold">
                   <BrainCircuit size={20} />
@@ -1945,15 +2259,20 @@ export default function StudyTools() {
                   </div>
                 )}
                 {advisorChat.map((msg, i) => (
-                  <div key={i} className={cn(
-                    "flex flex-col",
-                    msg.role === 'user' ? "items-end" : "items-start"
-                  )}>
+                  <motion.div 
+                    key={i} 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className={cn(
+                      "flex flex-col",
+                      msg.role === 'user' ? "items-end" : "items-start"
+                    )}
+                  >
                     <div className={cn(
-                      "max-w-[85%] p-4 rounded-3xl text-sm font-medium",
+                      "max-w-[85%] p-5 rounded-[2rem] text-sm font-medium shadow-sm transition-all",
                       msg.role === 'user' 
-                        ? "bg-ctu-maroon text-white rounded-tr-none" 
-                        : "neumorphic-card bg-background border border-foreground/5 text-foreground rounded-tl-none"
+                        ? "bg-ctu-maroon text-white rounded-tr-none shadow-xl shadow-ctu-maroon/20" 
+                        : "neumorphic-card bg-background border border-foreground/5 text-foreground rounded-tl-none shadow-sm hover:shadow-md"
                     )}>
                       <div className={cn(
                         "prose prose-sm max-w-none",
@@ -1962,7 +2281,7 @@ export default function StudyTools() {
                         <ReactMarkdown>{msg.content}</ReactMarkdown>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
                 {isAdvisorLoading && (
                   <div className="flex justify-start">

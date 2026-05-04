@@ -237,11 +237,11 @@ export default function Profile() {
                   <Dialog>
                     <DialogTrigger
                       render={
-                        <Button variant="outline" className="w-full rounded-2xl neumorphic-raised border-none text-xs font-bold uppercase tracking-widest gap-2" />
+                        <Button variant="outline" className="w-full rounded-2xl neumorphic-raised border-none text-xs font-bold uppercase tracking-widest gap-2">
+                          <Settings size={14} /> Edit Profile
+                        </Button>
                       }
-                    >
-                      <Settings size={14} /> Edit Profile
-                    </DialogTrigger>
+                    />
                     <DialogContent className="neumorphic-card border-none rounded-[32px] max-w-md p-0 overflow-hidden">
                       <div className="p-8 border-b border-foreground/5">
                         <DialogTitle className="text-2xl font-bold">Personal Information</DialogTitle>
