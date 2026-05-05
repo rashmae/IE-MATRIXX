@@ -31,6 +31,7 @@ const navItems = [
 
 import { BrainCircuit } from 'lucide-react';
 import ThemeToggle from '@/src/components/ThemeToggle';
+import NotificationCenter from './NotificationCenter';
 import { toast } from 'sonner';
 
 import { auth } from '@/src/lib/firebase';
@@ -57,37 +58,44 @@ export default function Sidebar({ user }: SidebarProps) {
   return (
     <aside className="hidden lg:flex flex-col w-72 h-screen bg-background border-r border-foreground/5 sticky top-0 z-10 transition-colors duration-300">
       {/* Logo */}
-      <div className="p-8 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          {/* AI Robot Logo in Sidebar */}
-          <div className="relative w-10 h-10 shrink-0" aria-hidden="true">
-            <div className="absolute inset-0 bg-ctu-gold/20 rounded-full blur-lg animate-pulse" />
-            <div className="relative w-full h-full neumorphic-raised rounded-full p-0.5 flex items-center justify-center bg-background overflow-hidden border border-white/5">
-              <div className="absolute inset-0 border border-ctu-gold/20 rounded-full animate-[spin_10s_linear_infinite]" />
-              
-              <div className="relative w-7 h-7 rounded-full bg-gradient-to-br from-ctu-gold via-ctu-maroon to-navy-deep flex items-center justify-center shadow-inner overflow-hidden">
-                <motion.div 
-                  animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  className="w-4 h-4 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)] flex items-center justify-center"
-                  role="img"
-                  aria-label="IE Matrix AI Logo"
-                >
-                  <div className="w-2 h-2 rounded-full bg-navy-deep flex items-center justify-center">
-                    <div className="w-1 h-1 rounded-full bg-ctu-gold animate-ping" />
-                  </div>
-                </motion.div>
+      <div className="p-8 pb-4 flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* AI Robot Logo in Sidebar */}
+            <div className="relative w-10 h-10 shrink-0" aria-hidden="true">
+              <div className="absolute inset-0 bg-ctu-gold/20 rounded-full blur-lg animate-pulse" />
+              <div className="relative w-full h-full neumorphic-raised rounded-full p-0.5 flex items-center justify-center bg-background overflow-hidden border border-white/5">
+                <div className="absolute inset-0 border border-ctu-gold/20 rounded-full animate-[spin_10s_linear_infinite]" />
+                
+                <div className="relative w-7 h-7 rounded-full bg-gradient-to-br from-ctu-gold via-ctu-maroon to-navy-deep flex items-center justify-center shadow-inner overflow-hidden">
+                  <motion.div 
+                    animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    className="w-4 h-4 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)] flex items-center justify-center"
+                    role="img"
+                    aria-label="IE Matrix AI Logo"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-navy-deep flex items-center justify-center">
+                      <div className="w-1 h-1 rounded-full bg-ctu-gold animate-ping" />
+                    </div>
+                  </motion.div>
+                </div>
               </div>
             </div>
+            <span 
+              className="text-2xl font-black tracking-tighter flex items-center frosted-header"
+              style={{ height: '36px', width: 'auto' }}
+            >
+              IE MATRIX
+            </span>
           </div>
-          <span 
-            className="text-2xl font-black tracking-tighter flex items-center frosted-header"
-            style={{ height: '36px', width: 'auto' }}
-          >
-            IE MATRIX
-          </span>
         </div>
-        <ThemeToggle className="neumorphic-raised" />
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+             <NotificationCenter />
+          </div>
+          <ThemeToggle className="neumorphic-raised" />
+        </div>
       </div>
 
       {/* Navigation */}

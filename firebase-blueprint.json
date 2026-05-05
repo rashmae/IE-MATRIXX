@@ -159,17 +159,36 @@
         "userId": { "type": "string" },
         "front": { "type": "string" },
         "back": { "type": "string" },
-        "status": { "type": "string", "enum": ["learning", "known"], "description": "Study status for the card" },
-        "interval": { "type": "number", "description": "Interval in days until next review" },
-        "easeFactor": { "type": "number", "description": "Ease factor for the card (SM-2 algorithm)" },
-        "repetitions": { "type": "number", "description": "Number of successful repetitions" },
+        "status": { "type": "string", "enum": ["learning", "known"] },
+        "interval": { "type": "number" },
+        "easeFactor": { "type": "number" },
+        "repetitions": { "type": "number" },
         "nextReview": { "type": "string", "format": "date-time" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["deckId", "userId", "front", "back", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User specific real-time notifications.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string", "enum": ["info", "success", "warning", "error", "announcement"] },
+        "read": { "type": "boolean" },
+        "link": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "message", "type", "read", "createdAt"]
     }
   },
   "firestore": {
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Real-time user notifications."
+    },
     "/subjects/{subjectId}": {
       "schema": "Subject",
       "description": "Curriculum subjects."

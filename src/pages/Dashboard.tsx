@@ -15,7 +15,8 @@ import {
   X,
   Trophy,
   Cpu,
-  FlaskConical as FlaskConIcon
+  FlaskConical as FlaskConIcon,
+  Bell
 } from 'lucide-react';
 import { useAuth } from '@/src/context/AuthContext';
 import { useProgress } from '@/src/hooks/useProgress';
@@ -36,6 +37,7 @@ import { BrainCircuit } from 'lucide-react';
 import { toast } from 'sonner';
 
 import MobileHeader from '@/src/components/layout/MobileHeader';
+import NotificationsList from '@/src/components/layout/NotificationsList';
 
 export default function Dashboard() {
   const { profile, loading: authLoading } = useAuth();
@@ -550,6 +552,21 @@ export default function Dashboard() {
 
           {/* Right Panel */}
           <div className="space-y-8">
+            {/* Recent Notifications */}
+            <motion.div variants={itemVariants}>
+              <Card className="neumorphic-card border-none">
+                <CardHeader className="pb-6 border-b border-foreground/5 mb-6 flex flex-row items-center justify-between">
+                  <CardTitle className="text-3xl font-black text-ctu-maroon uppercase tracking-[0.2em]">
+                    Alerts
+                  </CardTitle>
+                  <Bell size={24} className="text-ctu-maroon/20" />
+                </CardHeader>
+                <CardContent>
+                  <NotificationsList maxItems={3} />
+                </CardContent>
+              </Card>
+            </motion.div>
+
             {/* Calendar Widget */}
             <motion.div variants={itemVariants}>
               <Card className="neumorphic-card border-none">

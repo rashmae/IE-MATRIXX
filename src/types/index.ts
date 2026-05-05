@@ -169,3 +169,14 @@ export interface NotebookMessage {
   citations?: string[]; // Source IDs
   createdAt: any;
 }
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error' | 'announcement';
+  read: boolean;
+  link?: string;
+  createdAt: any;
+}

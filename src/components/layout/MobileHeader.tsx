@@ -2,7 +2,8 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext';
-import { User, Bell } from 'lucide-react';
+import { User } from 'lucide-react';
+import NotificationCenter from './NotificationCenter';
 
 export default function MobileHeader() {
   const { profile } = useAuth();
@@ -54,14 +55,7 @@ export default function MobileHeader() {
       </motion.div>
 
       <div className="flex items-center gap-4">
-        {/* Notification Element */}
-        <motion.button 
-          whileTap={{ scale: 0.9 }}
-          className="relative w-11 h-11 rounded-2xl neumorphic-raised flex items-center justify-center text-foreground/40 hover:text-ctu-gold transition-colors active:neumorphic-pressed"
-        >
-          <Bell size={20} />
-          <span className="absolute top-2 right-2 w-3 h-3 bg-ctu-maroon border-2 border-background rounded-full animate-bounce shadow-lg shadow-ctu-maroon/20" />
-        </motion.button>
+        <NotificationCenter />
 
         {/* User Button */}
         <motion.button 

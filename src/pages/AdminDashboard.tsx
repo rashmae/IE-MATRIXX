@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/src/context/AuthContext';
 import { db } from '@/src/lib/firebase';
-import { collection, query, getDocs, orderBy, limit, writeBatch, doc } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, limit, writeBatch, doc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { User as UserType } from '@/src/types/index';
 import { IE_SUBJECTS } from '@/src/lib/constants';
 import Sidebar from '@/src/components/layout/Sidebar';
@@ -78,6 +78,39 @@ export default function AdminDashboard() {
       toast.error('Failed to seed subjects');
     } finally {
       setIsSeeding(false);
+    }
+  };
+
+  const simulateNotification = async () => {
+    if (!profile) return;
+    
+    try {
+      const types: ('info' | 'success' | 'warning' | 'error' | 'announcement')[] = ['info', 'success', 'warning', 'error', 'announcement'];
+      const titles = ['System Alert', 'Course Update', 'Matrix Alert', 'New Resource', 'Study Squad'];
+      const messages = [
+        'The IE Matrix has been updated with new curriculum data.',
+        'IE 311: Production Systems syllabus is now available.',
+        'A new study group for IE 411 has been created.',
+        'You have 3 new peer reviews on your resources.',
+        'AI Lab is now open for semester projects.'
+      ];
+      
+      const randomIndex = Math.floor(Math.random() * titles.length);
+      
+      await addDoc(collection(db, 'notifications'), {
+        userId: profile.uid,
+        title: titles[randomIndex],
+        message: messages[randomIndex],
+        type: types[randomIndex],
+        read: false,
+        createdAt: serverTimestamp(),
+        link: '/bulletin'
+      });
+      
+      toast.success('Simulation: Notification Sent');
+    } catch (error) {
+      console.error("Error simulating notification:", error);
+      toast.error('Failed to simulate notification');
     }
   };
 
@@ -183,6 +216,12 @@ export default function AdminDashboard() {
               className="neumorphic-raised hover:neumorphic-pressed px-6 py-3 rounded-2xl text-ctu-gold font-bold text-xs transition-all disabled:opacity-50"
             >
               {isSeeding ? 'Seeding...' : 'Seed Subjects'}
+            </button>
+            <button 
+              onClick={simulateNotification}
+              className="neumorphic-raised hover:neumorphic-pressed px-6 py-3 rounded-2xl text-ctu-maroon font-bold text-xs transition-all"
+            >
+              Simulate Notify
             </button>
             <button 
               onClick={fetchUsers}

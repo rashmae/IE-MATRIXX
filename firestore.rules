@@ -119,12 +119,30 @@ service cloud.firestore {
              (data.keys().contains('createdAt') ? data.createdAt == request.time : true);
     }
 
+    function isValidNotification(data) {
+      return data.keys().hasAll(['userId', 'title', 'message', 'type', 'read', 'createdAt']) &&
+             data.userId is string &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 255 &&
+             data.message is string && data.message.size() <= 1000 &&
+             data.type in ['info', 'success', 'warning', 'error', 'announcement'] &&
+             data.read is bool &&
+             (request.method == 'create' ? data.createdAt == request.time : true);
+    }
+
     // ===============================================================
     // COLLECTION RULES
     // ===============================================================
 
     match /test/connection {
       allow read: if true;
+    }
+
+    match /notifications/{notificationId} {
+      allow read, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isEmailVerified() && (isAdmin() || incoming().userId == request.auth.uid); // Temporarily allow user to create for demo/testing
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && 
+                       incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
     }
 
     match /studyGroups/{groupId} {
