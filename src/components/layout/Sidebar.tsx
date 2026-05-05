@@ -81,8 +81,8 @@ export default function Sidebar({ user }: SidebarProps) {
             </div>
           </div>
           <span 
-            className="text-xl font-extrabold text-foreground tracking-tighter flex items-center"
-            style={{ height: '32px', width: 'auto', fontFamily: 'system-ui' }}
+            className="text-2xl font-black tracking-tighter flex items-center frosted-header"
+            style={{ height: '36px', width: 'auto' }}
           >
             IE MATRIX
           </span>

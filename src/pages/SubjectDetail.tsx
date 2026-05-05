@@ -71,6 +71,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 
+
 export default function SubjectDetail() {
   const { id } = useParams<{ id: string }>();
   const { profile, isAdmin, loading: authLoading } = useAuth();
@@ -472,7 +473,7 @@ export default function SubjectDetail() {
       <Sidebar user={profile} />
       
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-        {/* Back Button */}
+                {/* Back Button */}
         <button 
           onClick={() => navigate('/catalog')}
           className="flex items-center gap-2 text-foreground/40 hover:text-foreground mb-8 transition-colors group font-bold text-sm uppercase tracking-widest"
@@ -874,27 +875,30 @@ export default function SubjectDetail() {
                 <CardContent className="p-8">
                   {ratings.length > 0 ? (
                     <>
-                      <div className="flex items-center gap-6 mb-8">
-                        <div className="text-5xl font-bold text-foreground">{averageRating}</div>
-                        <div className="flex flex-col">
-                          <div className="flex text-ctu-gold">
-                            {[1, 2, 3, 4, 5].map(i => <Star key={i} size={18} fill={i <= Math.round(Number(averageRating)) ? "currentColor" : "none"} />)}
+                      <div className="flex items-center gap-6 mb-8 shrink-0 min-w-0">
+                        <div className="text-5xl font-bold text-foreground shrink-0">{averageRating}</div>
+                        <div className="flex flex-col min-w-0">
+                          <div className="flex text-ctu-gold shrink-0">
+                            {[1, 2, 3, 4, 5].map(i => <Star key={i} size={18} fill={i <= Math.round(Number(averageRating)) ? "currentColor" : "none"} className="shrink-0" />)}
                           </div>
-                          <span className="text-[10px] text-foreground/40 font-bold uppercase tracking-widest mt-1">Based on {ratings.length} reviews</span>
+                          <span className="text-[10px] text-foreground/40 font-bold uppercase tracking-widest mt-1 truncate">Based on {ratings.length} reviews</span>
                         </div>
                       </div>
                       
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {ratingCounts.map(({ stars, count, percentage }) => (
                           <button 
                             key={stars} 
                             onClick={() => setSelectedStarFilter(selectedStarFilter === stars ? null : stars)}
                             className={cn(
-                              "w-full flex items-center gap-4 text-[10px] font-bold transition-all hover:bg-foreground/5 p-1 rounded-lg",
+                              "w-full flex items-center gap-3 text-[10px] font-bold transition-all hover:bg-foreground/5 p-1 rounded-lg",
                               selectedStarFilter === stars && "bg-ctu-gold/10 text-ctu-gold"
                             )}
                           >
-                            <span className={cn("w-4", selectedStarFilter === stars ? "text-ctu-gold" : "text-foreground/40")}>{stars}</span>
+                            <div className="flex items-center gap-1 shrink-0 w-6">
+                              <span className={cn(selectedStarFilter === stars ? "text-ctu-gold" : "text-foreground/40")}>{stars}</span>
+                              <Star size={8} fill="currentColor" className={cn(selectedStarFilter === stars ? "text-ctu-gold" : "text-foreground/20")} />
+                            </div>
                             <div className="flex-1 h-2 neumorphic-pressed rounded-full overflow-hidden">
                               <div 
                                 className={cn(
@@ -904,7 +908,7 @@ export default function SubjectDetail() {
                                 style={{ width: `${percentage}%` }} 
                               />
                             </div>
-                            <span className={cn("w-10 text-right", selectedStarFilter === stars ? "text-ctu-gold" : "text-foreground/40")}>{Math.round(percentage)}%</span>
+                            <span className={cn("w-8 text-right shrink-0", selectedStarFilter === stars ? "text-ctu-gold" : "text-foreground/40")}>{Math.round(percentage)}%</span>
                           </button>
                         ))}
                       </div>
@@ -931,40 +935,42 @@ export default function SubjectDetail() {
                       )}
                     </div>
 
-                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar overscroll-contain">
                       {filteredRatings.length > 0 ? (
                         filteredRatings.map((review: any) => (
                           <div key={review.id} className="p-4 rounded-2xl neumorphic-pressed space-y-3 group relative">
-                            <div className="flex justify-between items-start">
-                              <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-full neumorphic-raised flex items-center justify-center overflow-hidden bg-background/50">
+                            <div className="flex justify-between items-start gap-4">
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="h-8 w-8 rounded-full neumorphic-raised flex items-center justify-center overflow-hidden bg-background/50 shrink-0">
                                   {review.userAvatar ? (
                                     <img src={review.userAvatar} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
                                   ) : (
                                     <UserIcon size={14} className="text-foreground/20" />
                                   )}
                                 </div>
-                                <div>
-                                  <p className={cn("text-xs font-bold flex items-center gap-2", review.userId === profile.uid ? "text-ctu-gold" : "text-foreground")}>
+                                <div className="min-w-0 flex-1">
+                                  <p className={cn("text-xs font-bold flex items-center gap-2 truncate", review.userId === profile.uid ? "text-ctu-gold" : "text-foreground")}>
                                     {review.userName}
-                                    {review.userId === profile.uid && <span className="text-[8px] uppercase tracking-widest text-ctu-gold/50">(You)</span>}
-                                    {review.isLive && <Badge className="bg-blue-500/10 text-blue-500 border-none text-[8px] px-1.5 py-0 h-4 font-black uppercase">Live</Badge>}
-                                    {review.isImported && <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] px-1.5 py-0 h-4 font-black uppercase">Verified Source</Badge>}
+                                    {review.userId === profile.uid && <span className="text-[8px] uppercase tracking-widest text-ctu-gold/50 shrink-0">(You)</span>}
                                   </p>
-                                  <p className="text-[9px] text-foreground/40 font-bold uppercase tracking-widest">
+                                  <div className="flex flex-wrap gap-1 mt-0.5">
+                                    {review.isLive && <Badge className="bg-blue-500/10 text-blue-500 border-none text-[8px] px-1.5 py-0 h-4 font-black uppercase shrink-0">Live</Badge>}
+                                    {review.isImported && <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] px-1.5 py-0 h-4 font-black uppercase shrink-0">Verified Source</Badge>}
+                                  </div>
+                                  <p className="text-[9px] text-foreground/40 font-bold uppercase tracking-widest mt-0.5">
                                     {(review.createdAt as any)?.toDate ? (review.createdAt as any).toDate().toLocaleDateString() : 'Just now'}
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex text-ctu-gold gap-0.5">
+                              <div className="flex text-ctu-gold gap-0.5 shrink-0">
                                 {[1, 2, 3, 4, 5].map(i => (
-                                  <Star key={i} size={10} fill={i <= review.rating ? "currentColor" : "none"} strokeWidth={3} />
+                                  <Star key={i} size={10} fill={i <= review.rating ? "currentColor" : "none"} strokeWidth={3} className="shrink-0" />
                                 ))}
                               </div>
                             </div>
                             
                             {review.feedback && (
-                              <p className="text-xs text-foreground/70 font-medium leading-relaxed italic">
+                              <p className="text-xs text-foreground/70 font-medium leading-relaxed italic break-words">
                                 "{review.feedback}"
                               </p>
                             )}

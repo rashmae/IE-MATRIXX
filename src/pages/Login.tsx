@@ -60,9 +60,9 @@ export default function Login() {
       return;
     }
 
-    const idRegex = /^(\d{2}-\d{5}-\d{3}|\d{5,10})$/;
+    const idRegex = /^\d{7}$/;
     if (!idRegex.test(idNumber)) {
-      toast.error('Invalid ID format. Use XX-XXXXX-XXX or your 7-digit ID');
+      toast.error('Invalid ID format. Use your 7-digit ID (e.g. 1234567)');
       return;
     }
 
@@ -232,16 +232,43 @@ export default function Login() {
       </div>
 
       {/* Mobile Branding */}
-      <div className="md:hidden pt-12 pb-4 text-center z-10 space-y-4">
-         <h1 className="text-5xl font-display font-black tracking-tighter text-foreground">IE MATRIX</h1>
-         <div className="min-h-[40px] px-4">
+      <div className="md:hidden pt-16 pb-8 text-center z-10 space-y-4 flex flex-col items-center">
+         <motion.div
+           initial={{ opacity: 0, scale: 0.8 }}
+           animate={{ opacity: 1, scale: 1 }}
+           transition={{ 
+             duration: 1, 
+             ease: [0, 0.71, 0.2, 1.01],
+             scale: {
+               type: "spring",
+               damping: 12,
+               stiffness: 100,
+               restDelta: 0.001
+             }
+           }}
+           className="relative"
+         >
+           <div className="absolute inset-0 bg-ctu-gold/20 blur-3xl rounded-full" />
+           <h1 className="text-7xl font-display font-black tracking-[calc(-0.05em)] frosted-header relative z-10 leading-none">
+             IE MATRIX
+           </h1>
+           <motion.div 
+             initial={{ width: 0 }}
+             animate={{ width: "100%" }}
+             transition={{ delay: 0.5, duration: 0.8 }}
+             className="h-1 bg-gradient-to-r from-transparent via-ctu-gold to-transparent mt-2 rounded-full opacity-50"
+           />
+         </motion.div>
+         
+         <div className="min-h-[40px] px-4 mt-2">
             <AnimatePresence mode="wait">
               <motion.div 
                 key={sloganIndex}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.05 }}
-                className="text-[10px] tracking-[0.2em] font-bold text-ctu-gold uppercase"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.5 }}
+                className="text-[11px] tracking-[0.3em] font-black text-ctu-gold/60 uppercase italic"
               >
                 {slogans[sloganIndex]}
               </motion.div>
@@ -275,7 +302,7 @@ export default function Login() {
               <Label htmlFor="fullName" className="text-xs text-foreground/60 font-bold ml-1 uppercase tracking-widest">Full Name</Label>
               <Input 
                 id="fullName"
-                placeholder="Dela Cruz, Juan"
+                placeholder="Juan Dela Cruz"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="bg-background border-2 border-transparent focus:border-ctu-gold/50 neumorphic-pressed h-14 rounded-2xl transition-all font-sans"
@@ -286,7 +313,7 @@ export default function Login() {
               <Label htmlFor="idNumber" className="text-xs text-foreground/60 font-bold ml-1 uppercase tracking-widest">ID Number</Label>
               <Input 
                 id="idNumber"
-                placeholder="XX-XXXXX-XXX"
+                placeholder="1234567"
                 value={idNumber}
                 onChange={(e) => setIdNumber(e.target.value)}
                 className="bg-background border-2 border-transparent focus:border-ctu-gold/50 neumorphic-pressed h-14 rounded-2xl transition-all font-sans"

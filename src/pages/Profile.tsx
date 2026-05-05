@@ -53,6 +53,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
+
 export default function Profile() {
   const { profile: user, loading: authLoading } = useAuth();
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -178,7 +179,7 @@ export default function Profile() {
       <Sidebar user={user} />
       
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-        <div className="mb-12">
+                <div className="mb-12">
           <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Profile</h1>
           <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Manage your account and application settings.</p>
         </div>

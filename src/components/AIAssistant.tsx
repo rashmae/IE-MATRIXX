@@ -13,6 +13,60 @@ type Message = {
   content: string;
 };
 
+const RobotMascot = ({ className, size = 24, glow = true }: { className?: string, size?: number, glow?: boolean }) => (
+  <div className={cn("relative flex items-center justify-center shrink-0", className)} style={{ width: size, height: size }}>
+    <motion.div
+      animate={{ y: [0, -2, 0] }}
+      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+      className="relative w-full h-full"
+    >
+      {/* Robot Head */}
+      <div className="w-full h-full bg-gradient-to-br from-ctu-maroon to-ctu-maroon/80 rounded-[30%] border border-white/10 relative shadow-xl overflow-hidden">
+        {/* Reflection */}
+        <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/10 to-transparent" />
+        
+        {/* Face Panel */}
+        <div className="absolute inset-[20%] bg-black/40 rounded-md flex items-center justify-center gap-[15%]">
+          {/* Eyes */}
+          <motion.div 
+            animate={{ 
+              scaleY: [1, 1, 0.1, 1, 1],
+              backgroundColor: glow ? ["#EAB308", "#EAB308", "#EAB308", "#EAB308", "#EAB308"] : "#EAB308"
+            }} 
+            transition={{ duration: 4, repeat: Infinity, times: [0, 0.45, 0.5, 0.55, 1] }}
+            className={cn(
+              "w-[20%] h-[20%] bg-ctu-gold rounded-full",
+              glow && "shadow-[0_0_8px_rgba(234,179,8,0.8)]"
+            )} 
+          />
+          <motion.div 
+            animate={{ 
+              scaleY: [1, 1, 0.1, 1, 1]
+            }} 
+            transition={{ duration: 4, repeat: Infinity, times: [0, 0.45, 0.5, 0.55, 1] }}
+            className={cn(
+              "w-[20%] h-[20%] bg-ctu-gold rounded-full",
+              glow && "shadow-[0_0_8px_rgba(234,179,8,0.8)]"
+            )} 
+          />
+        </div>
+      </div>
+      
+      {/* Antennas / Ears */}
+      <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-[8%] h-[25%] bg-ctu-gold rounded-full" />
+      <motion.div 
+        animate={{ opacity: [0.5, 1, 0.5] }}
+        transition={{ duration: 2, repeat: Infinity }}
+        className="absolute -top-2 left-1/2 -translate-x-1/2 w-[15%] h-[15%] bg-ctu-gold rounded-full shadow-[0_0_6px_rgba(234,179,8,1)]" 
+      />
+      
+      {/* Side Bolts */}
+      <div className="absolute top-1/2 -left-0.5 -translate-y-1/2 w-[12%] h-[25%] bg-ctu-maroon border border-white/5 rounded-full" />
+      <div className="absolute top-1/2 -right-0.5 -translate-y-1/2 w-[12%] h-[25%] bg-ctu-maroon border border-white/5 rounded-full" />
+    </motion.div>
+  </div>
+);
+
 export default function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -85,9 +139,9 @@ export default function AIAssistant() {
           else setIsOpen(false);
         }}
         aria-label={isOpen ? "Close AI Advisor" : "Open IE Matrix AI Advisor"}
-        className="fixed bottom-24 right-6 lg:bottom-10 lg:right-10 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-ctu-maroon to-ctu-gold shadow-2xl flex items-center justify-center text-white border border-white/20 cursor-grab active:cursor-grabbing touch-none"
+        className="fixed bottom-24 right-6 lg:bottom-10 lg:right-10 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-ctu-maroon to-ctu-gold shadow-2xl flex items-center justify-center text-white border border-white/20 cursor-grab active:cursor-grabbing touch-none overflow-hidden"
       >
-        {isOpen ? <X size={24} /> : <Sparkles size={24} />}
+        {isOpen ? <X size={24} /> : <RobotMascot size={32} />}
       </motion.button>
 
       {/* Chat Panel */}
@@ -104,9 +158,7 @@ export default function AIAssistant() {
           >
             <div className="p-4 border-b border-foreground/5 bg-foreground/[0.02] flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-ctu-gold/20 flex items-center justify-center text-ctu-gold">
-                  <Bot size={20} />
-                </div>
+                <RobotMascot size={32} />
                 <div>
                   <h3 className="text-sm font-bold text-foreground">IE Matrix AI Advisor</h3>
                   <p className="text-[10px] text-foreground/40 uppercase tracking-widest">Powered by Gemini</p>
@@ -169,7 +221,7 @@ export default function AIAssistant() {
               
               {messages.length === 0 && !loading && (
                 <div className="flex flex-col items-center justify-center py-10 text-center opacity-40">
-                  <Bot size={32} className="mb-2" />
+                  <RobotMascot size={48} className="mb-2" />
                   <p className="text-[10px] font-bold uppercase tracking-widest">No messages yet</p>
                 </div>
               )}

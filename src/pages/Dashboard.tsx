@@ -35,6 +35,8 @@ import { cn } from '@/lib/utils';
 import { BrainCircuit } from 'lucide-react';
 import { toast } from 'sonner';
 
+import MobileHeader from '@/src/components/layout/MobileHeader';
+
 export default function Dashboard() {
   const { profile, loading: authLoading } = useAuth();
   const { progressMap, loading: progressLoading } = useProgress();
@@ -158,6 +160,8 @@ export default function Dashboard() {
       <Sidebar user={profile} />
       
       <main id="main-content" className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+        <MobileHeader />
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
           <motion.div

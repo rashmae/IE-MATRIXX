@@ -315,7 +315,10 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
 
         {/* Chat Area */}
         <div className="flex-1 flex flex-col bg-background relative overflow-hidden">
-          <ScrollArea ref={scrollRef} className="flex-1 p-8 pb-32">
+          <div 
+            ref={scrollRef} 
+            className="flex-1 p-4 sm:p-8 overflow-y-auto overscroll-contain custom-scrollbar scroll-smooth"
+          >
             <div className="max-w-3xl mx-auto space-y-8">
               {messages.length === 0 && (
                 <div className="text-center py-24 space-y-6">
@@ -339,7 +342,7 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
                         key={suggest}
                         variant="outline" 
                         onClick={() => setChatInput(suggest)}
-                        className="rounded-3xl border-foreground/10 hover:bg-ctu-gold/5 hover:text-ctu-gold text-xs font-bold uppercase tracking-widest px-6"
+                        className="h-auto py-2.5 rounded-3xl border-foreground/10 hover:bg-ctu-gold/5 hover:text-ctu-gold text-[10px] font-bold uppercase tracking-widest px-4 sm:px-6 tap-target whitespace-normal text-center max-w-[200px]"
                       >
                         {suggest}
                       </Button>
@@ -354,7 +357,7 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={cn(
-                    "flex flex-col gap-2 max-w-[85%] sm:max-w-[75%]",
+                    "flex flex-col gap-2 max-w-[90%] sm:max-w-[75%]",
                     message.role === 'user' ? "ml-auto items-end" : "mr-auto items-start"
                   )}
                 >
@@ -375,7 +378,7 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
                   </div>
 
                   <div className={cn(
-                    "p-5 rounded-[2rem] border overflow-hidden shadow-sm transition-all",
+                    "p-3 sm:p-5 rounded-2xl sm:rounded-[2rem] border overflow-hidden shadow-sm transition-all",
                     message.role === 'user' 
                       ? "bg-ctu-maroon text-white border-ctu-maroon/20 rounded-tr-none neumorphic-raised" 
                       : "bg-background text-foreground border-foreground/10 rounded-tl-none neumorphic-card"
@@ -411,11 +414,11 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
               ))}
 
               {isChatLoading && (
-                <div className="flex gap-4">
-                  <div className="w-8 h-8 rounded-xl bg-ctu-gold/10 flex items-center justify-center text-ctu-gold animate-spin">
-                    <Loader2 size={16} />
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-xl bg-ctu-gold/10 flex items-center justify-center text-ctu-gold shrink-0">
+                    <Loader2 size={16} className="animate-spin" />
                   </div>
-                  <div className="flex gap-1 items-center mt-2">
+                  <div className="flex gap-1 items-center mt-3">
                     <div className="w-1.5 h-1.5 bg-foreground/20 rounded-full animate-bounce [animation-delay:-0.3s]" />
                     <div className="w-1.5 h-1.5 bg-foreground/20 rounded-full animate-bounce [animation-delay:-0.15s]" />
                     <div className="w-1.5 h-1.5 bg-foreground/20 rounded-full animate-bounce" />
@@ -423,33 +426,34 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Chat Input Fix */}
-          <div className="absolute bottom-10 left-0 right-0 p-8 pt-0 pointer-events-none">
-            <div className="max-w-3xl mx-auto pointer-events-auto">
+          <div className="shrink-0 p-4 sm:p-8 pt-0 border-t border-foreground/5 bg-background sticky bottom-0 z-20">
+            <div className="max-w-3xl mx-auto">
               <form 
                 onSubmit={handleSendMessage}
-                className="relative group neumorphic-raised rounded-[36px] bg-background p-2 pr-4 shadow-2xl"
+                className="relative group neumorphic-raised rounded-2xl sm:rounded-[36px] bg-background p-1.5 sm:p-2 pr-2 sm:pr-4 shadow-2xl"
               >
-                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-foreground/20 group-focus-within:text-ctu-gold transition-colors">
-                  <Sparkles size={20} />
+                <div className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 text-foreground/20 group-focus-within:text-ctu-gold transition-colors">
+                  <Sparkles size={18} className="sm:size-5" />
                 </div>
                 <Input 
-                  placeholder="Ask a question about your sources..." 
+                  placeholder="Ask a question..." 
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  className="bg-transparent border-none h-16 pl-14 pr-16 focus-visible:ring-0 text-foreground placeholder:text-foreground/20 font-medium"
+                  className="bg-transparent border-none h-12 sm:h-16 pl-10 sm:pl-14 pr-12 sm:pr-16 focus-visible:ring-0 text-foreground placeholder:text-foreground/20 text-sm font-medium"
                 />
                 <Button 
                   type="submit"
                   disabled={isChatLoading || !chatInput.trim()}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-ctu-maroon hover:bg-ctu-maroon/90 text-white shadow-lg transition-all active:scale-90 disabled:opacity-50"
+                  size="icon"
+                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 h-8 sm:h-12 w-8 sm:w-12 rounded-full bg-ctu-maroon hover:bg-ctu-maroon/90 text-white shadow-lg transition-all active:scale-90 disabled:opacity-50"
                 >
-                  <Send size={20} />
+                  <Send size={16} className="sm:size-5" />
                 </Button>
               </form>
-              <p className="text-[9px] text-center text-foreground/20 font-bold uppercase tracking-[3px] mt-4">
+              <p className="text-[8px] sm:text-[9px] text-center text-foreground/20 font-bold uppercase tracking-[2px] sm:tracking-[3px] mt-3 sm:mt-4 pb-safe">
                 Answers generated using notebook context
               </p>
             </div>

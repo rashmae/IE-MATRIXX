@@ -21,6 +21,7 @@ import {
   Info,
   X,
   ChevronLeft,
+  ChevronUp,
   Flag,
   Trash2,
   AlertTriangle,
@@ -28,7 +29,8 @@ import {
   MoreVertical,
   FolderOpen,
   Maximize,
-  Zap
+  Zap,
+  Target
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
@@ -68,6 +70,7 @@ import ReactMarkdown from 'react-markdown';
 // Session Types
 type Flashcard = { front: string; back: string };
 type QuizQuestion = { question: string; options: string[]; answerIndex: number; explanation: string };
+
 
 export default function StudyTools() {
   const { profile: user, loading: authLoading } = useAuth();
@@ -839,21 +842,25 @@ export default function StudyTools() {
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
       <Sidebar user={user} />
       
-      <main className="flex-1 p-3 sm:p-6 lg:p-10 pb-40 lg:pb-10 pb-safe overflow-x-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-6 mb-6 lg:mb-12">
-            <div>
-              <h1 className="text-2xl sm:text-5xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-1 flex items-center flex-wrap gap-2 sm:gap-4 uppercase">
-                Study HUB <Sparkles className="text-ctu-gold shrink-0 scale-90 sm:scale-125" size={24} />
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 pb-safe overflow-x-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 mb-8 lg:mb-16">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2 flex items-center flex-wrap gap-2 sm:gap-4">
+                Study Hub <Sparkles className="text-ctu-gold shrink-0 sm:size-20" size={24} />
               </h1>
-              <p className="text-[9px] sm:text-sm md:text-xl text-foreground/40 mt-1 sm:mt-3 font-medium tracking-tight uppercase">
+              <p className="text-[10px] sm:text-sm md:text-xl text-foreground/40 mt-2 sm:mt-4 font-bold tracking-widest uppercase max-w-2xl">
                 Elevate your learning with AI guidance and community support.
               </p>
-            </div>
+            </motion.div>
         </div>
 
-        <Tabs defaultValue="advisor" value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-10">
-          <div className="sticky top-0 z-30 -mx-3 sm:-mx-6 px-3 sm:px-6 py-3 bg-background/95 backdrop-blur-2xl overflow-x-auto no-scrollbar border-b border-foreground/5 shadow-sm">
-            <TabsList className="bg-transparent h-auto p-0 gap-2 inline-flex min-w-max pb-1">
+        <Tabs defaultValue="advisor" value={activeTab} onValueChange={setActiveTab} className="space-y-6 sm:space-y-12">
+          <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 px-4 sm:px-6 py-4 bg-background/90 backdrop-blur-3xl overflow-x-auto no-scrollbar border-b border-foreground/5 shadow-md">
+            <TabsList className="bg-transparent h-auto p-0 gap-2.5 inline-flex min-w-max">
               {[
                 { id: 'advisor', icon: BrainCircuit, label: 'Advisor' },
                 { id: 'map', icon: Layers, label: 'Matrix' },
@@ -867,20 +874,14 @@ export default function StudyTools() {
                   key={tab.id}
                   value={tab.id}
                   className={cn(
-                    "relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap tap-target border border-transparent shadow-sm",
+                    "relative flex items-center gap-2.5 px-5 py-3 rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap tap-target border border-transparent",
                     activeTab === tab.id 
-                      ? "bg-gradient-to-br from-ctu-maroon to-ctu-gold text-white shadow-xl shadow-ctu-gold/30 scale-[1.05]" 
-                      : "bg-foreground/5 text-foreground/40 hover:bg-foreground/10 hover:text-foreground/70 neumorphic-raised"
+                      ? "bg-ctu-maroon text-white shadow-xl shadow-ctu-maroon/20 scale-[1.05]" 
+                      : "bg-background/50 text-foreground/40 hover:bg-foreground/10 hover:text-foreground/70 neumorphic-raised border-foreground/5"
                   )}
                 >
-                  <tab.icon size={14} />
+                  <tab.icon size={16} />
                   <span>{tab.label}</span>
-                  {activeTab === tab.id && (
-                    <motion.div 
-                      layoutId="tab-underline"
-                      className="absolute -bottom-1 left-4 right-4 h-0.5 rounded-full bg-white/50" 
-                    />
-                  )}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -894,72 +895,77 @@ export default function StudyTools() {
               transition={{ duration: 0.3 }}
             >
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  <GlowCard className="lg:col-span-2 p-4 sm:p-8 overflow-visible" glowColor="orange">
-                        <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 mb-4 sm:mb-10">
-                          <div className="text-center sm:text-left">
-                            <h2 className="text-xl sm:text-4xl font-display font-black flex items-center flex-wrap gap-2 sm:gap-3 tracking-tight justify-center sm:justify-start">
-                               Roadmap <TrendingUp className="text-ctu-gold animate-bounce" size={20} />
-                            </h2>
-                            <p className="text-[10px] sm:text-base text-foreground/40 mt-1 font-medium">AI-generated sequence based on your IE data.</p>
-                          </div>
-                          <div className="flex gap-2 w-full sm:w-auto">
-                            <Button 
-                              onClick={() => setIsAdvisorChatOpen(true)}
-                              className="flex-1 neumorphic-raised text-ctu-gold font-black uppercase tracking-wider border-none h-11 sm:h-12 rounded-xl text-[9px] sm:text-[10px] hover:scale-[1.02] active:scale-95 transition-all"
-                            >
-                               Adviser
-                            </Button>
-                            <Button 
-                              onClick={handleGenerateRoadmap} 
-                              disabled={isGenerating}
-                              className="flex-1 bg-ctu-gold text-white font-black uppercase tracking-wider rounded-xl px-4 h-11 sm:h-12 text-[9px] sm:text-[10px] shadow-xl shadow-ctu-gold/20 hover:scale-[1.05] active:scale-95 transition-all"
-                            >
-                              {isGenerating ? "Compiling..." : "Generate"}
-                            </Button>
+                  <GlowCard className="lg:col-span-2 p-4 sm:p-8" glowColor="orange">
+                        <div className="flex flex-col gap-6 mb-8 sm:mb-10">
+                          <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
+                            <div className="text-center sm:text-left">
+                              <h2 className="text-2xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-2 sm:gap-3 justify-center sm:justify-start">
+                                 Roadmap <TrendingUp className="text-ctu-gold animate-bounce" size={24} />
+                              </h2>
+                              <p className="text-xs sm:text-base text-foreground/40 mt-1 font-medium italic">AI-generated sequence based on your IE data.</p>
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                              <Button 
+                                onClick={() => setIsAdvisorChatOpen(true)}
+                                className="neumorphic-raised text-ctu-gold font-black uppercase tracking-wider border-none h-12 rounded-xl text-[10px] hover:scale-[1.02] active:scale-95 transition-all w-full sm:w-32"
+                              >
+                                 Advisor
+                              </Button>
+                              <Button 
+                                onClick={handleGenerateRoadmap} 
+                                disabled={isGenerating}
+                                className="bg-ctu-gold text-white font-black uppercase tracking-wider rounded-xl px-4 h-12 text-[10px] shadow-xl shadow-ctu-gold/20 hover:scale-[1.05] active:scale-95 transition-all w-full sm:w-32"
+                              >
+                                 {isGenerating ? "Processing..." : "Generate"}
+                              </Button>
+                            </div>
                           </div>
                         </div>
 
                     <div className="space-y-0 relative">
                       {roadmap.length > 0 ? (
-                          <div className="mt-4 sm:mt-8 space-y-4 sm:space-y-8">
-                            <div className="flex flex-col gap-3 mb-4 sm:mb-8 p-3 sm:p-4 rounded-2xl bg-foreground/5 neumorphic-pressed">
-                              <div className="flex items-center gap-2">
-                                <Filter size={12} className="text-ctu-gold" />
-                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/40">Filters</span>
+                          <div className="mt-4 sm:mt-8 space-y-6 sm:space-y-12">
+                            <div className="flex flex-col gap-4 mb-6 sm:mb-10 p-4 sm:p-6 rounded-[2rem] bg-foreground/[0.03] neumorphic-pressed border border-foreground/5 overflow-hidden relative">
+                              <div className="absolute top-0 right-0 w-32 h-32 bg-ctu-gold/5 blur-3xl rounded-full" />
+                              <div className="flex items-center gap-3 relative z-10">
+                                <div className="w-8 h-8 rounded-full bg-ctu-gold/20 flex items-center justify-center text-ctu-gold">
+                                  <Filter size={14} />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/60 italic">Matrix Filters</span>
                               </div>
-                              <div className="grid grid-cols-2 lg:flex lg:flex-wrap gap-2">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-3 relative z-10">
                                 <Select value={roadmapStatusFilter} onValueChange={setRoadmapStatusFilter}>
-                                  <SelectTrigger className="h-10 rounded-xl bg-background neumorphic-raised border-none text-[8px] sm:text-[9px] font-black uppercase tracking-widest">
+                                  <SelectTrigger className="h-12 rounded-xl bg-background/80 backdrop-blur-sm neumorphic-raised border-none text-[9px] font-black uppercase tracking-widest px-4 active:neumorphic-pressed transition-all">
                                     <SelectValue placeholder="Status" />
                                   </SelectTrigger>
-                                  <SelectContent className="rounded-2xl border-none shadow-2xl bg-background/95 backdrop-blur-xl">
-                                    <SelectItem value="all" className="text-[10px] font-bold uppercase py-3">All Status</SelectItem>
-                                    <SelectItem value="todo" className="text-[10px] font-bold uppercase py-3">To Do</SelectItem>
-                                    <SelectItem value="in_progress" className="text-[10px] font-bold uppercase py-3">In Progress</SelectItem>
-                                    <SelectItem value="done" className="text-[10px] font-bold uppercase py-3">Done</SelectItem>
+                                  <SelectContent className="rounded-2xl border border-foreground/5 shadow-2xl bg-background/98 backdrop-blur-3xl">
+                                    <SelectItem value="all" className="text-[10px] font-bold uppercase py-3 cursor-pointer">All Operational States</SelectItem>
+                                    <SelectItem value="todo" className="text-[10px] font-bold uppercase py-3 cursor-pointer">Pending Execution</SelectItem>
+                                    <SelectItem value="in_progress" className="text-[10px] font-bold uppercase py-3 cursor-pointer">Active Processing</SelectItem>
+                                    <SelectItem value="done" className="text-[10px] font-bold uppercase py-3 cursor-pointer">Task Terminated</SelectItem>
                                   </SelectContent>
                                 </Select>
 
                                 <Select value={roadmapPriorityFilter} onValueChange={setRoadmapPriorityFilter}>
-                                  <SelectTrigger className="h-10 rounded-xl bg-background neumorphic-raised border-none text-[8px] sm:text-[9px] font-black uppercase tracking-widest">
+                                  <SelectTrigger className="h-12 rounded-xl bg-background/80 backdrop-blur-sm neumorphic-raised border-none text-[9px] font-black uppercase tracking-widest px-4 active:neumorphic-pressed transition-all">
                                     <SelectValue placeholder="Priority" />
                                   </SelectTrigger>
-                                  <SelectContent className="rounded-2xl border-none shadow-2xl bg-background/95 backdrop-blur-xl">
-                                    <SelectItem value="all" className="text-[10px] font-bold uppercase py-3">All Priority</SelectItem>
-                                    <SelectItem value="high" className="text-[10px] font-bold uppercase py-3">High</SelectItem>
-                                    <SelectItem value="medium" className="text-[10px] font-bold uppercase py-3">Medium</SelectItem>
-                                    <SelectItem value="low" className="text-[10px] font-bold uppercase py-3">Low</SelectItem>
+                                  <SelectContent className="rounded-2xl border border-foreground/5 shadow-2xl bg-background/98 backdrop-blur-3xl">
+                                    <SelectItem value="all" className="text-[10px] font-bold uppercase py-3 cursor-pointer">Unfiltered Priority</SelectItem>
+                                    <SelectItem value="high" className="text-[10px] font-bold uppercase py-3 cursor-pointer">Critical Path</SelectItem>
+                                    <SelectItem value="medium" className="text-[10px] font-bold uppercase py-3 cursor-pointer">Sub-Critical</SelectItem>
+                                    <SelectItem value="low" className="text-[10px] font-bold uppercase py-3 cursor-pointer">Standard Cycle</SelectItem>
                                   </SelectContent>
                                 </Select>
 
                                 <Select value={roadmapSortBy} onValueChange={setRoadmapSortBy}>
-                                  <SelectTrigger className="h-10 rounded-xl bg-background neumorphic-raised border-none text-[8px] sm:text-[9px] font-black uppercase tracking-widest">
+                                  <SelectTrigger className="h-12 rounded-xl bg-background/80 backdrop-blur-sm neumorphic-raised border-none text-[9px] font-black uppercase tracking-widest px-4 active:neumorphic-pressed transition-all">
                                     <SelectValue placeholder="Sort" />
                                   </SelectTrigger>
-                                  <SelectContent className="rounded-2xl border-none shadow-2xl bg-background/95 backdrop-blur-xl">
-                                    <SelectItem value="order" className="text-[10px] font-bold uppercase py-3">Original Order</SelectItem>
-                                    <SelectItem value="priority" className="text-[10px] font-bold uppercase py-3">By Priority</SelectItem>
-                                    <SelectItem value="difficulty" className="text-[10px] font-bold uppercase py-3">By Difficulty</SelectItem>
+                                  <SelectContent className="rounded-2xl border border-foreground/5 shadow-2xl bg-background/98 backdrop-blur-3xl">
+                                    <SelectItem value="order" className="text-[10px] font-bold uppercase py-3 cursor-pointer">Matrix Sequence</SelectItem>
+                                    <SelectItem value="priority" className="text-[10px] font-bold uppercase py-3 cursor-pointer">Priority Hierarchy</SelectItem>
+                                    <SelectItem value="difficulty" className="text-[10px] font-bold uppercase py-3 cursor-pointer">Difficulty Grading</SelectItem>
                                   </SelectContent>
                                 </Select>
 
@@ -1043,67 +1049,75 @@ export default function StudyTools() {
                                             </div>
                                           </div>
 
-                                          <div className="grid grid-cols-2 sm:flex items-center sm:items-end justify-center sm:justify-end gap-2 shrink-0">
-                                            <Select 
-                                              value={step.status} 
-                                              onValueChange={(val) => updateRoadmapStep(step.originalIndex, { status: val })}
-                                            >
-                                              <SelectTrigger className="w-full sm:w-[110px] h-10 sm:h-9 rounded-xl bg-foreground/5 border-none text-[8px] sm:text-[9px] font-black uppercase tracking-widest">
-                                                <SelectValue />
-                                              </SelectTrigger>
-                                              <SelectContent className="rounded-xl border-none shadow-xl">
-                                                <SelectItem value="todo">To Do</SelectItem>
-                                                <SelectItem value="in_progress">In Progress</SelectItem>
-                                                <SelectItem value="done">Done</SelectItem>
-                                              </SelectContent>
-                                            </Select>
+                                          <div className="flex flex-col xs:flex-row items-center gap-3 w-full xl:w-auto shrink-0 mt-4 xl:mt-0">
+                                            <div className="w-full xs:w-auto space-y-1">
+                                              <span className="text-[8px] font-black uppercase tracking-widest text-foreground/20 px-1">Sync Status</span>
+                                              <Select 
+                                                value={step.status} 
+                                                onValueChange={(val) => updateRoadmapStep(step.originalIndex, { status: val })}
+                                              >
+                                                <SelectTrigger className="w-full xs:w-[130px] h-12 rounded-xl bg-background/50 border-none text-[9px] sm:text-[10px] font-black uppercase tracking-widest neumorphic-raised active:neumorphic-pressed transition-all">
+                                                  <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent className="rounded-xl border border-foreground/5 shadow-2xl bg-background">
+                                                  <SelectItem value="todo" className="text-[10px] font-bold uppercase py-3">Pending</SelectItem>
+                                                  <SelectItem value="in_progress" className="text-[10px] font-bold uppercase py-3">In Sync</SelectItem>
+                                                  <SelectItem value="done" className="text-[10px] font-bold uppercase py-3">Complete</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
 
-                                            <Select 
-                                              value={step.priority} 
-                                              onValueChange={(val) => updateRoadmapStep(step.originalIndex, { priority: val })}
-                                            >
-                                              <SelectTrigger className="w-full sm:w-[110px] h-10 sm:h-9 rounded-xl bg-foreground/5 border-none text-[8px] sm:text-[9px] font-black uppercase tracking-widest">
-                                                <SelectValue />
-                                              </SelectTrigger>
-                                              <SelectContent className="rounded-xl border-none shadow-xl">
-                                                <SelectItem value="high">High Priority</SelectItem>
-                                                <SelectItem value="medium">Mid Priority</SelectItem>
-                                                <SelectItem value="low">Low Priority</SelectItem>
-                                              </SelectContent>
-                                            </Select>
+                                            <div className="w-full xs:w-auto space-y-1">
+                                              <span className="text-[8px] font-black uppercase tracking-widest text-foreground/20 px-1">Priority</span>
+                                              <Select 
+                                                value={step.priority} 
+                                                onValueChange={(val) => updateRoadmapStep(step.originalIndex, { priority: val })}
+                                              >
+                                                <SelectTrigger className="w-full xs:w-[130px] h-12 rounded-xl bg-background/50 border-none text-[9px] sm:text-[10px] font-black uppercase tracking-widest neumorphic-raised active:neumorphic-pressed transition-all">
+                                                  <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent className="rounded-xl border border-foreground/5 shadow-2xl bg-background">
+                                                  <SelectItem value="high" className="text-[10px] font-bold uppercase py-3">Critical</SelectItem>
+                                                  <SelectItem value="medium" className="text-[10px] font-bold uppercase py-3">Medium</SelectItem>
+                                                  <SelectItem value="low" className="text-[10px] font-bold uppercase py-3">Minor</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
                                           </div>
                                         </div>
-                                        <p className="text-[11px] sm:text-base text-foreground/60 leading-relaxed mb-4 sm:mb-6 font-medium max-w-2xl">{step.description}</p>
+                                        <div className="bg-foreground/[0.01] p-4 sm:p-0 rounded-2xl sm:bg-transparent mt-6 sm:mt-0">
+                                          <p className="text-[11px] sm:text-[15px] text-foreground/60 leading-relaxed font-bold italic tracking-tight max-w-2xl mx-auto sm:mx-0">{step.description}</p>
+                                        </div>
                                         
                                         {step.breakdown && step.breakdown.length > 0 && (
-                                          <div className="mb-4 sm:mb-8 space-y-2 sm:space-y-3 bg-foreground/5 p-3 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-white/5">
-                                            <h6 className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-ctu-gold flex items-center gap-2 mb-2 sm:mb-4">
-                                              <Layers size={12} className="sm:size-4" /> Requirements
+                                          <div className="mb-6 sm:mb-12 space-y-4 sm:space-y-6 bg-foreground/[0.02] p-5 sm:p-10 rounded-[2rem] sm:rounded-[3.5rem] border border-foreground/10 shadow-inner">
+                                            <h6 className="text-[8px] sm:text-[11px] font-black uppercase tracking-[0.3em] text-ctu-maroon flex items-center gap-3 mb-2 sm:mb-6">
+                                              <Layers size={14} className="sm:size-5" /> Operational Requirements
                                             </h6>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
                                               {step.breakdown.map((item: string, i: number) => (
-                                                <div key={i} className="flex items-start gap-2 group/item text-left">
-                                                  <div className="w-1 h-1 rounded-full bg-ctu-gold mt-1.5 shrink-0 group-hover/item:scale-150 transition-transform" />
-                                                  <span className="text-[9px] sm:text-xs font-medium text-foreground/70 leading-relaxed">{item}</span>
+                                                <div key={i} className="flex items-start gap-4 group/item text-left">
+                                                  <div className="w-1.5 h-1.5 rounded-full bg-ctu-gold mt-1.5 shrink-0 group-hover/item:scale-150 transition-transform" />
+                                                  <span className="text-[11px] sm:text-sm font-bold text-foreground/70 leading-relaxed tracking-tight">{item}</span>
                                                 </div>
                                               ))}
                                             </div>
                                           </div>
                                         )}
                                         
-                                        <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                                        <div className="flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-3">
                                           {step.subjects?.map((sCode: string) => {
                                             const subjectInfo = getSubjectInfo(sCode);
                                             return (
                                               <Badge 
                                                 key={sCode} 
                                                 onClick={() => navigate(`/catalog/${subjectInfo?.id || sCode.toLowerCase()}`)}
-                                                className="bg-foreground/[0.03] text-foreground/50 hover:bg-ctu-gold hover:text-white transition-all cursor-pointer border border-foreground/5 text-[8px] sm:text-[9px] font-black px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl backdrop-blur-md uppercase tracking-wider flex items-center gap-1.5 sm:gap-2"
+                                                className="bg-background/50 hover:bg-ctu-maroon hover:text-white transition-all cursor-pointer border border-foreground/10 text-[9px] sm:text-[11px] font-black px-4 sm:px-6 py-2 sm:py-3 rounded-2xl backdrop-blur-md uppercase tracking-widest flex items-center gap-2 group/badge shadow-sm"
                                                 title={subjectInfo?.name}
                                               >
-                                                <BookOpen size={10} />
-                                                <span>{subjectInfo ? subjectInfo.code : sCode}</span>
-                                                {subjectInfo && <span className="opacity-40 font-bold ml-1 sm:ml-1.5 border-l border-foreground/10 pl-1 sm:pl-1.5 hidden xs:inline">{subjectInfo.name}</span>}
+                                                <BookOpen size={12} className="group-hover/badge:rotate-12 transition-transform" />
+                                                <span className="text-foreground/80 group-hover:text-white">{subjectInfo ? subjectInfo.code : sCode}</span>
+                                                {subjectInfo && <span className="opacity-40 font-bold ml-2 border-l border-foreground/20 pl-2 hidden xs:inline">{subjectInfo.name}</span>}
                                               </Badge>
                                             );
                                           })}
@@ -1130,7 +1144,7 @@ export default function StudyTools() {
                             )}
                           </div>
                       ) : (
-                        <div className="flex flex-col items-center justify-center py-24 text-center space-y-6">
+                        <div className="flex flex-col items-center justify-center py-10 sm:py-24 text-center space-y-6">
                            <div className="relative">
                              <div className="absolute inset-0 bg-ctu-gold/20 blur-3xl animate-pulse rounded-full" />
                              <BrainCircuit size={64} className="text-ctu-gold relative z-10" />
@@ -1146,54 +1160,47 @@ export default function StudyTools() {
                     </div>
                   </GlowCard>
 
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 items-start">
-                      {/* Current Focus */}
-                      <div className="space-y-4 sm:space-y-6">
-                        <h4 className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-foreground/30 flex items-center gap-2">
-                          <Clock size={12} className="text-ctu-maroon" /> Current Focus
-                        </h4>
-                        {roadmap.length > 0 ? (
-                          <Card 
-                            className="relative p-4 sm:p-6 rounded-2xl sm:rounded-3xl border backdrop-blur-sm overflow-hidden min-h-[120px] sm:min-h-[140px] flex flex-col justify-center cursor-pointer group hover:scale-[1.02] transition-all"
-                            style={{ background: 'linear-gradient(135deg, rgba(var(--color-ctu-gold)/0.05), rgba(var(--color-ctu-maroon)/0.03))' }}
-                            onClick={() => setActiveTab('advisor')}
-                          >
-                            <div className="absolute -right-4 -bottom-4 text-ctu-gold opacity-10 rotate-12 shrink-0 group-hover:scale-110 transition-transform">
-                              <BrainCircuit size={60} className="sm:size-[100px]" />
+                  <div className="flex flex-col gap-6 sm:gap-8">
+                    {/* Current Focus */}
+                    <div className="space-y-4">
+                      <h4 className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-foreground/40 flex items-center gap-3">
+                        <TrendingUp size={16} className="text-ctu-gold" /> Strategic Focus
+                      </h4>
+                      {roadmap.length > 0 ? (
+                        <Card 
+                          className="relative p-6 sm:p-8 rounded-[2rem] border backdrop-blur-md overflow-hidden flex flex-col justify-center cursor-pointer group hover:scale-[1.02] transition-all duration-300 neumorphic-raised border-foreground/5 min-h-[120px]"
+                          style={{ background: 'linear-gradient(135deg, rgba(var(--color-ctu-gold)/0.05), rgba(var(--color-ctu-maroon)/0.02))' }}
+                          onClick={() => setActiveTab('advisor')}
+                        >
+                          <div className="relative z-10 flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-ctu-gold/10 flex items-center justify-center text-ctu-gold shrink-0">
+                              <Target size={24} />
                             </div>
-                            <div className="relative z-10 flex items-start gap-3 sm:gap-4 min-w-0">
-                              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-ctu-gold/10 flex items-center justify-center text-ctu-gold shrink-0">
-                                <TrendingUp size={20} className="sm:size-[24px]" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <h5 className="text-sm sm:text-lg font-bold text-foreground leading-tight line-clamp-2">
-                                  {roadmap[0].subjects?.[0] || 'Curriculum Path'}
-                                </h5>
-                                <p className="text-[9px] sm:text-xs text-foreground/40 mt-1 font-medium line-clamp-1">{roadmap[0].title}</p>
-                              </div>
+                            <div className="min-w-0 flex-1">
+                              <h5 className="text-lg font-black text-foreground leading-none uppercase tracking-tight line-clamp-1 mb-1">
+                                {roadmap[0].subjects?.[0] || 'Path Ready'}
+                              </h5>
+                              <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-widest line-clamp-1">Active Objective</p>
                             </div>
-                          </Card>
-                        ) : (
-                          <div className="neumorphic-pressed rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-center min-h-[120px] sm:min-h-[140px] flex items-center justify-center">
-                            <p className="text-[10px] sm:text-xs text-foreground/40 leading-relaxed font-medium">
-                              Initialization required. Click Analyze to synthesize subject data.
-                            </p>
                           </div>
-                        )}
-                      </div>
+                        </Card>
+                      ) : (
+                        <div className="neumorphic-pressed rounded-[2rem] p-6 text-center border border-dashed border-foreground/10 min-h-[100px] flex items-center justify-center">
+                          <p className="text-[9px] text-foreground/30 font-black uppercase tracking-[0.2em]">Ready for Sync</p>
+                        </div>
+                      )}
+                    </div>
 
-                    <Card className="neumorphic-card border-none p-4 sm:p-6 bg-ctu-maroon/5 border border-ctu-maroon/10">
-                      <h3 className="font-bold text-sm sm:text-base text-foreground mb-2 flex items-center gap-2">
-                        <Info size={14} className="text-ctu-maroon" /> AI Insight
+                    <Card className="neumorphic-card border-none p-5 bg-ctu-maroon/[0.03] border border-ctu-maroon/5 rounded-[2rem] shadow-sm">
+                      <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-ctu-maroon mb-3 flex items-center gap-2">
+                        <BrainCircuit size={14} /> AI Insight
                       </h3>
-                      <p className="text-[10px] sm:text-xs text-foreground/60 leading-relaxed font-medium">
-                        Focus on <b className="text-foreground">IE 311: Production Systems</b> next semester to advance your specialization.
+                      <p className="text-xs text-foreground/60 leading-relaxed font-bold italic">
+                        Focus on <b className="text-ctu-maroon">IE 311: Production Systems</b> next semester to advance your specialization path.
                       </p>
                     </Card>
                   </div>
                 </div>
-              </div>
             </motion.div>
           </TabsContent>
 
@@ -1205,28 +1212,36 @@ export default function StudyTools() {
             >
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 mb-8 sm:mb-12">
                   <div>
-                    <h2 className="text-2xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2">
-                       Matrix Map
+                    <h2 className="text-2xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
+                       Matrix Map <Layers size={24} className="text-ctu-gold sm:size-20 shrink-0" />
                     </h2>
-                    <p className="text-[10px] sm:text-base md:text-xl text-foreground/40 font-medium mt-1 sm:mt-2 tracking-tight">Interactive dependency graph of the IE curriculum.</p>
+                    <p className="text-sm sm:text-base md:text-xl text-foreground/40 font-medium mt-1 sm:mt-2 tracking-tight">Interactive dependency graph of the IE curriculum.</p>
                   </div>
-                  <Button variant="outline" className="h-10 sm:h-12 rounded-xl border-none neumorphic-raised text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-ctu-gold w-full md:w-auto">
-                    <Maximize size={16} className="mr-2" /> Expand Data Map
+                  <Button 
+                    variant="outline" 
+                    className="h-12 sm:h-14 rounded-2xl border-none neumorphic-raised text-[10px] font-black uppercase tracking-widest text-ctu-gold w-full md:w-auto shadow-lg hover:bg-ctu-gold hover:text-white transition-all active:neumorphic-pressed"
+                    onClick={() => navigate('/catalog')}
+                  >
+                    <Maximize size={18} className="mr-2" /> Browse Full Matrix
                   </Button>
                 </div>
-                <GlowCard className="p-4 sm:p-10 flex flex-col gap-4 sm:gap-8 relative overflow-hidden" glowColor="blue">
-                  <div className="relative z-20 text-left px-2">
-                    <h2 className="text-2xl sm:text-4xl font-display font-black mb-2 tracking-tight">Academic Matrix Map</h2>
-                    <p className="text-sm text-foreground/40 max-w-xs sm:max-w-sm font-medium">
+                <GlowCard className="p-4 sm:p-10 flex flex-col gap-8 relative overflow-hidden" glowColor="blue">
+                  <div className="relative z-20 text-center sm:text-left px-2 mb-4">
+                    <h2 className="text-2xl sm:text-4xl md:text-5xl font-display font-black mb-2 tracking-tight uppercase">Academic Matrix Map</h2>
+                    <p className="text-xs sm:text-base text-foreground/40 max-w-sm font-medium mx-auto sm:mx-0">
                       Visualizing the flow of Industrial Engineering subjects from fundamentals to specialization.
                     </p>
                   </div>
 
-                  <div className="w-full flex flex-col items-center gap-12 relative z-10">
+                  <div className="w-full flex flex-col items-center gap-12 sm:gap-20 relative z-10">
                     {/* Visualizing Year Progress */}
                     {['1st', '2nd', '3rd', '4th'].map((year, yIdx) => (
-                      <div key={year} className="w-full flex flex-col items-center gap-6">
-                        <div className="flex flex-wrap justify-center gap-3 sm:gap-6 w-full">
+                      <div key={year} className="w-full flex flex-col items-center gap-8 sm:gap-12">
+                        <div className="w-full text-center">
+                          <h4 className="text-[10px] sm:text-xs font-black uppercase tracking-[0.5em] text-foreground/20 mb-3">{year} Year Matrix Status</h4>
+                          <div className="h-0.5 w-16 bg-ctu-gold/30 mx-auto rounded-full" />
+                        </div>
+                        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 w-full max-w-6xl">
                           {IE_SUBJECTS.filter(s => s.yearLevel === year).slice(0, 4).map((subject) => {
                             const isDone = progressMap[subject.id]?.status === 'done';
                             const isPrep = progressMap[subject.id]?.status === 'in_progress';
@@ -1235,38 +1250,55 @@ export default function StudyTools() {
                               <div 
                                 key={subject.id}
                                 className={cn(
-                                  "w-full max-w-[180px] p-3 sm:p-4 rounded-2xl transition-all border flex flex-col justify-between min-h-[100px] cursor-pointer",
-                                  isDone ? "bg-emerald-500/10 border-emerald-500/20" : 
-                                  isPrep ? "bg-ctu-gold/10 border-ctu-gold/20" : "bg-background neumorphic-raised border-foreground/5 shadow-sm"
+                                  "w-full p-6 sm:p-8 rounded-[2rem] transition-all border flex flex-col justify-between min-h-[160px] cursor-pointer group relative overflow-hidden",
+                                  isDone ? "bg-emerald-500/[0.03] border-emerald-500/20 shadow-lg" : 
+                                  isPrep ? "bg-ctu-gold/[0.03] border-ctu-gold/20 shadow-lg" : "bg-background neumorphic-raised border-foreground/5 shadow-sm hover:shadow-xl"
                                 )}
                                 onClick={() => navigate(`/catalog/${subject.id}`)}
                               >
-                                <div>
-                                  <div className="flex justify-between items-center mb-2">
+                                <div className="absolute -right-4 -top-4 w-16 h-16 bg-foreground/[0.02] rounded-full group-hover:scale-150 transition-transform" />
+                                
+                                <div className="relative z-10">
+                                  <div className="flex justify-between items-center mb-4">
                                     <span className={cn(
-                                      "text-[8px] font-black uppercase",
-                                      isDone ? "text-emerald-500" : isPrep ? "text-ctu-gold" : "text-foreground/30"
+                                      "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-foreground/[0.03]",
+                                      isDone ? "text-emerald-500" : isPrep ? "text-ctu-gold" : "text-foreground/20"
                                     )}>
                                       {subject.code}
                                     </span>
-                                    {isDone && <Award size={12} className="text-emerald-500" />}
+                                    {isDone && <Award size={18} className="text-emerald-500" />}
                                   </div>
-                                  <h5 className="text-[11px] sm:text-xs font-bold leading-tight text-clamp-1">{subject.name}</h5>
+                                  <h5 className={cn(
+                                    "text-base sm:text-lg font-black leading-[1.2] uppercase tracking-tighter line-clamp-2 transition-colors",
+                                    isDone ? "text-emerald-500/80" : isPrep ? "text-ctu-gold" : "text-foreground group-hover:text-ctu-gold"
+                                  )}>
+                                    {subject.name}
+                                  </h5>
                                 </div>
-                                <Progress value={isDone ? 100 : isPrep ? 40 : 0} className="h-1 mt-3" />
+                                <div className="mt-8 relative z-10">
+                                  <div className="flex justify-between items-end mb-2">
+                                    <span className="text-[8px] font-black uppercase text-foreground/20 tracking-widest">Mastery</span>
+                                    <span className="text-[10px] font-black text-foreground/40">{isDone ? '100%' : isPrep ? '40%' : '0%'}</span>
+                                  </div>
+                                  <Progress value={isDone ? 100 : isPrep ? 40 : 0} className={cn(
+                                    "h-2 rounded-full",
+                                    isDone ? "bg-emerald-500/10 [&>div]:bg-emerald-500" : isPrep ? "bg-ctu-gold/10 [&>div]:bg-ctu-gold" : "bg-foreground/5 [&>div]:bg-foreground/10"
+                                  )} />
+                                </div>
                               </div>
                             );
                           })}
                         </div>
                         {yIdx < 3 && (
-                          <div className="flex flex-col items-center py-4">
+                          <div className="flex flex-col items-center py-6">
                             <motion.div
                               initial={{ scaleY: 0 }}
                               whileInView={{ scaleY: 1 }}
-                              transition={{ duration: 0.8, ease: "easeOut" }}
-                              className="w-0.5 h-12 bg-gradient-to-b from-ctu-gold/60 to-ctu-maroon/20 origin-top"
-                            />
-                            <div className="w-2 h-2 rounded-full bg-ctu-gold animate-pulse" />
+                              transition={{ duration: 1.2, ease: "easeInOut" }}
+                              className="w-1 h-16 sm:h-24 bg-gradient-to-b from-ctu-gold via-ctu-maroon to-transparent origin-top rounded-full relative"
+                            >
+                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-ctu-maroon blur-sm animate-ping" />
+                            </motion.div>
                           </div>
                         )}
                       </div>
@@ -1276,25 +1308,25 @@ export default function StudyTools() {
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="groups" className="mt-0 space-y-6 sm:space-y-12 outline-none">
+          <TabsContent value="groups" className="mt-0 space-y-8 sm:space-y-16 outline-none">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-8">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 sm:gap-10">
                   <div>
-                    <h2 className="text-xl sm:text-5xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 flex items-center gap-2 uppercase">
-                       Active Squads <Users size={20} className="text-ctu-gold sm:size-16" />
+                    <h2 className="text-2xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
+                       Active Squads <Users size={24} className="text-ctu-gold sm:size-20 shrink-0" />
                     </h2>
-                    <p className="text-[10px] sm:text-xl text-foreground/40 font-medium mt-1 tracking-tight uppercase">Peer-to-peer intelligence networks.</p>
+                    <p className="text-sm sm:text-base md:text-xl text-foreground/40 font-medium mt-1 sm:mt-2 tracking-tight">Peer-to-peer intelligence networks and collaborative study groups.</p>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                    <div className="relative w-full md:w-72">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/20" size={14} />
+                  <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                    <div className="relative w-full md:w-80">
+                      <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-foreground/20" size={16} />
                       <Input 
                         placeholder="Scan Squads..." 
-                        className="pl-12 neumorphic-pressed border-none h-11 sm:h-14 rounded-xl sm:rounded-2xl text-[10px] sm:text-sm font-medium"
+                        className="pl-14 neumorphic-pressed border-none h-14 sm:h-16 rounded-2xl sm:rounded-3xl text-[10px] sm:text-sm font-black uppercase tracking-widest placeholder:text-foreground/20 transition-all focus:shadow-xl focus:shadow-ctu-gold/5"
                         value={groupSearchQuery}
                         onChange={(e) => setGroupSearchQuery(e.target.value)}
                       />
@@ -1302,8 +1334,8 @@ export default function StudyTools() {
                     <Dialog open={isNewGroupModalOpen} onOpenChange={setIsNewGroupModalOpen}>
                       <DialogTrigger 
                         render={
-                          <Button className="rounded-xl sm:rounded-2xl bg-ctu-maroon text-white font-black uppercase tracking-widest text-[9px] sm:text-[11px] gap-2 h-11 sm:h-14 px-4 sm:px-8 shadow-xl w-full">
-                            <Plus size={16} /> New Squad
+                          <Button className="h-14 sm:h-16 px-8 sm:px-12 rounded-2xl sm:rounded-3xl bg-ctu-maroon text-white font-black uppercase tracking-widest text-[10px] sm:text-[11px] gap-3 shadow-xl w-full md:w-auto hover:scale-[1.02] active:scale-100 transition-all">
+                            <Plus size={18} /> Assemble Squad
                           </Button>
                         }
                       />
@@ -1340,7 +1372,7 @@ export default function StudyTools() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12">
                   {filteredStudyGroups.length > 0 ? filteredStudyGroups.map((group, idx) => (
                     <motion.div
                       key={group.id}
@@ -1355,56 +1387,65 @@ export default function StudyTools() {
                       }}
                       className="h-full"
                     >
-                      <GlowCard className="p-5 sm:p-8 h-full flex flex-col justify-between group neumorphic-raised border-foreground/5 hover:border-blue-500/30 transition-all duration-500 rounded-3xl sm:rounded-[2.5rem]" glowColor="blue">
-                        <div>
-                          <div className="flex items-center justify-between mb-4 sm:mb-8">
-                            <div className="flex items-center gap-3">
-                               <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 shadow-inner group-hover:rotate-12 transition-transform">
-                                 <Users size={20} />
+                      <Card className="p-6 sm:p-10 h-full flex flex-col justify-between group neumorphic-raised border-foreground/5 hover:border-ctu-maroon/20 transition-all duration-500 rounded-[2.5rem] sm:rounded-[3.5rem] relative overflow-hidden" 
+                      >
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-ctu-maroon/[0.03] blur-3xl rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-1000" />
+                        
+                        <div className="relative z-10 flex flex-col h-full">
+                          <div className="flex items-center justify-between mb-6 sm:mb-10">
+                            <div className="flex items-center gap-4">
+                               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-ctu-maroon to-ctu-gold/60 flex items-center justify-center text-white shadow-xl shadow-ctu-maroon/20 group-hover:rotate-12 transition-transform">
+                                 <Users size={24} className="sm:size-8" />
                                </div>
-                               <Badge className="bg-foreground/[0.03] text-foreground/40 border-none text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] px-2 py-1 rounded-md">{group.subjectCode}</Badge>
+                               <Badge className="bg-foreground/[0.03] text-foreground/40 border-none text-[9px] sm:text-[11px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-full shadow-sm">
+                                 {group.subjectCode}
+                               </Badge>
                             </div>
-                            <div className="flex -space-x-2 sm:-space-x-3">
+                            <div className="flex -space-x-3 sm:-space-x-4">
                               {(group.members || []).slice(0, 3).map((mId: string, i: number) => (
-                                <div key={i} className="w-7 h-7 sm:w-9 sm:h-9 rounded-full border-2 sm:border-[3px] border-background bg-foreground/5 flex items-center justify-center text-[8px] sm:text-[10px] font-black ring-1 ring-foreground/5 shadow-md">
-                                  {mId.slice(0, 2).toUpperCase()}
+                                <div key={i} className="w-8 h-8 sm:w-11 sm:h-11 rounded-full border-2 sm:border-4 border-background bg-foreground/10 flex items-center justify-center text-[10px] sm:text-xs font-black ring-1 ring-foreground/5 shadow-md uppercase">
+                                  {mId.slice(0, 2)}
                                 </div>
                               ))}
                               {(group.members || []).length > 3 && (
-                                <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full border-2 sm:border-[3px] border-background bg-gradient-to-br from-ctu-gold to-ctu-maroon flex items-center justify-center text-[8px] sm:text-[10px] font-black text-white shadow-lg ring-1 ring-ctu-gold/20">
+                                <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full border-2 sm:border-4 border-background bg-gradient-to-br from-ctu-gold to-ctu-maroon flex items-center justify-center text-[10px] sm:text-xs font-black text-white shadow-lg ring-1 ring-ctu-gold/20">
                                   +{(group.members || []).length - 3}
                                 </div>
                               )}
                             </div>
                           </div>
-                          <h3 className="text-xl sm:text-2xl font-black text-foreground mb-2 leading-tight group-hover:text-blue-500 transition-colors uppercase tracking-tighter truncate">{group.name}</h3>
-                          <p className="text-[11px] sm:text-sm font-medium text-foreground/40 leading-relaxed line-clamp-2 mb-4 sm:mb-8">{group.description || "Mission brief encrypted. Join to decrypt."}</p>
-                        </div>
-                        
-                        <div className="mt-auto pt-4 sm:pt-8 border-t border-foreground/5 flex items-center justify-between">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-[8px] sm:text-[10px] font-black text-foreground/20 uppercase tracking-[0.2em]">Intel</span>
-                            <span className="text-xs font-black text-foreground/60 tracking-tight">{(group.members || []).length} / 50</span>
+                          
+                          <h3 className="text-2xl sm:text-4xl font-black text-foreground mb-3 leading-[0.9] group-hover:text-ctu-maroon transition-colors uppercase tracking-tighter truncate">{group.name}</h3>
+                          <p className="text-xs sm:text-lg font-bold text-foreground/40 leading-relaxed line-clamp-2 mb-8 sm:mb-12 italic tracking-tight">{group.description || "Mission brief encrypted. Join to decrypt."}</p>
+                          
+                          <div className="mt-auto pt-6 sm:pt-10 border-t border-foreground/5 flex items-center justify-between">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[8px] sm:text-[10px] font-black text-foreground/20 uppercase tracking-[0.3em]">Operational Strength</span>
+                              <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-[10px] sm:text-sm font-black text-foreground/60 tracking-widest uppercase">{(group.members || []).length} / 50 Agents</span>
+                              </div>
+                            </div>
+                            <div className="flex gap-3">
+                              {group.members?.includes(user?.uid) ? (
+                                <Button 
+                                  onClick={() => setActiveChatGroup(group)}
+                                  className="bg-emerald-500 text-white rounded-2xl sm:rounded-3xl h-12 sm:h-16 px-6 sm:px-10 font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/20 hover:scale-[1.05] active:scale-95 transition-all gap-2"
+                                >
+                                  Nexus <ChevronRight size={16} />
+                                </Button>
+                              ) : (
+                                <Button 
+                                  onClick={() => handleJoinGroup(group.id)}
+                                  className="bg-ctu-maroon text-white rounded-2xl sm:rounded-3xl h-12 sm:h-16 px-6 sm:px-10 font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] shadow-xl shadow-ctu-maroon/20 hover:scale-[1.05] active:scale-95 transition-all gap-2"
+                                >
+                                  Deploy <Plus size={16} />
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex gap-2">
-                            {group.members?.includes(user?.uid) ? (
-                              <Button 
-                                onClick={() => setActiveChatGroup(group)}
-                                className="bg-blue-500 text-white rounded-xl sm:rounded-2xl h-10 sm:h-12 px-4 sm:px-6 font-black text-[9px] sm:text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:scale-[1.05] active:scale-95 transition-all"
-                              >
-                                Hub
-                              </Button>
-                            ) : (
-                              <Button 
-                                onClick={() => handleJoinGroup(group.id)}
-                                className="neumorphic-raised hover:neumorphic-pressed text-ctu-gold border-none rounded-xl sm:rounded-2xl h-10 sm:h-12 px-4 sm:px-8 font-black text-[9px] sm:text-[10px] uppercase tracking-widest transition-all gap-1 sm:gap-2 hover:scale-[1.05] active:scale-95"
-                              >
-                                Join Squad
-                              </Button>
-                            )}
-                          </div>
                         </div>
-                      </GlowCard>
+                      </Card>
                     </motion.div>
                   )) : (
                     Array.from({ length: 6 }).map((_, idx) => (
@@ -1419,81 +1460,82 @@ export default function StudyTools() {
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="qa" className="mt-0 space-y-4 sm:space-y-12 outline-none">
+          <TabsContent value="qa" className="mt-0 space-y-8 sm:space-y-16 outline-none">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 sm:gap-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 sm:gap-10">
                   <div>
-                    <h2 className="text-xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 flex items-center gap-2 uppercase">
-                       Forum Hub <MessageSquare size={20} className="text-ctu-gold shrink-0 sm:size-16" />
+                    <h2 className="text-2xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
+                       Forum Hub <MessageSquare size={24} className="text-ctu-gold shrink-0 sm:size-20" />
                     </h2>
-                    <p className="text-[10px] sm:text-base md:text-xl text-foreground/40 font-medium mt-1 tracking-tight uppercase">Collective intelligence pool.</p>
+                    <p className="text-sm sm:text-base md:text-xl text-foreground/40 font-medium mt-1 sm:mt-2 tracking-tight">Collective intelligence pool for query resolution.</p>
                   </div>
                   <Dialog open={isAskQuestionModalOpen} onOpenChange={setIsAskQuestionModalOpen}>
                     <DialogTrigger
                       render={
                         <Button 
-                          className="h-11 sm:h-14 px-6 sm:px-8 rounded-xl sm:rounded-2xl bg-ctu-maroon text-white font-black uppercase tracking-widest text-[9px] sm:text-[11px] gap-2 shadow-xl w-full md:w-auto"
+                          className="h-14 sm:h-16 px-8 sm:px-12 rounded-2xl sm:rounded-3xl bg-ctu-maroon text-white font-black uppercase tracking-widest text-[9px] sm:text-[11px] gap-3 shadow-xl w-full md:w-auto hover:scale-[1.02] active:scale-100 transition-all"
                         >
-                          <Plus size={16} /> Signal Question
+                          <Plus size={18} /> Signal Question
                         </Button>
                       }
                     />
-                    <DialogContent className="sm:max-w-[425px] neumorphic-card border-none p-6 sm:p-8">
+                    <DialogContent className="max-w-[95vw] w-full h-[85dvh] md:h-auto overflow-y-auto overscroll-contain bg-background rounded-[2rem] sm:rounded-[3rem] border-none shadow-3xl p-8 sm:p-12">
                       <DialogHeader>
-                        <DialogTitle className="text-xl sm:text-2xl font-black italic tracking-tight">TRANSMIT INQUIRY</DialogTitle>
+                        <DialogTitle className="text-3xl sm:text-4xl font-black uppercase tracking-tighter leading-none mb-2">Initialize Question</DialogTitle>
+                        <p className="text-xs sm:text-sm font-bold text-foreground/40 italic tracking-tight">Signal your query to the collective intelligence network.</p>
                       </DialogHeader>
-                      <div className="grid gap-4 sm:gap-6 py-2 sm:py-4">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="q-title" className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/30">Question Headline</Label>
-                          <Input id="q-title" value={newQuestion.title} onChange={e => setNewQuestion({...newQuestion, title: e.target.value})} className="neumorphic-pressed border-none h-11 sm:h-12 rounded-xl text-xs" placeholder="Headline..." />
+                      <div className="grid gap-6 sm:gap-10 py-8">
+                        <div className="space-y-3">
+                          <Label htmlFor="q-title" className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-foreground/20 ml-2">Question Headline</Label>
+                          <Input id="q-title" value={newQuestion.title} onChange={e => setNewQuestion({...newQuestion, title: e.target.value})} className="neumorphic-pressed border-none h-14 sm:h-16 rounded-2xl sm:rounded-3xl text-sm font-bold uppercase tracking-tight placeholder:text-foreground/10" placeholder="e.g. Ergonomic Analysis Bottleneck..." />
                         </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="q-subject" className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/30">Target Topic</Label>
+                        <div className="space-y-3">
+                          <Label htmlFor="q-subject" className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-foreground/20 ml-2">Topic Sector</Label>
                           <Select onValueChange={(val: string) => setNewQuestion({...newQuestion, subjectTag: val})}>
-                            <SelectTrigger className="neumorphic-pressed border-none h-11 sm:h-12 rounded-xl text-xs">
-                              <SelectValue placeholder="Select topic" />
+                            <SelectTrigger className="neumorphic-pressed border-none h-14 sm:h-16 rounded-2xl sm:rounded-3xl text-sm font-bold uppercase tracking-tight">
+                              <SelectValue placeholder="Select topic sector" />
                             </SelectTrigger>
-                            <SelectContent className="rounded-xl border-none shadow-2xl">
-                              {IE_SUBJECTS.map(s => <SelectItem key={s.id} value={s.code} className="text-xs uppercase font-bold">{s.code}</SelectItem>)}
+                            <SelectContent className="rounded-2xl border border-foreground/5 shadow-22 bg-background/95 backdrop-blur-xl">
+                              {IE_SUBJECTS.map(s => <SelectItem key={s.id} value={s.code} className="text-xs uppercase font-black py-4">{s.name}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="q-content" className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/30">Full Context</Label>
-                          <Textarea id="q-content" value={newQuestion.content} onChange={e => setNewQuestion({...newQuestion, content: e.target.value})} className="neumorphic-pressed border-none h-24 sm:h-32 rounded-xl text-xs p-3" placeholder="Context..." />
+                        <div className="space-y-3">
+                          <Label htmlFor="q-content" className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-foreground/20 ml-2">Intelligence Brief (Details)</Label>
+                          <Textarea id="q-content" value={newQuestion.content} onChange={e => setNewQuestion({...newQuestion, content: e.target.value})} className="neumorphic-pressed border-none min-h-[120px] rounded-2xl sm:rounded-3xl text-sm font-bold p-6 tracking-tight leading-relaxed placeholder:text-foreground/10" placeholder="Explain the context of your inquiry..." />
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button onClick={handleAskQuestion} className="bg-ctu-maroon text-white font-black uppercase tracking-widest w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl shadow-lg shadow-ctu-maroon/20 text-[10px]">Post Question</Button>
+                        <Button onClick={handleAskQuestion} className="bg-ctu-maroon text-white font-black uppercase tracking-[0.2em] w-full h-14 sm:h-18 rounded-2xl sm:rounded-[2.5rem] shadow-2xl shadow-ctu-maroon/30 text-xs sm:text-sm hover:scale-[1.02] active:scale-95 transition-all">Transmit Inquiry</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-4">
                   <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/20" size={14} />
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-foreground/20" size={16} />
                     <Input 
                       placeholder="Search matrix data..." 
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="bg-background border-none neumorphic-pressed pl-10 pr-10 h-11 sm:h-14 rounded-xl sm:rounded-2xl focus:ring-ctu-gold text-[10px] sm:text-sm text-foreground font-medium"
+                      className="bg-background border-none neumorphic-pressed pl-14 pr-12 h-14 sm:h-16 rounded-2xl sm:rounded-3xl focus:ring-ctu-gold text-[10px] sm:text-sm text-foreground font-black uppercase tracking-widest placeholder:text-foreground/20"
                     />
                     {searchQuery && (
                       <button 
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full hover:bg-foreground/5 text-foreground/40 transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full hover:bg-foreground/5 text-foreground/40 transition-colors"
                       >
-                        <X size={14} />
+                        <X size={16} />
                       </button>
                     )}
                   </div>
                 </div>
 
-                <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-6 sm:space-y-10">
                   {filteredQuestions.length > 0 ? filteredQuestions.map((q, idx) => (
                     <motion.div
                       key={q.id}
@@ -1504,48 +1546,66 @@ export default function StudyTools() {
                     >
                       <Card 
                         onClick={() => setSelectedQuestion(q)}
-                        className="neumorphic-card border-none p-3 sm:p-8 hover:shadow-2xl transition-all cursor-pointer group rounded-2xl sm:rounded-[2.5rem]"
+                        className="p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] neumorphic-raised border-foreground/5 overflow-hidden relative transition-all duration-500 hover:shadow-2xl hover:border-ctu-gold/20 cursor-pointer group"
                       >
-                        <div className="flex gap-3 sm:gap-8">
-                          <div className="flex flex-col items-center gap-1 shrink-0 neumorphic-pressed px-1.5 sm:px-3 py-2 sm:py-4 rounded-xl sm:rounded-3xl h-fit border border-white/5">
-                            <Button 
-                              variant="ghost" 
+                        <div className="flex flex-col sm:flex-row gap-6 sm:gap-12 relative z-10">
+                          <div className="flex sm:flex-col items-center justify-between sm:justify-start gap-4 sm:gap-6 bg-foreground/[0.03] p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] border border-foreground/5 min-w-[80px] sm:min-w-[120px]">
+                            <button 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleVote(q.id, q.votes || 0);
                               }}
-                              className="p-1 h-9 w-9 sm:h-auto sm:w-auto hover:bg-transparent group-hover:scale-125 transition-transform"
+                              className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-background hover:bg-ctu-gold hover:text-white flex items-center justify-center transition-all neumorphic-raised border-none"
                             >
-                              <TrendingUp size={20} className={cn("text-foreground/10 hover:text-ctu-gold transition-colors sm:size-4", (q.votes || 0) > 0 && "text-ctu-gold")} />
-                            </Button>
-                            <span className="font-black text-xs sm:text-xl tracking-tighter">{(q.votes || 0)}</span>
-                            <span className="text-[6px] sm:text-[9px] font-black text-foreground/20 uppercase tracking-widest leading-[0.5]">Votes</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-3">
-                               <div className="flex items-center gap-2">
-                                 <Badge className="bg-blue-500/10 text-blue-500 border-none text-[7px] sm:text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">{q.subjectTag || 'General'}</Badge>
-                                 <span className="text-[7px] sm:text-[10px] font-black text-foreground/20 uppercase tracking-widest hidden sm:inline">{q.createdAt ? (q.createdAt.toDate ? new Date(q.createdAt.toDate()).toLocaleDateString() : 'Just now') : 'Just now'}</span>
-                               </div>
-                               {(user?.role === 'admin' || (user && user.uid !== q.userId)) && (
-                                 <Button 
-                                   variant="ghost" 
-                                   size="sm"
-                                   onClick={(e) => {
-                                     e.stopPropagation();
-                                     handleReportQuestion(q);
-                                   }}
-                                   className="h-6 w-6 sm:h-10 sm:w-10 p-0 rounded-full text-foreground/10 hover:text-red-500 hover:bg-red-500/5 transition-all"
-                                 >
-                                   <Flag size={12} />
-                                 </Button>
-                               )}
+                              <ChevronUp size={24} className="sm:size-8" />
+                            </button>
+                            <div className="flex flex-col items-center">
+                              <span className={cn("text-xl sm:text-4xl font-black italic transition-colors", (q.votes || 0) > 0 ? "text-ctu-gold" : "text-ctu-maroon")}>
+                                {(q.votes || 0)}
+                              </span>
+                              <span className="text-[6px] sm:text-[9px] font-black text-foreground/20 uppercase tracking-widest leading-[0.5]">Intel</span>
                             </div>
-                            <h3 className="text-sm sm:text-2xl font-black text-foreground mb-1 sm:mb-3 leading-tight group-hover:text-ctu-gold transition-colors tracking-tight line-clamp-1 uppercase truncate">{q.title}</h3>
-                            <p className="text-[10px] sm:text-base text-foreground/50 line-clamp-2 mb-3 sm:mb-6 font-medium leading-relaxed">{q.content}</p>
-                            <div className="flex items-center gap-2 sm:gap-6 text-[7px] sm:text-[10px] font-black text-foreground/30 uppercase tracking-widest">
-                              <span className="flex items-center gap-1 sm:gap-2 bg-foreground/5 px-2 sm:px-4 py-1 sm:py-2 rounded-lg sm:rounded-xl"><MessageSquare size={10} className="text-ctu-gold sm:size-3" /> {q.answerCount || 0}</span>
-                              <span className="flex items-center gap-1 sm:gap-2 bg-foreground/5 px-2 sm:px-4 py-1 sm:py-2 rounded-lg sm:rounded-xl"><Users size={10} className="text-blue-500 sm:size-3" /> {q.userName?.split(' ')[0] || 'Member'}</span>
+                            <Button 
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleReportQuestion(q);
+                              }}
+                              className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-background hover:bg-red-500/10 hover:text-red-500 flex items-center justify-center transition-all neumorphic-raised border-none p-0"
+                            >
+                              <Flag size={14} className="sm:size-6" />
+                            </Button>
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4 sm:mb-8">
+                              <Badge className="bg-ctu-gold text-white border-none px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-ctu-gold/20">
+                                {q.subjectTag || 'General'}
+                              </Badge>
+                              <span className="text-[10px] font-black text-foreground/40 uppercase tracking-widest flex items-center gap-2">
+                                <Clock size={14} className="text-ctu-gold/40" /> {q.createdAt ? (q.createdAt.toDate ? new Date(q.createdAt.toDate()).toLocaleDateString() : 'Just now') : 'Just now'}
+                              </span>
+                            </div>
+                            
+                            <h4 className="text-xl sm:text-3xl font-black text-foreground group-hover:text-ctu-gold transition-colors uppercase tracking-tighter leading-[0.9] mb-4 sm:mb-6 truncate">
+                              {q.title}
+                            </h4>
+                            <p className="text-xs sm:text-lg text-foreground/50 font-bold italic line-clamp-2 sm:line-clamp-3 leading-relaxed mb-8 sm:mb-12 tracking-tight">
+                              {q.content}
+                            </p>
+                            
+                            <div className="flex flex-wrap items-center justify-between gap-6 pt-6 sm:pt-10 border-t border-foreground/5">
+                              <div className="flex items-center gap-4 sm:gap-6 text-foreground/40 text-[10px] sm:text-xs font-black uppercase tracking-widest">
+                                <span className="flex items-center gap-2.5 bg-foreground/[0.03] px-5 py-2.5 rounded-full border border-foreground/5">
+                                  <MessageSquare size={16} className="text-ctu-maroon" /> {q.answerCount || 0} Responses
+                                </span>
+                                <span className="flex items-center gap-2.5 bg-foreground/[0.03] px-5 py-2.5 rounded-full border border-foreground/5">
+                                  <Users size={16} className="text-blue-500" /> {q.userName?.split(' ')[0] || 'Member'}
+                                </span>
+                              </div>
+                              <Button className="rounded-2xl bg-foreground/5 hover:bg-foreground/10 text-foreground h-11 sm:h-14 px-8 sm:px-12 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] neumorphic-raised border-none transition-all flex items-center gap-3">
+                                Review Query <ArrowRight size={16} />
+                              </Button>
                             </div>
                           </div>
                         </div>
@@ -1572,8 +1632,8 @@ export default function StudyTools() {
                     <div className="space-y-6 md:space-y-12">
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 md:gap-8">
                         <div>
-                          <h2 className="text-3xl sm:text-5xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">
-                             Flash Decks
+                          <h2 className="text-2xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
+                             Flash Decks <BookOpen size={24} className="text-ctu-gold sm:size-20 shrink-0" />
                           </h2>
                           <p className="text-sm sm:text-base md:text-xl text-foreground/40 font-medium mt-2 sm:mt-3 tracking-tight">Accelerate mastery through strategic retention cycles.</p>
                         </div>
@@ -1638,37 +1698,37 @@ export default function StudyTools() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col md:flex-row gap-4 mb-4 sm:mb-8">
+                  <div className="flex flex-col md:flex-row gap-6 mb-8 sm:mb-16">
                       <div className="relative flex-1">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/20" size={16} />
+                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-foreground/20" size={16} />
                         <Input 
-                          placeholder="Search decks..." 
-                          className="pl-12 neumorphic-pressed border-none h-12 sm:h-14 rounded-2xl text-xs sm:text-sm font-medium"
+                          placeholder="Search database..." 
+                          className="pl-14 neumorphic-pressed border-none h-14 sm:h-16 rounded-2xl sm:rounded-3xl text-[10px] sm:text-sm font-black uppercase tracking-[0.1em] placeholder:text-foreground/20"
                           value={deckSearchQuery}
                           onChange={(e) => setDeckSearchQuery(e.target.value)}
                         />
                       </div>
                       <Select value={deckSubjectFilter} onValueChange={setDeckSubjectFilter}>
-                        <SelectTrigger className="w-full sm:w-[180px] neumorphic-pressed border-none h-12 sm:h-14 rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest">
+                        <SelectTrigger className="w-full sm:w-[220px] neumorphic-pressed border-none h-14 sm:h-16 rounded-2xl sm:rounded-3xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest px-6">
                           <SelectValue placeholder="All Subjects" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-none shadow-2xl">
-                          <SelectItem value="all">ALL SECTORS</SelectItem>
+                        <SelectContent className="rounded-2xl border border-foreground/5 shadow-22 bg-background/95 backdrop-blur-xl">
+                          <SelectItem value="all" className="font-black text-[10px] uppercase py-3">ALL SECTORS</SelectItem>
                           {IE_SUBJECTS.map(s => (
-                            <SelectItem key={s.code} value={s.code}>{s.code}</SelectItem>
+                            <SelectItem key={s.code} value={s.code} className="font-black text-[10px] uppercase py-3">{s.code}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 sm:gap-12">
                       <AnimatePresence mode="popLayout">
                         {filteredDecks.length > 0 ? filteredDecks.map((deck, i) => (
                           <motion.div
                             key={deck.id}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
+                            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
                             whileHover={{ y: -10 }}
                             transition={{ 
                               delay: i * 0.05,
@@ -1677,32 +1737,39 @@ export default function StudyTools() {
                               damping: 20
                             }}
                           >
-                            <GlowCard 
-                              className="p-5 sm:p-8 text-center cursor-pointer hover:shadow-3xl transition-all h-full neumorphic-raised border-foreground/5 rounded-[1.5rem] sm:rounded-[2.5rem]" 
-                              glowColor={deck.color as any || 'maroon'}
+                             <Card 
+                              className="p-8 sm:p-12 text-center cursor-pointer hover:shadow-2xl transition-all duration-500 h-full neumorphic-raised border-foreground/5 rounded-[2.5rem] sm:rounded-[3.5rem] relative overflow-hidden group" 
                               onClick={() => setSelectedDeck(deck)}
                             >
+                               <div className={cn(
+                                 "absolute top-0 right-0 w-32 h-32 blur-3xl rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-1000",
+                                 deck.color === 'maroon' ? 'bg-ctu-maroon' : 
+                                 deck.color === 'gold' ? 'bg-ctu-gold' :
+                                 deck.color === 'blue' ? 'bg-blue-500' : 'bg-green-500'
+                               )} />
+
                               <div className={cn(
-                                "w-14 h-14 sm:w-20 sm:h-20 rounded-[1.25rem] sm:rounded-[2rem] neumorphic-pressed flex items-center justify-center mx-auto mb-4 sm:mb-8 transition-transform group-hover:scale-110 shadow-inner",
+                                "w-16 h-16 sm:w-24 sm:h-24 rounded-[1.5rem] sm:rounded-[2.5rem] neumorphic-pressed flex items-center justify-center mx-auto mb-6 sm:mb-10 transition-all duration-500 group-hover:rotate-12 group-hover:scale-110 shadow-inner",
                                 deck.color === 'maroon' ? 'text-ctu-maroon' : 
                                 deck.color === 'gold' ? 'text-ctu-gold' :
                                 deck.color === 'blue' ? 'text-blue-500' : 'text-green-500'
                               )}>
-                                <Layers size={30} className="sm:size-[40px] drop-shadow-sm" />
+                                <Layers size={32} className="sm:size-[48px] drop-shadow-sm" />
                               </div>
-                              <h3 className="text-lg sm:text-xl font-black text-foreground mb-1 line-clamp-1 truncate uppercase tracking-tighter">{deck.name}</h3>
+                              <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-foreground mb-2 line-clamp-1 truncate uppercase tracking-tighter group-hover:text-ctu-maroon transition-colors">{deck.name}</h3>
                               {deck.subjectId && (
-                                <Badge variant="secondary" className="mb-3 sm:mb-4 text-[8px] sm:text-[10px] h-5 font-black bg-foreground/5 text-foreground/40 px-3 tracking-[0.2em] rounded-lg">{deck.subjectId}</Badge>
+                                <Badge variant="secondary" className="mb-4 sm:mb-6 text-[9px] sm:text-[11px] h-6 font-black bg-foreground/[0.03] text-foreground/40 px-4 tracking-[0.25em] rounded-full uppercase border-none shadow-sm">{deck.subjectId}</Badge>
                               )}
-                              <p className="text-[8px] sm:text-[10px] text-foreground/40 font-black uppercase tracking-[0.3em] bg-foreground/5 py-1.5 sm:py-2 rounded-xl mb-6 sm:mb-8">{deck.cardCount || 0} Retention Units</p>
-                              <div className="flex gap-3">
+                              <p className="text-[9px] sm:text-[11px] text-foreground/40 font-black uppercase tracking-[0.4em] bg-foreground/[0.02] py-2 sm:py-3 rounded-2xl mb-8 sm:mb-12 border border-foreground/5">{deck.cardCount || 0} Retention Units</p>
+                              
+                              <div className="flex gap-4">
                                 <Button 
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     startFlashcardSession(deck);
                                   }}
                                   className={cn(
-                                    "flex-1 rounded-xl sm:rounded-2xl h-10 sm:h-12 text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95",
+                                    "flex-1 rounded-[1.25rem] sm:rounded-[2rem] h-12 sm:h-16 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] shadow-xl transition-all hover:scale-[1.05] active:scale-95",
                                     deck.color === 'maroon' ? 'bg-ctu-maroon text-white shadow-ctu-maroon/20' : 
                                     deck.color === 'gold' ? 'bg-ctu-gold text-white shadow-ctu-gold/20' :
                                     deck.color === 'blue' ? 'bg-blue-500 text-white shadow-blue-500/20' : 'bg-green-500 text-white shadow-green-500/20'
@@ -1711,7 +1778,7 @@ export default function StudyTools() {
                                   Deploy Study
                                 </Button>
                               </div>
-                            </GlowCard>
+                            </Card>
                           </motion.div>
                         )) : (
                           <motion.div 
@@ -1883,8 +1950,8 @@ export default function StudyTools() {
                 >
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 mb-2 sm:mb-0">
                   <div>
-                    <h2 className="text-2xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2">
-                       AI Quizzes
+                    <h2 className="text-2xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
+                       AI Quizzes <Award size={24} className="text-ctu-gold sm:size-20 shrink-0" />
                     </h2>
                     <p className="text-[10px] sm:text-base md:text-xl text-foreground/40 font-medium mt-1 sm:mt-2 tracking-tight">Challenge yourself with dynamically generated assessments.</p>
                   </div>
@@ -1896,117 +1963,125 @@ export default function StudyTools() {
                     <Zap size={16} /> {isGenerating ? "Synthesizing..." : "New Quick Quiz"}
                   </Button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-12">
                   {/* Gen Quiz Card */}
-                  <GlowCard className="p-6 sm:p-10 flex flex-col justify-between min-h-0" glowColor="orange">
-                    <div>
-                      <h3 className="text-2xl sm:text-4xl font-black mb-4 tracking-tight">Start Quiz Session</h3>
-                      <p className="text-sm text-foreground/60 leading-relaxed mb-8 font-medium">
+                  <Card className="p-8 sm:p-14 flex flex-col justify-between neumorphic-raised border-foreground/5 rounded-[2.5rem] sm:rounded-[4rem] group relative overflow-hidden">
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-ctu-gold/5 blur-3xl rounded-full group-hover:scale-150 transition-transform duration-1000" />
+                    
+                    <div className="relative z-10">
+                      <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-ctu-gold to-orange-500 shadow-xl shadow-ctu-gold/20 flex items-center justify-center text-white mb-8 group-hover:rotate-6 transition-transform">
+                        <Zap size={28} className="sm:size-10" />
+                      </div>
+                      <h3 className="text-2xl sm:text-4xl md:text-5xl font-black mb-4 tracking-tighter uppercase leading-[0.9]">Start Quiz Session</h3>
+                      <p className="text-xs sm:text-lg text-foreground/50 leading-relaxed mb-10 font-bold italic tracking-tight">
                         Generate a unique Industrial Engineering quiz powered by AI to test your knowledge in real-time.
                       </p>
                     </div>
-                    <div className="space-y-4">
-                      <Label className="text-xs font-bold uppercase tracking-[0.2em] text-foreground/40 ml-1">Select Domain</Label>
-                      <Select onValueChange={(val: string) => startQuizSession(val)}>
-                        <SelectTrigger className="h-14 rounded-2xl bg-white/5 border-white/10 text-foreground font-medium px-6">
-                          <SelectValue placeholder="Choose a subject sector..." />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-none shadow-2xl">
-                          {IE_SUBJECTS.slice(0, 10).map(s => (
-                            <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="space-y-6 relative z-10">
+                      <div className="space-y-3">
+                        <Label className="text-[9px] sm:text-[11px] font-black uppercase tracking-[0.3em] text-foreground/20 ml-2">Domain Sector</Label>
+                        <Select onValueChange={(val: string) => startQuizSession(val)}>
+                          <SelectTrigger className="h-14 sm:h-16 rounded-2xl sm:rounded-3xl bg-foreground/[0.03] border-none text-foreground font-black px-6 sm:px-8 text-[10px] sm:text-xs uppercase tracking-widest neumorphic-pressed">
+                            <SelectValue placeholder="Choose a subject sector..." />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl border border-foreground/5 shadow-22 bg-background/95 backdrop-blur-xl">
+                            {IE_SUBJECTS.slice(0, 10).map(s => (
+                              <SelectItem key={s.id} value={s.name} className="font-bold text-[10px] uppercase py-3">{s.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <Button 
                         onClick={() => startQuizSession("General IE")}
                         disabled={isSessionLoading}
-                        className="w-full h-14 bg-ctu-gold text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-ctu-gold/20 hover:scale-[1.02] active:scale-95 transition-all mt-4"
+                        className="w-full h-14 sm:h-18 bg-ctu-gold text-white font-black uppercase tracking-[0.2em] rounded-2xl sm:rounded-[2rem] shadow-xl shadow-ctu-gold/30 hover:scale-[1.02] active:scale-95 transition-all text-xs sm:text-sm"
                       >
                         {isSessionLoading ? "Analyzing Syllabi..." : "Initiate AI Quiz"}
                       </Button>
                     </div>
-                  </GlowCard>
+                  </Card>
 
                   {/* Achievements Card */}
-                  <GlowCard className="p-8 sm:p-10 flex flex-col" glowColor="blue">
-                    <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-ctu-gold/10 text-ctu-gold">
-                        <Award size={20} />
+                  <Card className="p-8 sm:p-14 flex flex-col neumorphic-raised border-foreground/5 rounded-[2.5rem] sm:rounded-[4rem] group relative overflow-hidden">
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/5 blur-3xl rounded-full group-hover:scale-150 transition-transform duration-1000" />
+                    
+                    <h3 className="text-xl sm:text-3xl font-black mb-10 flex items-center gap-4 relative z-10 uppercase tracking-tighter">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
+                        <Award size={24} className="sm:size-8" />
                       </div>
-                      Your Achievements
+                      Achievements
                     </h3>
-                    <div className="grid grid-cols-4 gap-6">
+                    
+                    <div className="grid grid-cols-4 gap-4 sm:gap-8 relative z-10">
                       {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                        <div key={i} className="group relative flex flex-col items-center">
+                        <div key={i} className="group/item relative flex flex-col items-center">
                           <motion.div 
                             whileHover={{ scale: 1.1, rotate: 5 }}
-                            className="relative w-14 h-14 sm:w-20 sm:h-20 rounded-full p-1"
+                            className="relative w-12 h-12 sm:w-18 sm:h-18 rounded-full p-1"
                           >
                             <div className={cn(
-                              "absolute inset-0 rounded-full transition-all duration-500",
+                              "absolute inset-0 rounded-full transition-all duration-700",
                               i <= 3 ? "bg-gradient-to-br from-ctu-gold via-white to-ctu-maroon shadow-lg" : "bg-foreground/5 opacity-50"
                             )} />
                             <div className="absolute inset-1 rounded-full bg-background neumorphic-pressed flex items-center justify-center">
-                              <Award size={24} className={cn("transition-all duration-700", i <= 3 ? "text-ctu-gold drop-shadow-[0_0_8px_rgba(var(--color-ctu-gold)/0.5)]" : "text-foreground/10 grayscale")} />
+                              <Award size={20} className={cn("transition-all duration-700 sm:size-8", i <= 3 ? "text-ctu-gold drop-shadow-[0_0_8px_rgba(var(--color-ctu-gold)/0.5)]" : "text-foreground/5 grayscale")} />
                             </div>
                             {i <= 3 && (
                               <motion.div 
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
-                                className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-ctu-gold border-2 border-background flex items-center justify-center shadow-xl ring-2 ring-ctu-gold/20"
+                                className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-ctu-gold border-2 border-background flex items-center justify-center shadow-lg ring-1 ring-ctu-gold/20"
                               >
-                                <Sparkles size={10} className="text-white animate-pulse" />
+                                <Sparkles size={8} className="text-white animate-pulse" />
                               </motion.div>
                             )}
                           </motion.div>
-                          <span className="text-[9px] font-black text-foreground/20 uppercase tracking-widest mt-4 text-center group-hover:text-ctu-gold transition-colors">{i <= 3 ? `Elite Tier ${i}` : 'LOCKED'}</span>
+                          <span className="text-[7px] sm:text-[9px] font-black text-foreground/20 uppercase tracking-[0.2em] mt-3 sm:mt-5 text-center group-hover/item:text-ctu-gold transition-colors">{i <= 3 ? `Tier ${i}` : 'LOCKED'}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-auto pt-8 border-t border-foreground/5">
-                      <div className="flex justify-between items-center mb-6">
-                        <span className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em]">Recent Performance</span>
-                        <div className="flex items-center gap-1">
-                          <TrendingUp size={12} className="text-green-500" />
-                          <span className="text-[10px] text-green-500 font-black">TOP TIERO</span>
+                    
+                    <div className="mt-auto pt-8 sm:pt-14 border-t border-foreground/5 relative z-10">
+                      <div className="flex justify-between items-center mb-6 sm:mb-10">
+                        <span className="text-[9px] sm:text-[11px] font-black text-foreground/30 uppercase tracking-[0.3em]">Recent Performance</span>
+                        <div className="flex items-center gap-2">
+                          <TrendingUp size={14} className="text-emerald-500" />
+                          <span className="text-[9px] sm:text-[11px] text-emerald-500 font-black uppercase tracking-widest">Efficiency ++</span>
                         </div>
                       </div>
-                      <div className="space-y-5">
+                      <div className="space-y-6 sm:space-y-8">
                         {[
                           { label: 'Work Measurement', score: 92 },
                           { label: 'Industrial Safety', score: 78 }
                         ].map((s, i) => (
-                          <div key={i} className="space-y-2">
-                            <div className="flex justify-between text-[11px] font-bold">
-                              <span className="text-foreground/60">{s.label}</span>
-                              <span className={cn(s.score >= 80 ? "text-green-500" : "text-ctu-gold")}>{s.score}%</span>
+                          <div key={i} className="space-y-3">
+                            <div className="flex justify-between text-[10px] sm:text-xs font-black uppercase tracking-widest">
+                              <span className="text-foreground/40">{s.label}</span>
+                              <span className={cn(s.score >= 80 ? "text-emerald-500" : "text-ctu-gold")}>{s.score}%</span>
                             </div>
-                            <Progress value={s.score} className="h-2 rounded-full bg-foreground/5" />
+                            <Progress value={s.score} className="h-2 sm:h-3 rounded-full bg-foreground/[0.03] shadow-inner" />
                           </div>
                         ))}
                       </div>
                     </div>
-                  </GlowCard>
+                  </Card>
                 </div>
               </motion.div>
               </TabsContent>
 
-            <TabsContent value="notebooks" className="mt-0 space-y-6 md:space-y-12 outline-none">
+            <TabsContent value="notebooks" className="mt-0 space-y-8 sm:space-y-16 outline-none">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 sm:gap-10">
                   <div>
-                    <h2 className="text-2xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2">
-                       AI Notebooks
+                    <h2 className="text-2xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
+                       AI Notebooks <BookOpen size={24} className="text-ctu-gold shrink-0 sm:size-20" />
                     </h2>
-                    <p className="text-[10px] sm:text-base md:text-xl text-foreground/40 font-medium mt-1 sm:mt-2 tracking-tight">Structured knowledge repositories enhanced by AI analysis.</p>
+                    <p className="text-sm sm:text-base md:text-xl text-foreground/40 font-medium mt-1 sm:mt-2 tracking-tight">Structured knowledge repositories and smart study logs.</p>
                   </div>
-                  <Button className="h-10 sm:h-14 px-6 sm:px-8 rounded-xl sm:rounded-2xl bg-foreground text-background font-black uppercase tracking-widest text-[9px] sm:text-[11px] gap-2 sm:gap-3 w-full md:w-auto">
-                    <Plus size={16} /> Create Terminal
-                  </Button>
                 </div>
                 {activeNotebookId ? (
                   <NotebookWorkspace 
@@ -2235,27 +2310,43 @@ export default function StudyTools() {
 
         {/* AI Advisor Chat Sidebar/Modal */}
         <Dialog open={isAdvisorChatOpen} onOpenChange={setIsAdvisorChatOpen}>
-          <DialogContent className="max-w-md w-[95vw] h-[85dvh] flex flex-col bg-background rounded-3xl border-none p-0 overflow-hidden overscroll-contain">
-            <DialogHeader className="p-4 sm:p-6 border-b border-foreground/5 bg-background z-10 shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full neumorphic-raised flex items-center justify-center text-ctu-gold">
-                  <BrainCircuit size={20} />
-                </div>
-                <div>
-                  <DialogTitle className="text-lg font-bold">Academic Assistant</DialogTitle>
-                  <p className="text-[10px] font-bold text-ctu-gold uppercase tracking-widest">Powered by Matrix AI</p>
+          <DialogContent className="max-w-md w-full sm:w-[500px] h-full sm:h-[85dvh] flex flex-col bg-background sm:rounded-3xl border-none p-0 overflow-hidden overscroll-contain">
+            <DialogHeader className="p-5 sm:p-6 border-b border-foreground/5 bg-background z-20 shrink-0 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl neumorphic-raised flex items-center justify-center text-ctu-gold bg-background/50">
+                    <BrainCircuit size={24} />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-xl font-black tracking-tight">Academic Advisor</DialogTitle>
+                    <p className="text-[9px] font-black text-ctu-gold uppercase tracking-[0.2em]">Augmented Intelligence</p>
+                  </div>
                 </div>
               </div>
             </DialogHeader>
             
-            <ScrollArea className="flex-1 p-6">
-              <div className="flex flex-col gap-6">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-5 sm:p-6 space-y-6 custom-scrollbar bg-foreground/[0.01]">
+              <div className="flex flex-col gap-8 pb-10">
                 {advisorChat.length === 0 && (
-                  <div className="text-center py-12 space-y-4">
+                  <div className="text-center py-12 space-y-6">
                     <div className="w-16 h-16 rounded-full bg-ctu-gold/5 flex items-center justify-center mx-auto text-ctu-gold animate-bounce">
                       <Sparkles size={32} />
                     </div>
-                    <p className="text-sm text-foreground/40 font-medium">Ask me about your roadmap, elective choices,<br/>or specialization tracks!</p>
+                    <div>
+                      <p className="text-xs text-foreground font-black uppercase tracking-widest mb-1">Matrix Advisor AI</p>
+                      <p className="text-[10px] text-foreground/40 font-medium">Ask me about your roadmap, elective choices,<br/>or specialization tracks!</p>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {["Tell me about IE tracks", "What are my electives?", "Check my roadmap"].map(q => (
+                        <button
+                          key={q}
+                          onClick={() => setAdvisorInput(q)}
+                          className="text-[9px] font-bold uppercase tracking-widest px-3 py-2 rounded-full border border-foreground/5 hover:bg-foreground/5 transition-colors"
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
                 {advisorChat.map((msg, i) => (
@@ -2295,9 +2386,9 @@ export default function StudyTools() {
                   </div>
                 )}
               </div>
-            </ScrollArea>
+            </div>
 
-            <form onSubmit={handleAdvisorChat} className="p-6 border-t border-foreground/5 shrink-0 bg-background">
+            <form onSubmit={handleAdvisorChat} className="p-4 sm:p-6 border-t border-foreground/5 shrink-0 bg-background pb-safe">
               <div className="relative">
                 <Input 
                   placeholder="Type your question..."

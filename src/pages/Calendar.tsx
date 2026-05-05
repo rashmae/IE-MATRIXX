@@ -32,6 +32,7 @@ import {
 
 import { useAuth } from '@/src/context/AuthContext';
 
+
 export default function CalendarPage() {
   const { profile: user, loading: authLoading } = useAuth();
   const [viewMode, setViewMode] = useState<'month' | 'list'>('month');
@@ -83,7 +84,7 @@ export default function CalendarPage() {
       <Sidebar user={user} />
       
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Calendar</h1>
             <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Academic schedule for the 2nd Semester AY 2025-2026.</p>

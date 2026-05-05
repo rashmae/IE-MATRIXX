@@ -37,6 +37,7 @@ import { collection, onSnapshot, query, orderBy, limit, where } from 'firebase/f
 
 import { useAuth } from '@/src/context/AuthContext';
 
+
 export default function Resources() {
   const { profile: user, loading: authLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
@@ -147,7 +148,7 @@ export default function Resources() {
       <Sidebar user={user} />
       
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
           <div>
             <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Resources</h1>
             <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Access shared notes, videos, and reference materials.</p>

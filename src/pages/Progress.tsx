@@ -76,6 +76,7 @@ import { useProgress } from '@/src/hooks/useProgress';
 
 const GRADES = [1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 5.0];
 
+
 export default function ProgressPage() {
   const { profile: user, loading: authLoading } = useAuth();
   const { progressMap, loading: progressLoading, updateProgress, toggleStatus, setGrade } = useProgress();
@@ -178,7 +179,7 @@ export default function ProgressPage() {
       <Sidebar user={user} />
       
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
             <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">My Progress</h1>
             <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Track your academic journey through the IE curriculum.</p>

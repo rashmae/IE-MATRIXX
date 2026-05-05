@@ -43,6 +43,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -72,6 +73,7 @@ import { collection, getDocs, query, orderBy, updateDoc, doc, serverTimestamp } 
 
 type SortOption = 'relevance' | 'alpha-asc' | 'alpha-desc' | 'newest';
 
+
 export default function Catalog() {
   const { profile, isAdmin, loading: authLoading } = useAuth();
   const { progressMap, loading: progressMapLoading } = useProgress();
@@ -96,6 +98,8 @@ export default function Catalog() {
   const [unitRange, setUnitRange] = useState<[number]>([5]);
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
   const [hasReviews, setHasReviews] = useState(false);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   
   const navigate = useNavigate();
 
@@ -106,6 +110,11 @@ export default function Catalog() {
     if (unitRange[0] < 5) count++;
     return count;
   }, [selectedYears, selectedSems, unitRange]);
+
+  useEffect(() => {
+    // Scroll to top on load
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !profile) {
@@ -404,7 +413,7 @@ export default function Catalog() {
       <Sidebar user={profile} />
       
       <main id="main-content" className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-        {/* Header & Search */}
+                {/* Header & Search */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Catalog</h1>
@@ -453,38 +462,70 @@ export default function Catalog() {
               exit={{ height: 0, opacity: 0 }}
               className="mb-8 overflow-hidden"
             >
-              <div className="relative mb-4">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40" size={18} />
-                <Input 
-                  autoFocus
-                  placeholder="Subject, code, professor..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-background border-none neumorphic-pressed pl-12 pr-12 h-14 rounded-2xl focus-ring"
-                />
-                <button 
-                  onClick={() => setIsMobileSearchOpen(false)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full text-foreground/40"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
-                {(['1st', '2nd', '3rd', '4th'] as YearLevel[]).map(year => (
-                  <button
-                    key={year}
-                    onClick={() => {
-                      if (selectedYears.includes(year)) setSelectedYears(prev => prev.filter(y => y !== year));
-                      else setSelectedYears(prev => [...prev, year]);
-                    }}
-                    className={cn(
-                      "px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all",
-                      selectedYears.includes(year) ? "bg-ctu-gold text-white" : "neumorphic-raised text-foreground/40"
-                    )}
+              <div className="flex flex-col gap-4">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40" size={18} />
+                  <Input 
+                    autoFocus
+                    placeholder="Subject, code, professor..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-background border-none neumorphic-pressed pl-12 pr-12 h-14 rounded-2xl focus-ring"
+                  />
+                  <button 
+                    onClick={() => setIsMobileSearchOpen(false)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full text-foreground/40"
                   >
-                    {year} Year
+                    <X size={16} />
                   </button>
-                ))}
+                </div>
+
+                <div className="flex gap-2 overflow-x-auto pb-2 px-1 no-scrollbar -mx-1">
+                  <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+                    <SheetTrigger className="px-5 py-2.5 rounded-[20px] text-[10px] font-black uppercase tracking-[0.2em] neumorphic-raised text-ctu-gold flex items-center gap-2 bg-background/50 border border-ctu-gold/20 shrink-0 active:neumorphic-pressed transition-all">
+                      <SlidersHorizontal size={14} className="animate-pulse" /> Filters
+                    </SheetTrigger>
+                    <SheetContent side="bottom" className="h-[85dvh] rounded-t-[40px] bg-background border-none p-6 shadow-2xl">
+                      <div className="w-12 h-1.5 bg-foreground/10 rounded-full mx-auto mb-6" />
+                      <SheetHeader className="mb-8">
+                        <SheetTitle className="text-3xl font-black italic uppercase tracking-tighter text-ctu-maroon">Advanced Filters</SheetTitle>
+                      </SheetHeader>
+                      <ScrollArea className="h-full pr-4 pb-24">
+                        <FilterPanelContent />
+                      </ScrollArea>
+                    </SheetContent>
+                  </Sheet>
+
+                  <DropdownMenu open={isSortDropdownOpen} onOpenChange={setIsSortDropdownOpen}>
+                    <DropdownMenuTrigger className="px-5 py-2.5 rounded-[20px] text-[10px] font-black uppercase tracking-[0.2em] neumorphic-raised text-foreground/60 flex items-center gap-2 bg-background/50 border border-foreground/5 shrink-0 active:neumorphic-pressed transition-all">
+                      <ArrowUpDown size={14} /> Sort: {sortBy === 'relevance' ? 'Default' : sortBy.split('-')[0]}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-64 bg-background/95 backdrop-blur-xl border border-foreground/5 rounded-[24px] p-2 shadow-2xl z-[100] mt-2">
+                      <DropdownMenuItem onClick={() => setSortBy('relevance')} className="rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest hover:bg-ctu-gold/10 hover:text-ctu-gold transition-colors">Relevance</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setSortBy('alpha-asc')} className="rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-ctu-maroon bg-ctu-maroon/5 flex items-center justify-between">A-Z <CheckCircle2 size={14} /></DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setSortBy('alpha-desc')} className="rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest hover:bg-ctu-gold/10 hover:text-ctu-gold transition-colors">Z-A</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setSortBy('newest')} className="rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest hover:bg-ctu-gold/10 hover:text-ctu-gold transition-colors">Newest</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {(['1st', '2nd', '3rd', '4th'] as YearLevel[]).map(year => (
+                    <button
+                      key={year}
+                      onClick={() => {
+                        if (selectedYears.includes(year)) setSelectedYears(prev => prev.filter(y => y !== year));
+                        else setSelectedYears(prev => [...prev, year]);
+                      }}
+                      className={cn(
+                        "px-5 py-2.5 rounded-[20px] text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all shrink-0 border",
+                        selectedYears.includes(year) 
+                          ? "bg-ctu-maroon text-white border-ctu-maroon shadow-lg neumorphic-raised" 
+                          : "neumorphic-raised text-foreground/40 border-transparent bg-background/50"
+                      )}
+                    >
+                      {year} Year
+                    </button>
+                  ))}
+                </div>
               </div>
             </motion.div>
           )}
@@ -593,7 +634,7 @@ export default function Catalog() {
                 </div>
 
                 <div className="flex gap-3 h-14">
-                  <Sheet>
+                  <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
                     <SheetTrigger 
                       aria-label="Open advanced filters"
                       className="h-full px-5 rounded-2xl neumorphic-raised hover:neumorphic-pressed transition-all flex items-center gap-2 text-foreground/60"
@@ -617,7 +658,7 @@ export default function Catalog() {
                     </SheetContent>
                   </Sheet>
 
-                  <DropdownMenu>
+                  <DropdownMenu open={isSortDropdownOpen} onOpenChange={setIsSortDropdownOpen}>
                     <DropdownMenuTrigger 
                       aria-label="Sort subjects"
                       className="h-full px-5 rounded-2xl neumorphic-raised hover:neumorphic-pressed transition-all flex items-center gap-2 text-foreground/60 min-w-[140px] justify-between"
@@ -629,20 +670,22 @@ export default function Catalog() {
                       <ChevronDown size={16} />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56 bg-background border border-foreground/5 rounded-2xl p-2 shadow-2xl">
-                      <DropdownMenuLabel className="font-bold text-xs uppercase tracking-widest text-foreground/40 px-3 py-2">Sorting View</DropdownMenuLabel>
-                      <DropdownMenuSeparator className="bg-foreground/5" />
-                      <DropdownMenuItem onClick={() => setSortBy('relevance')} className={cn("rounded-xl px-3 py-2.5 font-medium cursor-pointer", sortBy === 'relevance' && "bg-ctu-gold/10 text-ctu-gold")}>
-                        Relevance (Default)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSortBy('alpha-asc')} className={cn("rounded-xl px-3 py-2.5 font-medium cursor-pointer flex items-center justify-between", sortBy === 'alpha-asc' && "bg-ctu-gold/10 text-ctu-gold")}>
-                        Alphabetical (A-Z)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSortBy('alpha-desc')} className={cn("rounded-xl px-3 py-2.5 font-medium cursor-pointer flex items-center justify-between", sortBy === 'alpha-desc' && "bg-ctu-gold/10 text-ctu-gold")}>
-                        Alphabetical (Z-A)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSortBy('newest')} className={cn("rounded-xl px-3 py-2.5 font-medium cursor-pointer flex items-center gap-2", sortBy === 'newest' && "bg-ctu-gold/10 text-ctu-gold")}>
-                        <Calendar size={14} className="text-emerald-500" /> Newest Added
-                      </DropdownMenuItem>
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel className="font-bold text-xs uppercase tracking-widest text-foreground/40 px-3 py-2">Sorting View</DropdownMenuLabel>
+                        <DropdownMenuSeparator className="bg-foreground/5" />
+                        <DropdownMenuItem onClick={() => setSortBy('relevance')} className={cn("rounded-xl px-3 py-2.5 font-medium cursor-pointer", sortBy === 'relevance' && "bg-ctu-gold/10 text-ctu-gold")}>
+                          Relevance (Default)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setSortBy('alpha-asc')} className={cn("rounded-xl px-3 py-2.5 font-medium cursor-pointer flex items-center justify-between", sortBy === 'alpha-asc' && "bg-ctu-gold/10 text-ctu-gold")}>
+                          Alphabetical (A-Z)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setSortBy('alpha-desc')} className={cn("rounded-xl px-3 py-2.5 font-medium cursor-pointer flex items-center justify-between", sortBy === 'alpha-desc' && "bg-ctu-gold/10 text-ctu-gold")}>
+                          Alphabetical (Z-A)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setSortBy('newest')} className={cn("rounded-xl px-3 py-2.5 font-medium cursor-pointer flex items-center gap-2", sortBy === 'newest' && "bg-ctu-gold/10 text-ctu-gold")}>
+                          <Calendar size={14} className="text-emerald-500" /> Newest Added
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -735,7 +778,7 @@ export default function Catalog() {
                             layout
                             className={cn(
                               "grid gap-8",
-                              viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
+                              viewMode === 'grid' ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
                             )}
                           >
                             <AnimatePresence mode="popLayout">
@@ -752,12 +795,19 @@ export default function Catalog() {
                                     onClick={() => navigate(`/catalog/${subject.id}`)}
                                     glowColor={idx % 2 === 0 ? 'blue' : 'orange'}
                                     customSize
-                                    className="w-full h-full border-none hover:scale-[1.02] transition-all cursor-pointer group relative overflow-hidden flex flex-col justify-between"
+                                    className={cn(
+                                      "w-full h-full border-none transition-all cursor-pointer group relative overflow-hidden flex",
+                                      viewMode === 'grid' ? "flex-col justify-between hover:scale-[1.02]" : "flex-row items-center p-3 sm:p-5"
+                                    )}
                                   >
-                                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-ctu-maroon opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className={cn(
+                                      "absolute left-0 top-0 w-1.5 bg-ctu-maroon opacity-0 group-hover:opacity-100 transition-opacity",
+                                      viewMode === 'grid' ? "bottom-0" : "h-full"
+                                    )} />
                                     
-                                    <div className="p-5 flex flex-col h-full justify-between relative z-10">
-                                      <div>
+                                    {viewMode === 'grid' ? (
+                                      <div className="p-5 flex flex-col h-full justify-between relative z-10 w-full">
+                                        <div>
                                           <div className="flex justify-between items-start mb-6">
                                             <div className="flex flex-wrap gap-2">
                                               <Badge variant="outline" className="border-ctu-gold text-ctu-gold font-bold bg-ctu-gold/5 px-2 py-0.5">{subject.code}</Badge>
@@ -834,6 +884,71 @@ export default function Catalog() {
                                         </div>
                                       </div>
                                     </div>
+                                  ) : (
+                                      <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-6 relative z-10 w-full px-4 sm:px-0">
+                                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                                          <div className="shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-xl neumorphic-raised bg-background/50 border border-foreground/5 shadow-inner">
+                                            <span className="text-[10px] font-black text-ctu-maroon leading-none mb-1">{subject.code.split(' ')[0]}</span>
+                                            <span className="text-[12px] font-black text-foreground leading-none">{subject.code.split(' ')[1] || subject.code}</span>
+                                          </div>
+                                          <div className="min-w-0">
+                                            <h3 className="text-sm sm:text-base font-black text-foreground line-clamp-1 group-hover:text-ctu-gold transition-colors uppercase tracking-tight italic">
+                                              {subject.name}
+                                            </h3>
+                                            <div className="flex items-center gap-3 mt-0.5">
+                                              <span className="text-[9px] text-foreground/40 font-bold uppercase tracking-widest flex items-center gap-1">
+                                                <Circle size={6} className="fill-blue-500 text-blue-500" /> {subject.units} Units
+                                              </span>
+                                              {(subject.averageRating || 0) > 0 && (
+                                                <div className="flex items-center gap-1">
+                                                  <Star size={8} className="text-ctu-gold fill-ctu-gold" />
+                                                  <span className="text-[9px] font-black text-ctu-gold">{subject.averageRating}</span>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 shrink-0 sm:min-w-[120px]">
+                                          <div className="flex items-center">
+                                            {subject.prerequisiteIds.length > 0 ? (
+                                              <Badge variant="outline" className="border-blue-500/20 text-blue-500 text-[8px] font-black uppercase tracking-tighter bg-blue-500/5 h-5 px-1.5">
+                                                Prereq
+                                              </Badge>
+                                            ) : (
+                                              <span className="text-[8px] text-foreground/20 font-bold uppercase tracking-widest hidden sm:block">Core</span>
+                                            )}
+                                          </div>
+
+                                          <div className="flex items-center gap-2">
+                                            {progressMap[subject.id]?.status === 'done' ? (
+                                              <>
+                                                {progressMap[subject.id]?.grade && (
+                                                  <div className={cn(
+                                                    "px-1.5 py-0.5 rounded-md text-[9px] font-black border border-current shrink-0",
+                                                    getGWAColor(progressMap[subject.id].grade!)
+                                                  )}>
+                                                    {progressMap[subject.id].grade!.toFixed(1)}
+                                                  </div>
+                                                )}
+                                                <div className="w-7 h-7 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                                                  <CheckCircle2 size={14} />
+                                                </div>
+                                              </>
+                                            ) : progressMap[subject.id]?.status === 'in_progress' ? (
+                                              <div className="w-7 h-7 rounded-full bg-ctu-gold/10 text-ctu-gold flex items-center justify-center shrink-0 border border-ctu-gold/20">
+                                                <Clock size={14} className="animate-spin-slow" />
+                                              </div>
+                                            ) : (
+                                              <div className="w-7 h-7 rounded-full bg-foreground/5 text-foreground/20 flex items-center justify-center shrink-0 border border-foreground/10">
+                                                <Circle size={12} />
+                                              </div>
+                                            )}
+                                            <ChevronRight size={16} className="text-foreground/20 group-hover:text-ctu-gold transition-colors translate-x-0 group-hover:translate-x-1" />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
                                   </GlowCard>
                                 </motion.div>
                               ))}
