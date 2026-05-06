@@ -1,14 +1,11 @@
 
 import { NotebookSource } from "../types";
-import { getGeminiClient, DEFAULT_MODEL } from "../lib/gemini";
+import { generateContent, DEFAULT_MODEL } from "../lib/gemini";
 
 /**
  * Generates a summary for a notebook based on its sources.
  */
 export async function generateNotebookSummary(name: string, sources: NotebookSource[]) {
-  const ai = getGeminiClient();
-  if (!ai) return "AI Summary is currently unavailable.";
-
   const sourcesText = sources.map(s => `Source: ${s.title}\nContent: ${s.content}`).join('\n\n---\n\n');
   
   const prompt = `
@@ -21,7 +18,7 @@ export async function generateNotebookSummary(name: string, sources: NotebookSou
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await generateContent({
       model: DEFAULT_MODEL,
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: {
@@ -44,9 +41,6 @@ export async function chatWithNotebook(
   history: { role: 'user' | 'model', parts: { text: string }[] }[],
   userMessage: string
 ) {
-  const ai = getGeminiClient();
-  if (!ai) return "AI Chat is currently unavailable.";
-
   const sourcesText = sources.map(s => `[ID: ${s.id}] Source: ${s.title}\nContent: ${s.content}`).join('\n\n---\n\n');
   
   const systemInstruction = `
@@ -65,7 +59,7 @@ export async function chatWithNotebook(
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await generateContent({
       model: DEFAULT_MODEL,
       contents: [
         ...history.map(h => ({ role: h.role, parts: h.parts })),
@@ -85,12 +79,8 @@ export async function chatWithNotebook(
 
 /**
  * Searches for external resources based on a topic query. 
- * Re-uses the pattern from gemini.ts or can be its own.
  */
 export async function searchExternalResources(query: string) {
-  const ai = getGeminiClient();
-  if (!ai) return [];
-
   const prompt = `
     Find high-quality academic and educational resources (articles, papers, study guides) related to: "${query}".
     Specifically focus on material relevant to Industrial Engineering if applicable.
@@ -99,7 +89,7 @@ export async function searchExternalResources(query: string) {
   `;
 
   try {
-    const response = await ai.models.generateContent({ 
+    const response = await generateContent({ 
       model: DEFAULT_MODEL,
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: {

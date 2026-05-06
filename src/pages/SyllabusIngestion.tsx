@@ -17,7 +17,7 @@ import {
 import { useAuth } from '@/src/context/AuthContext';
 import { db } from '@/src/lib/firebase';
 import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { getGeminiClient } from '@/src/lib/gemini';
+import { generateContent } from '@/src/lib/gemini';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -145,10 +145,6 @@ export default function SyllabusIngestion() {
       const base64Data = await base64Promise;
 
       updateResult(fileId, { message: 'Extracting data with AI...' });
-
-      // 3. Extract with Gemini
-      const ai = getGeminiClient();
-      if (!ai) throw new Error('AI Assistant is not configured. Please set GEMINI_API_KEY.');
       
       const prompt = `Extract academic information from this syllabus PDF. Return JSON.
       Fields:
@@ -163,19 +159,22 @@ export default function SyllabusIngestion() {
       - courseOutcomes (array of strings)
       - topics (array of strings)`;
 
-      const aiResponse = await ai.models.generateContent({
+      const aiResponse = await generateContent({
         model: "gemini-2.0-flash",
-        contents: {
-          parts: [
-            { text: prompt },
-            {
-              inlineData: {
-                mimeType: "application/pdf",
-                data: base64Data
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType: "application/pdf",
+                  data: base64Data
+                }
               }
-            }
-          ]
-        },
+            ]
+          }
+        ],
         config: {
           responseMimeType: "application/json"
         }

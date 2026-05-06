@@ -1,37 +1,64 @@
 
-import { GoogleGenAI } from "@google/genai";
-
-let aiClient: GoogleGenAI | null = null;
-
-// Always use gemini-2.0-flash as per AGENTS.md
+// gemini.ts - Updated to use central server-side proxy
 export const DEFAULT_MODEL = "gemini-2.0-flash";
 
 /**
- * Initializes and returns the Gemini client using the available API key.
- * Prioritizes process.env.GEMINI_API_KEY (AI Studio provided) or falls back to VITE_GEMINI_API_KEY.
+ * Generic fetcher for AI generation tasks
  */
-export const getGeminiClient = () => {
-  if (aiClient) return aiClient;
+async function callAIProxy(options: { 
+  prompt: string; 
+  systemInstruction?: string; 
+  responseMimeType?: string;
+  model?: string;
+}) {
+  try {
+    const response = await fetch("/api/ai/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(options)
+    });
 
-  const apiKey = (process as any).env?.GEMINI_API_KEY || 
-                 (import.meta as any).env?.VITE_GEMINI_API_KEY;
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(errData.error || `Server Error: ${response.status}`);
+    }
 
-  if (!apiKey || apiKey === 'undefined' || apiKey === 'null') {
-    console.warn('[Gemini] API Key is missing. AI features will be disabled.');
-    return null;
+    const data = await response.json();
+    return data.text;
+  } catch (error: any) {
+    console.error("[AI Proxy Error]:", error);
+    throw error;
   }
+}
 
-  aiClient = new GoogleGenAI({ apiKey });
-  return aiClient;
-};
+/**
+ * Advanced pass-through for multi-part requests (e.g. including files)
+ */
+export async function generateContent(options: any) {
+  try {
+    const response = await fetch("/api/ai/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(options)
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(errData.error || `Server Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error: any) {
+    console.error("[AI Proxy generateContent Error]:", error);
+    throw error;
+  }
+}
 
 /**
  * Generates a structured study plan (roadmap) based on student progress.
  */
 export async function generateStudyPlan(currentProgress: any, subjects: any[]) {
-  const ai = getGeminiClient();
-  if (!ai) return [];
-
   const prompt = `
     As an expert Industrial Engineering advisor at Cebu Technological University (CTU), 
     generate a multi-step learning roadmap for a student with the following academic data:
@@ -61,18 +88,9 @@ export async function generateStudyPlan(currentProgress: any, subjects: any[]) {
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json"
-      }
-    });
-
-    const resultText = response.text || "[]";
-    return JSON.parse(resultText);
+    const text = await callAIProxy({ prompt, responseMimeType: "application/json" });
+    return JSON.parse(text || "[]");
   } catch (error) {
-    console.error("Gemini Study Plan Error:", error);
     return [];
   }
 }
@@ -81,21 +99,12 @@ export async function generateStudyPlan(currentProgress: any, subjects: any[]) {
  * Generic Q&A function with context grounding.
  */
 export async function askQuestion(question: string, context: string) {
-  const ai = getGeminiClient();
-  if (!ai) return "AI Assistant is currently unavailable.";
-
   try {
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: [{ role: 'user', parts: [{ text: `Context:\n${context}\n\nQuestion: ${question}` }] }],
-      config: {
-        systemInstruction: "You are the IE MATRIX Assistant, a helpful AI advisor for Industrial Engineering students at CTU. Provide accurate, academic, and encouraging responses. Use the provided context to GROUND your answers. Format your output with Markdown."
-      }
+    return await callAIProxy({
+      prompt: `Context:\n${context}\n\nQuestion: ${question}`,
+      systemInstruction: "You are the IE MATRIX Assistant, a helpful AI advisor for Industrial Engineering students at CTU. Provide accurate, academic, and encouraging responses. Use the provided context to GROUND your answers. Format your output with Markdown."
     });
-
-    return response.text || "I'm sorry, I couldn't generate an answer at this time.";
   } catch (error) {
-    console.error("Gemini QA Error:", error);
     return "I encountered an error while processing your question. Please try again later.";
   }
 }
@@ -104,9 +113,6 @@ export async function askQuestion(question: string, context: string) {
  * Generates an AI quiz based on subject content or general IE topics.
  */
 export async function generateQuiz(subjectName: string) {
-  const ai = getGeminiClient();
-  if (!ai) return [];
-
   const prompt = `
     Create a 5-question multiple choice quiz for the subject: ${subjectName}.
     The questions should be relevant to Industrial Engineering.
@@ -123,17 +129,9 @@ export async function generateQuiz(subjectName: string) {
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json"
-      }
-    });
-
-    return JSON.parse(response.text || "[]");
+    const text = await callAIProxy({ prompt, responseMimeType: "application/json" });
+    return JSON.parse(text || "[]");
   } catch (error) {
-    console.error("Gemini Quiz Error:", error);
     return [];
   }
 }
@@ -142,9 +140,6 @@ export async function generateQuiz(subjectName: string) {
  * Provides curriculum advice based on current GWA and subject performance.
  */
 export async function getCurriculumAdvice(userProgress: any, subjects: any[]) {
-  const ai = getGeminiClient();
-  if (!ai) return "I'm sorry, I couldn't generate advice at the moment.";
-
   const prompt = `
     Analyze this student's performance:
     Progress: ${JSON.stringify(userProgress)}
@@ -157,17 +152,11 @@ export async function getCurriculumAdvice(userProgress: any, subjects: any[]) {
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: {
-        systemInstruction: "You are an expert IE academic advisor for CTU. Be professional, encouraging, and concise. Format the response in Markdown."
-      }
+    return await callAIProxy({
+      prompt,
+      systemInstruction: "You are an expert IE academic advisor for CTU. Be professional, encouraging, and concise. Format the response in Markdown."
     });
-
-    return response.text || "I'm sorry, I couldn't generate advice at the moment.";
   } catch (error) {
-    console.error("Gemini Advice Error:", error);
     return "I'm sorry, I couldn't generate advice at the moment. Please try again later.";
   }
 }
@@ -176,9 +165,6 @@ export async function getCurriculumAdvice(userProgress: any, subjects: any[]) {
  * Searches for external IE resources based on a topic.
  */
 export async function searchExternalResources(topic: string) {
-  const ai = getGeminiClient();
-  if (!ai) return [];
-
   const prompt = `
     Search for high-quality external learning resources (PDFs, YouTube videos, academic sites) for the Industrial Engineering topic: ${topic}.
     
@@ -194,17 +180,15 @@ export async function searchExternalResources(topic: string) {
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json"
-      }
-    });
-
-    return JSON.parse(response.text || "[]");
+    const text = await callAIProxy({ prompt, responseMimeType: "application/json" });
+    return JSON.parse(text || "[]");
   } catch (error) {
-    console.error("Gemini External Search Error:", error);
     return [];
   }
 }
+
+// Export for legacy compatibility or direct access if needed
+export const getGeminiClient = () => {
+  console.warn("getGeminiClient is deprecated. Using server-side proxy instead.");
+  return null;
+};

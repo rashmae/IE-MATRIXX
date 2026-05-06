@@ -3,8 +3,24 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import * as admin from "firebase-admin";
 import dotenv from "dotenv";
+import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
+
+// Initialize Gemini Client
+let geminiClient: GoogleGenAI | null = null;
+const initGemini = () => {
+  if (geminiClient) return geminiClient;
+  
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.warn("GEMINI_API_KEY not found in environment. AI features will fail.");
+    return null;
+  }
+  
+  geminiClient = new GoogleGenAI({ apiKey });
+  return geminiClient;
+};
 
 async function startServer() {
   const app = express();
@@ -38,6 +54,39 @@ async function startServer() {
   };
 
   app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  // AI Proxy Routes
+  app.post("/api/ai/generate", async (req, res) => {
+    const { prompt, systemInstruction, responseMimeType, model = "gemini-2.0-flash", contents, config } = req.body;
+    
+    const ai = initGemini();
+    if (!ai) {
+      return res.status(503).json({ error: "AI Service Not Configured" });
+    }
+
+    try {
+      // Direct pass-through if contents is provided (advanced usage)
+      // Otherwise fallback to simple prompt construction
+      const generationConfig = config || {
+        systemInstruction,
+        responseMimeType
+      };
+
+      const finalContents = contents || [{ role: 'user', parts: [{ text: prompt }] }];
+
+      const response = await ai.models.generateContent({
+        model,
+        contents: finalContents,
+        config: generationConfig
+      });
+      
+      res.json({ text: response.text });
+    } catch (error: any) {
+      console.error("Gemini API Proxy Error:", error);
+      res.status(500).json({ error: error.message || "Failed to generate content" });
+    }
+  });
 
   // API Routes
   app.get("/api/health", (req, res) => {
