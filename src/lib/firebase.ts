@@ -1,24 +1,49 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { initializeFirestore, doc, query, collection, limit, getDocs, getDocFromServer } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import firebaseConfig from '@/firebase-applet-config.json';
 
+/**
+ * Firebase Configuration
+ * 
+ * In the AI Studio environment, these are often provided via a local JSON file.
+ * However, for production deployments (like Vercel), you MUST set these as 
+ * environment variables in your deployment dashboard.
+ * 
+ * Required Variables:
+ * VITE_FIREBASE_API_KEY
+ * VITE_FIREBASE_AUTH_DOMAIN
+ * VITE_FIREBASE_PROJECT_ID
+ * VITE_FIREBASE_STORAGE_BUCKET
+ * VITE_FIREBASE_MESSAGING_SENDER_ID
+ * VITE_FIREBASE_APP_ID
+ * VITE_FIREBASE_DATABASE_ID (optional, defaults to (default))
+ */
+
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+};
+
+const databaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || '(default)';
+
+// Initialize Firebase
 let app: any;
-let auth: any;
-let db: any;
-let storage: any;
-
 try {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = initializeFirestore(app, {
-    experimentalForceLongPolling: true,
-  }, (firebaseConfig as any).firestoreDatabaseId);
-  storage = getStorage(app);
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 } catch (error) {
-  console.error('[Firebase] Critical initialization error. Please check your config.', error);
+  console.error('[Firebase] Initialization failed. Ensure environment variables are set.', error);
 }
+
+const auth = getAuth(app);
+const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, databaseId);
+const storage = getStorage(app);
 
 export { app, auth, db, storage };
 
@@ -85,23 +110,8 @@ export const testFirebaseConnection = async () => {
 };
 
 // Diagnostics log
-if (process.env.NODE_ENV !== 'production') {
-  const runDiagnostics = async () => {
-    console.log(`[Firebase Diagnostics] Project ID: ${firebaseConfig.projectId}`);
-    console.log(`[Firebase Diagnostics] Firestore DB ID: ${(firebaseConfig as any).firestoreDatabaseId}`);
-    
-    try {
-      await getDocFromServer(doc(db, 'test', 'connection'));
-      console.log("[Firebase Diagnostics] Connection established successfully.");
-    } catch (error: any) {
-      if (error.message?.includes('the client is offline')) {
-        console.error("Firebase connection test: Client is offline. This usually means the Project ID is invalid or Firestore is not reachable.");
-      } else if (error.message?.includes('not-found') || error.message?.includes('database')) {
-        console.error("Firebase connection test: Database not found. Please verify firestoreDatabaseId in config.");
-      }
-    }
-  };
-  runDiagnostics();
+if (import.meta.env.DEV) {
+  // We don't need to manually call it here as it's called inside initFirebase
 }
 
 export const signInWithGoogle = async () => {
