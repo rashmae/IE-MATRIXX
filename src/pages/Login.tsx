@@ -75,10 +75,11 @@ export default function Login() {
       
       const userData = {
         uid: authUser.uid,
-        fullName: fullName,
-        idNumber: idNumber,
+        fullName: fullName.trim(),
+        idNumber: idNumber.trim(),
         yearLevel: yearLevel,
-        email: authUser.email,
+        email: authUser.email || '',
+        photoURL: authUser.photoURL || '',
         role: isAdminUser ? 'admin' : 'student',
         lastLogin: serverTimestamp(),
       };

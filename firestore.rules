@@ -58,13 +58,12 @@ service cloud.firestore {
     function isValidUser(data) {
       return data.keys().hasAll(['uid', 'fullName', 'idNumber', 'role']) &&
              data.uid == request.auth.uid &&
-             data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 100 &&
-             data.idNumber is string && data.idNumber.size() > 0 && data.idNumber.size() <= 50 &&
+             data.fullName is string && data.fullName.size() > 0 &&
+             data.idNumber is string && data.idNumber.size() > 0 &&
              data.role in ['student', 'admin'] &&
              (data.get('yearLevel', '') is string) &&
              (data.get('email', '') is string) &&
-             (data.get('photoURL', '') is string) &&
-             (data.keys().contains('lastLogin') ? data.lastLogin is timestamp : true);
+             (data.get('photoURL', '') is string || data.get('photoURL', null) == null);
     }
 
     function isValidUserProgress(data) {
@@ -200,20 +199,13 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn() && (userId == request.auth.uid || isBootstrapAdmin() || isAdmin());
       
-      allow create: if isEmailVerified() && isValidId(userId) && userId == request.auth.uid && 
+      allow create: if isSignedIn() && userId == request.auth.uid && 
                       isValidUser(incoming()) && 
                       (incoming().role == 'student' || isBootstrapAdmin());
       
-      allow update: if isEmailVerified() && isValidId(userId) && (
-        isAdmin() || (
-          userId == request.auth.uid && 
-          isValidUser(incoming()) &&
-          (incoming().role == existing().role || isBootstrapAdmin()) &&
-          incoming().diff(existing()).affectedKeys().hasOnly([
-            'fullName', 'idNumber', 'yearLevel', 'lastLogin', 'email', 'photoURL', 'progress', 'role', 'uid'
-          ])
-        )
-      );
+      allow update: if isSignedIn() && (userId == request.auth.uid || isAdmin()) && 
+                      isValidUser(incoming()) &&
+                      (userId != request.auth.uid || incoming().role == existing().role || isBootstrapAdmin());
     }
 
     match /userProgress/{userId} {
