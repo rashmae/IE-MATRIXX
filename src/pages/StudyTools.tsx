@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
-import { User, StudyGroup, StudyPost, Quiz, Subject, Progress as ProgressType } from '@/src/types/index';
+import { User, StudyGroup, StudyPost, Quiz, Subject, Progress as ProgressType, QuizResult } from '@/src/types/index';
 import { IE_SUBJECTS } from '@/src/lib/constants';
 import { generateStudyPlan, generateQuiz, askQuestion } from '@/src/lib/gemini';
 import { db, auth as firebaseAuth } from '@/src/lib/firebase';
@@ -97,6 +97,8 @@ export default function StudyTools() {
   const [groupSearchQuery, setGroupSearchQuery] = useState('');
   const [newQuestion, setNewQuestion] = useState({ title: '', content: '', subjectTag: '' });
   const [activeNotebookId, setActiveNotebookId] = useState<string | null>(null);
+  const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
+  const [quizSubject, setQuizSubject] = useState<string>('Industrial Engineering');
 
   // Roadmap Filtering & Status state
   const [roadmapStatusFilter, setRoadmapStatusFilter] = useState<string>('all');
@@ -223,11 +225,21 @@ export default function StudyTools() {
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'flashcardDecks');
     });
+    
+    // Real-time quiz results
+    const qr = query(collection(db, 'quizResults'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'), limit(10));
+    const unsubscribeQuizResults = onSnapshot(qr, (snapshot) => {
+      const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QuizResult));
+      setQuizResults(results);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'quizResults');
+    });
 
     return () => {
       unsubscribeQA();
       unsubscribeGroups();
       unsubscribeDecks();
+      unsubscribeQuizResults();
     };
   }, [user, authLoading, navigate]);
 
@@ -633,6 +645,7 @@ export default function StudyTools() {
 
   const startQuizSession = async (subjectName: string) => {
     setIsSessionLoading(true);
+    setQuizSubject(subjectName);
     try {
       const questions = await generateQuiz(subjectName);
       if (questions.length === 0) throw new Error("No questions generated");
@@ -644,6 +657,25 @@ export default function StudyTools() {
       toast.error("Failed to load quiz. Try again.");
     } finally {
       setIsSessionLoading(false);
+    }
+  };
+
+  const handleFinishQuiz = async () => {
+    if (!user) return;
+    
+    try {
+      await addDoc(collection(db, 'quizResults'), {
+        userId: user.uid,
+        subjectName: quizSubject,
+        score: quizScore,
+        total: 5,
+        createdAt: serverTimestamp()
+      });
+      toast.success("Result saved to your history!");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'quizResults');
+    } finally {
+      setActiveSession(null);
     }
   };
 
@@ -783,7 +815,7 @@ export default function StudyTools() {
                     </div>
                   </div>
 
-                  <GlowCard className="p-4 sm:p-8" glowColor="blue">
+                  <GlowCard className="w-full h-auto p-4 sm:p-8" glowColor="blue" customSize>
                     <h3 className="text-lg sm:text-2xl font-black mb-6 sm:mb-8 leading-tight tracking-tight uppercase">{activeSession.data[currentStep].question}</h3>
                     <div className="grid gap-2 sm:gap-4">
                       {activeSession.data[currentStep].options.map((opt: string, idx: number) => (
@@ -824,7 +856,7 @@ export default function StudyTools() {
                     <p className="text-foreground/60">You scored {quizScore} out of 5</p>
                   </div>
                   <Button 
-                    onClick={() => setActiveSession(null)}
+                    onClick={handleFinishQuiz}
                     className="h-14 px-12 rounded-2xl bg-ctu-gold text-white font-bold text-lg"
                   >
                     Back to Hub
@@ -895,7 +927,7 @@ export default function StudyTools() {
               transition={{ duration: 0.3 }}
             >
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  <GlowCard className="lg:col-span-2 p-4 sm:p-8" glowColor="orange">
+                  <GlowCard className="w-full h-auto lg:col-span-2 p-4 sm:p-8" glowColor="orange" customSize>
                         <div className="flex flex-col gap-6 mb-8 sm:mb-10">
                           <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
                             <div className="text-center sm:text-left">
@@ -1210,39 +1242,57 @@ export default function StudyTools() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 mb-8 sm:mb-12">
-                  <div>
-                    <h2 className="text-2xl sm:text-4xl md:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
-                       Matrix Map <Layers size={24} className="text-ctu-gold sm:size-20 shrink-0" />
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10 sm:mb-16">
+                  <div className="flex-1">
+                    <h2 className="text-3xl sm:text-5xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.85] py-2 flex items-center flex-wrap gap-4 sm:gap-8">
+                       Matrix <Layers size={28} className="text-ctu-gold sm:size-24 shrink-0" />
                     </h2>
-                    <p className="text-sm sm:text-base md:text-xl text-foreground/40 font-medium mt-1 sm:mt-2 tracking-tight">Interactive dependency graph of the IE curriculum.</p>
+                    <p className="text-xs sm:text-sm md:text-xl text-foreground/40 font-bold mt-4 tracking-[0.2em] uppercase">Interactive curriculum flow analysis.</p>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    className="h-12 sm:h-14 rounded-2xl border-none neumorphic-raised text-[10px] font-black uppercase tracking-widest text-ctu-gold w-full md:w-auto shadow-lg hover:bg-ctu-gold hover:text-white transition-all active:neumorphic-pressed"
-                    onClick={() => navigate('/catalog')}
-                  >
-                    <Maximize size={18} className="mr-2" /> Browse Full Matrix
-                  </Button>
+                  
+                  <div className="w-full lg:w-96 space-y-4">
+                    <div className="relative group">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/20 group-focus-within:text-ctu-gold transition-colors" size={18} />
+                      <Input 
+                        placeholder="SEARCH THE MATRIX..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-12 h-14 rounded-2xl bg-foreground/[0.03] border-none neumorphic-pressed text-[10px] font-black uppercase tracking-widest focus-visible:ring-1 focus-visible:ring-ctu-gold/30"
+                      />
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      className="h-14 rounded-2xl border-none neumorphic-raised text-[10px] font-black uppercase tracking-widest text-ctu-gold w-full shadow-lg hover:bg-ctu-gold hover:text-white transition-all active:neumorphic-pressed"
+                      onClick={() => navigate('/catalog')}
+                    >
+                      <Maximize size={18} className="mr-2" /> Extended Catalog
+                    </Button>
+                  </div>
                 </div>
-                <GlowCard className="p-4 sm:p-10 flex flex-col gap-8 relative overflow-hidden" glowColor="blue">
-                  <div className="relative z-20 text-center sm:text-left px-2 mb-4">
-                    <h2 className="text-2xl sm:text-4xl md:text-5xl font-display font-black mb-2 tracking-tight uppercase">Academic Matrix Map</h2>
-                    <p className="text-xs sm:text-base text-foreground/40 max-w-sm font-medium mx-auto sm:mx-0">
-                      Visualizing the flow of Industrial Engineering subjects from fundamentals to specialization.
+
+                <GlowCard className="w-full h-auto p-4 sm:p-14 flex flex-col gap-12 sm:gap-20 relative overflow-hidden" glowColor="blue" customSize>
+                  <div className="relative z-20 text-center sm:text-left px-4">
+                    <h2 className="text-3xl sm:text-5xl md:text-7xl font-display font-black mb-4 tracking-tighter uppercase leading-[0.9]">Curriculum Flow</h2>
+                    <p className="text-xs sm:text-lg text-foreground/40 max-w-lg font-medium mx-auto sm:mx-0 leading-relaxed italic">
+                      Visualizing your academic trajectory. Filter and explore subject dependencies across four years of IE training.
                     </p>
                   </div>
 
-                  <div className="w-full flex flex-col items-center gap-12 sm:gap-20 relative z-10">
+                  <div className="w-full flex flex-col items-center gap-12 sm:gap-24 relative z-10 px-1 sm:px-4">
                     {/* Visualizing Year Progress */}
                     {['1st', '2nd', '3rd', '4th'].map((year, yIdx) => (
-                      <div key={year} className="w-full flex flex-col items-center gap-8 sm:gap-12">
+                      <div key={year} className="w-full flex flex-col items-center gap-8 sm:gap-16">
                         <div className="w-full text-center">
                           <h4 className="text-[10px] sm:text-xs font-black uppercase tracking-[0.5em] text-foreground/20 mb-3">{year} Year Matrix Status</h4>
                           <div className="h-0.5 w-16 bg-ctu-gold/30 mx-auto rounded-full" />
                         </div>
-                        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 w-full max-w-6xl">
-                          {IE_SUBJECTS.filter(s => s.yearLevel === year).slice(0, 4).map((subject) => {
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-8 w-full max-w-7xl">
+                          {IE_SUBJECTS.filter(s => 
+                            s.yearLevel === year && 
+                            (searchQuery === '' || 
+                             s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                             s.code.toLowerCase().includes(searchQuery.toLowerCase()))
+                          ).map((subject) => {
                             const isDone = progressMap[subject.id]?.status === 'done';
                             const isPrep = progressMap[subject.id]?.status === 'in_progress';
                             
@@ -1250,7 +1300,7 @@ export default function StudyTools() {
                               <div 
                                 key={subject.id}
                                 className={cn(
-                                  "w-full p-6 sm:p-8 rounded-[2rem] transition-all border flex flex-col justify-between min-h-[160px] cursor-pointer group relative overflow-hidden",
+                                  "w-full p-6 sm:p-8 rounded-[2rem] transition-all border flex flex-col justify-between min-h-[180px] cursor-pointer group relative overflow-hidden",
                                   isDone ? "bg-emerald-500/[0.03] border-emerald-500/20 shadow-lg" : 
                                   isPrep ? "bg-ctu-gold/[0.03] border-ctu-gold/20 shadow-lg" : "bg-background neumorphic-raised border-foreground/5 shadow-sm hover:shadow-xl"
                                 )}
@@ -1269,7 +1319,7 @@ export default function StudyTools() {
                                     {isDone && <Award size={18} className="text-emerald-500" />}
                                   </div>
                                   <h5 className={cn(
-                                    "text-base sm:text-lg font-black leading-[1.2] uppercase tracking-tighter line-clamp-2 transition-colors",
+                                    "text-sm sm:text-base md:text-lg font-black leading-tight uppercase tracking-tight line-clamp-3 transition-colors",
                                     isDone ? "text-emerald-500/80" : isPrep ? "text-ctu-gold" : "text-foreground group-hover:text-ctu-gold"
                                   )}>
                                     {subject.name}
@@ -2065,6 +2115,63 @@ export default function StudyTools() {
                       </div>
                     </div>
                   </Card>
+                </div>
+
+                {/* Past Quiz Results Section */}
+                <div className="space-y-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-1.5 h-10 bg-ctu-gold rounded-full" />
+                    <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">Past Quiz Performance</h3>
+                  </div>
+
+                  {quizResults.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {quizResults.map((result) => (
+                        <Card key={result.id} className="p-6 neumorphic-raised border-foreground/5 rounded-[2rem] relative overflow-hidden group">
+                          <div className="absolute top-0 right-0 w-24 h-24 bg-foreground/[0.02] rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700" />
+                          <div className="flex justify-between items-start mb-4 relative z-10">
+                            <Badge className={cn(
+                              "font-black text-[10px] uppercase tracking-widest px-3 py-1 rounded-full",
+                              (result.score / result.total) >= 0.8 ? "bg-emerald-500 text-white" : 
+                              (result.score / result.total) >= 0.6 ? "bg-ctu-gold text-white" : "bg-ctu-maroon text-white"
+                            )}>
+                              {Math.round((result.score / result.total) * 100)}%
+                            </Badge>
+                            <span className="text-[10px] font-black text-foreground/20 uppercase tracking-widest flex items-center gap-2">
+                              <Calendar size={12} /> 
+                              {result.createdAt?.toDate ? result.createdAt.toDate().toLocaleDateString() : 'Just now'}
+                            </span>
+                          </div>
+                          
+                          <h4 className="text-xl font-black text-foreground mb-1 uppercase tracking-tight line-clamp-1">{result.subjectName}</h4>
+                          <p className="text-xs font-bold text-foreground/40 italic mb-4">AI-Generated Assessment</p>
+                          
+                          <div className="flex items-end justify-between">
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-3xl font-black text-foreground">{result.score}</span>
+                              <span className="text-sm font-bold text-foreground/20 italic">/ {result.total}</span>
+                            </div>
+                            <div className="flex gap-1">
+                              {Array.from({ length: result.total }).map((_, i) => (
+                                <div key={i} className={cn(
+                                  "w-2 h-2 rounded-full",
+                                  i < result.score ? "bg-ctu-gold" : "bg-foreground/10"
+                                )} />
+                              ))}
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-16 bg-foreground/[0.02] rounded-[3rem] border border-dashed border-foreground/10">
+                      <div className="w-16 h-16 rounded-full bg-foreground/5 flex items-center justify-center mx-auto mb-4 text-foreground/20">
+                        <Award size={32} />
+                      </div>
+                      <h4 className="text-lg font-black text-foreground/30 uppercase tracking-widest">No Intelligence Data Recorded</h4>
+                      <p className="text-sm font-medium text-foreground/20 mt-2">Complete a quiz session to initiate performance tracking.</p>
+                    </div>
+                  )}
                 </div>
               </motion.div>
               </TabsContent>

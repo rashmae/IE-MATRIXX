@@ -116,6 +116,15 @@ export interface Quiz {
   difficulty: 'easy' | 'medium' | 'hard';
 }
 
+export interface QuizResult {
+  id: string;
+  userId: string;
+  subjectName: string;
+  score: number;
+  total: number;
+  createdAt: any;
+}
+
 export interface GradeProjection {
   semester: Semester;
   yearLevel: YearLevel;

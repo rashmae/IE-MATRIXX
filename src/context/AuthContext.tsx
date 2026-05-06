@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { auth, db } from '@/src/lib/firebase';
+import { auth, db, handleFirestoreError, OperationType } from '@/src/lib/firebase';
 import { User } from '@/src/types';
 import LoadingScreen from '@/src/components/LoadingScreen';
 
@@ -26,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (firebaseUser) {
         // Simple one-time fetch initially
+        const path = `users/${firebaseUser.uid}`;
         const userRef = doc(db, 'users', firebaseUser.uid);
         
         // Use onSnapshot for real-time profile updates (like progress changes)
@@ -37,7 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           setLoading(false);
         }, (error) => {
-          console.error("Profile subscription error:", error);
+          handleFirestoreError(error, OperationType.GET, path);
           setLoading(false);
         });
 

@@ -12,7 +12,7 @@ import {
   Timestamp,
   limit
 } from 'firebase/firestore';
-import { db } from '@/src/lib/firebase';
+import { db, handleFirestoreError, OperationType } from '@/src/lib/firebase';
 import { useAuth } from '@/src/context/AuthContext';
 import { Notification } from '@/src/types';
 import { toast } from 'sonner';
@@ -32,8 +32,9 @@ export function useNotifications() {
       return;
     }
 
+    const path = 'notifications';
     const q = query(
-      collection(db, 'notifications'),
+      collection(db, path),
       where('userId', '==', user.uid),
       orderBy('createdAt', 'desc'),
       limit(20)
@@ -74,7 +75,7 @@ export function useNotifications() {
       setLoading(false);
       isFirstLoad.current = false;
     }, (error) => {
-      console.error("Error fetching notifications:", error);
+      handleFirestoreError(error, OperationType.LIST, path);
       setLoading(false);
     });
 

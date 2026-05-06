@@ -47,7 +47,7 @@ service cloud.firestore {
       return isSignedIn() && (
         isBootstrapAdmin() ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'student') == 'admin')
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
     }
 
@@ -129,6 +129,15 @@ service cloud.firestore {
              (request.method == 'create' ? data.createdAt == request.time : true);
     }
 
+    function isValidQuizResult(data) {
+      return data.keys().hasAll(['userId', 'subjectName', 'score', 'total', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.subjectName is string && data.subjectName.size() > 0 && data.subjectName.size() <= 100 &&
+             data.score is number && data.score >= 0 &&
+             data.total is number && data.total > 0 &&
+             data.createdAt == request.time;
+    }
+
     // ===============================================================
     // COLLECTION RULES
     // ===============================================================
@@ -138,11 +147,12 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      allow read, list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isEmailVerified() && (isAdmin() || incoming().userId == request.auth.uid); // Temporarily allow user to create for demo/testing
-      allow update: if isSignedIn() && existing().userId == request.auth.uid && 
-                       incoming().diff(existing()).affectedKeys().hasOnly(['read']);
-      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isEmailVerified() && (isAdmin() || (incoming().userId == request.auth.uid && isValidNotification(incoming())));
+      allow update: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin()) && 
+                       (incoming().diff(existing()).affectedKeys().hasOnly(['read']) || isAdmin());
+      allow delete: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
     }
 
     match /studyGroups/{groupId} {
@@ -188,15 +198,15 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow read: if isSignedIn() && (userId == request.auth.uid || isBootstrapAdmin() || isAdmin());
       
-      allow create: if isEmailVerified() && isValidId(userId) && isOwner(userId) && 
+      allow create: if isEmailVerified() && isValidId(userId) && userId == request.auth.uid && 
                       isValidUser(incoming()) && 
                       (incoming().role == 'student' || isBootstrapAdmin());
       
       allow update: if isEmailVerified() && isValidId(userId) && (
         isAdmin() || (
-          isOwner(userId) && 
+          userId == request.auth.uid && 
           isValidUser(incoming()) &&
           (incoming().role == existing().role || isBootstrapAdmin()) &&
           incoming().diff(existing()).affectedKeys().hasOnly([
@@ -274,6 +284,13 @@ service cloud.firestore {
         allow create: if isEmailVerified() && incoming().userId == request.auth.uid;
         allow update, delete: if isEmailVerified() && (get(/databases/$(database)/documents/flashcardDecks/$(deckId)).data.userId == request.auth.uid || isAdmin());
       }
+    }
+
+    match /quizResults/{resultId} {
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isEmailVerified() && isValidQuizResult(incoming());
+      allow delete: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
     }
   }
 }

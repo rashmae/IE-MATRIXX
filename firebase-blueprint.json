@@ -182,6 +182,19 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "title", "message", "type", "read", "createdAt"]
+    },
+    "QuizResult": {
+      "title": "Quiz Result",
+      "description": "A record of a student's performance in an AI-generated quiz.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "subjectName": { "type": "string" },
+        "score": { "type": "number" },
+        "total": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "subjectName", "score", "total", "createdAt"]
     }
   },
   "firestore": {
@@ -228,6 +241,10 @@
     "/flashcardDecks/{deckId}/cards/{cardId}": {
       "schema": "Flashcard",
       "description": "Individual flashcards within a deck."
+    },
+    "/quizResults/{resultId}": {
+      "schema": "QuizResult",
+      "description": "History of user quiz attempts."
     }
   }
 }
