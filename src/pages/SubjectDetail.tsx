@@ -68,7 +68,8 @@ import {
   getDoc,
   updateDoc,
   deleteDoc,
-  onSnapshot
+  onSnapshot,
+  increment
 } from 'firebase/firestore';
 
 
@@ -250,9 +251,58 @@ export default function SubjectDetail() {
   }, [subject]);
 
   const averageRating = useMemo(() => {
-    if (ratings.length === 0) return "0.0";
-    return (ratings.reduce((acc, curr) => acc + curr.rating, 0) / ratings.length).toFixed(1);
+    if (ratings.length === 0) return 0;
+    return Number((ratings.reduce((acc, curr) => acc + curr.rating, 0) / ratings.length).toFixed(1));
   }, [ratings]);
+
+  const displayRating = useMemo(() => {
+    if (ratings.length === 0) return "0.0";
+    return averageRating.toFixed(1);
+  }, [averageRating, ratings.length]);
+
+  // Auto-sync subject aggregates if they diverge from actual ratings
+  useEffect(() => {
+    if (!subject || ratings.length === 0 || loading) return;
+
+    const syncAggregates = async () => {
+      const actualCount = ratings.length;
+      const actualSum = ratings.reduce((acc, curr) => acc + (curr.rating || 0), 0);
+      const actualAvg = Number((actualSum / actualCount).toFixed(1));
+
+      // Check if sync is needed
+      const needsSync = 
+        subject.ratingCount !== actualCount || 
+        Math.abs((subject.averageRating || 0) - actualAvg) > 0.05 ||
+        subject.totalRatingSum !== actualSum;
+
+      if (needsSync) {
+        console.log(`[Sync] Correcting aggregates for ${subject.code}...`);
+        try {
+          const subjectRef = doc(db, 'subjects', subject.id);
+          await updateDoc(subjectRef, {
+            ratingCount: actualCount,
+            totalRatingSum: actualSum,
+            averageRating: actualAvg,
+            updatedAt: serverTimestamp()
+          });
+          
+          // Update local subject state to reflect changes without a full reload
+          setSubject(prev => prev ? { 
+            ...prev, 
+            ratingCount: actualCount, 
+            totalRatingSum: actualSum, 
+            averageRating: actualAvg 
+          } : null);
+        } catch (err) {
+          // It's possible the subject doc doesn't exist yet if it's purely from constants
+          console.warn("Auto-sync failed (likely doc doesn't exist yet):", err);
+        }
+      }
+    };
+
+    const timer = setTimeout(syncAggregates, 2000); 
+    return () => clearTimeout(timer);
+  }, [ratings, subject, loading]);
 
   const ratingCounts = useMemo(() => {
     return [5, 4, 3, 2, 1].map(stars => {
@@ -309,10 +359,13 @@ export default function SubjectDetail() {
 
     setIsSubmittingRating(true);
     try {
+      const subjectRef = doc(db, 'subjects', subject.id);
       const existingRating = ratings.find(r => r.userId === profile.uid);
       
       if (existingRating) {
         // Update existing rating
+        const ratingDelta = userRating - existingRating.rating;
+        
         await updateDoc(doc(db, 'ratings', existingRating.id), {
           userName: isAnonymous ? 'Anonymous Student' : profile.fullName,
           userAvatar: isAnonymous ? null : (profile.photoURL || null),
@@ -321,6 +374,21 @@ export default function SubjectDetail() {
           isAnonymous: isAnonymous,
           updatedAt: serverTimestamp()
         }).catch(err => handleFirestoreError(err, 'write', `ratings/${existingRating.id}`));
+
+        // Update subject aggregate
+        if (ratingDelta !== 0) {
+          const subSnap = await getDoc(subjectRef);
+          const currentTotal = subSnap.exists() ? (subSnap.data().totalRatingSum || 0) : 0;
+          const currentCount = subSnap.exists() ? (subSnap.data().ratingCount || 0) : 1;
+          const newTotal = currentTotal + ratingDelta;
+          
+          await updateDoc(subjectRef, {
+            totalRatingSum: increment(ratingDelta),
+            averageRating: Number((newTotal / Math.max(1, currentCount)).toFixed(1)),
+            updatedAt: serverTimestamp()
+          }).catch(err => console.warn("Could not sync subject rating:", err));
+        }
+
         toast.success('Review updated!');
       } else {
         // Create new rating
@@ -336,6 +404,21 @@ export default function SubjectDetail() {
           likedBy: [],
           createdAt: serverTimestamp()
         }).catch(err => handleFirestoreError(err, 'create', 'ratings'));
+
+        // Update subject aggregate
+        const subSnap = await getDoc(subjectRef);
+        const currentTotal = subSnap.exists() ? (subSnap.data().totalRatingSum || 0) : 0;
+        const currentCount = subSnap.exists() ? (subSnap.data().ratingCount || 0) : 0;
+        const newCount = currentCount + 1;
+        const newTotal = currentTotal + userRating;
+
+        await updateDoc(subjectRef, {
+          totalRatingSum: increment(userRating),
+          ratingCount: increment(1),
+          averageRating: Number((newTotal / newCount).toFixed(1)),
+          updatedAt: serverTimestamp()
+        }).catch(err => console.warn("Could not sync subject rating:", err));
+
         toast.success('Thank you for your feedback!');
       }
       
@@ -390,9 +473,42 @@ export default function SubjectDetail() {
   const handleDeleteRating = async (ratingId: string) => {
     if (!window.confirm('Are you sure you want to delete your rating? This action cannot be undone.')) return;
     
+    const reviewToDelete = ratings.find(r => r.id === ratingId);
+    if (!reviewToDelete) return;
+
     setIsDeleteLoading(ratingId);
     try {
       await deleteDoc(doc(db, 'ratings', ratingId));
+      
+      // Update subject aggregate
+      if (subject) {
+        const subjectRef = doc(db, 'subjects', subject.id);
+        const subSnap = await getDoc(subjectRef);
+        
+        if (subSnap.exists()) {
+          const currentTotal = subSnap.data().totalRatingSum || 0;
+          const currentCount = subSnap.data().ratingCount || 0;
+          
+          if (currentCount > 1) {
+            const newTotal = currentTotal - reviewToDelete.rating;
+            const newCount = currentCount - 1;
+            await updateDoc(subjectRef, {
+              totalRatingSum: increment(-reviewToDelete.rating),
+              ratingCount: increment(-1),
+              averageRating: Number((newTotal / newCount).toFixed(1)),
+              updatedAt: serverTimestamp()
+            }).catch(err => console.warn("Could not sync subject rating delete:", err));
+          } else {
+            await updateDoc(subjectRef, {
+              totalRatingSum: 0,
+              ratingCount: 0,
+              averageRating: 0,
+              updatedAt: serverTimestamp()
+            }).catch(err => console.warn("Could not sync subject rating delete:", err));
+          }
+        }
+      }
+
       toast.success('Rating deleted successfully');
       setRatings(prev => prev.filter(r => r.id !== ratingId));
       fetchSubjectData(); // Refresh aggregate data
@@ -499,7 +615,7 @@ export default function SubjectDetail() {
               <div className="flex flex-wrap items-center gap-8 p-6 neumorphic-card w-fit">
                 <div className="flex items-center gap-3">
                   <Star size={28} className="text-ctu-gold fill-ctu-gold" />
-                  <span className="text-3xl font-bold text-foreground">{averageRating}</span>
+                  <span className="text-3xl font-bold text-foreground">{displayRating}</span>
                   <span className="text-foreground/40 text-xs font-bold uppercase tracking-widest">({ratings.length} ratings)</span>
                 </div>
                 <div className="hidden md:block w-px h-10 bg-foreground/5" />
@@ -937,73 +1053,81 @@ export default function SubjectDetail() {
 
                     <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar overscroll-contain">
                       {filteredRatings.length > 0 ? (
-                        filteredRatings.map((review: any) => (
-                          <div key={review.id} className="p-4 rounded-2xl neumorphic-pressed space-y-3 group relative">
-                            <div className="flex justify-between items-start gap-4">
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <div className="h-8 w-8 rounded-full neumorphic-raised flex items-center justify-center overflow-hidden bg-background/50 shrink-0">
-                                  {review.userAvatar ? (
-                                    <img src={review.userAvatar} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
-                                  ) : (
-                                    <UserIcon size={14} className="text-foreground/20" />
-                                  )}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className={cn("text-xs font-bold flex items-center gap-2 truncate", review.userId === profile.uid ? "text-ctu-gold" : "text-foreground")}>
-                                    {review.userName}
-                                    {review.userId === profile.uid && <span className="text-[8px] uppercase tracking-widest text-ctu-gold/50 shrink-0">(You)</span>}
-                                  </p>
-                                  <div className="flex flex-wrap gap-1 mt-0.5">
-                                    {review.isLive && <Badge className="bg-blue-500/10 text-blue-500 border-none text-[8px] px-1.5 py-0 h-4 font-black uppercase shrink-0">Live</Badge>}
-                                    {review.isImported && <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] px-1.5 py-0 h-4 font-black uppercase shrink-0">Verified Source</Badge>}
+                        <div className="flex flex-col gap-4">
+                          {filteredRatings.map((review: any, idx: number) => (
+                            <motion.div 
+                              key={review.id}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.3, delay: idx * 0.05 }}
+                              className="p-4 rounded-2xl neumorphic-pressed space-y-3 group relative"
+                            >
+                              <div className="flex justify-between items-start gap-4">
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                  <div className="h-8 w-8 rounded-full neumorphic-raised flex items-center justify-center overflow-hidden bg-background/50 shrink-0">
+                                    {review.userAvatar ? (
+                                      <img src={review.userAvatar} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                                    ) : (
+                                      <UserIcon size={14} className="text-foreground/20" />
+                                    )}
                                   </div>
-                                  <p className="text-[9px] text-foreground/40 font-bold uppercase tracking-widest mt-0.5">
-                                    {(review.createdAt as any)?.toDate ? (review.createdAt as any).toDate().toLocaleDateString() : 'Just now'}
-                                  </p>
+                                  <div className="min-w-0 flex-1">
+                                    <p className={cn("text-xs font-bold flex items-center gap-2 truncate", review.userId === profile.uid ? "text-ctu-gold" : "text-foreground")}>
+                                      {review.userName}
+                                      {review.userId === profile.uid && <span className="text-[8px] uppercase tracking-widest text-ctu-gold/50 shrink-0">(You)</span>}
+                                    </p>
+                                    <div className="flex flex-wrap gap-1 mt-0.5">
+                                      {review.isLive && <Badge className="bg-blue-500/10 text-blue-500 border-none text-[8px] px-1.5 py-0 h-4 font-black uppercase shrink-0">Live</Badge>}
+                                      {review.isImported && <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] px-1.5 py-0 h-4 font-black uppercase shrink-0">Verified Source</Badge>}
+                                    </div>
+                                    <p className="text-[9px] text-foreground/40 font-bold uppercase tracking-widest mt-0.5">
+                                      {(review.createdAt as any)?.toDate ? (review.createdAt as any).toDate().toLocaleDateString() : 'Just now'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex text-ctu-gold gap-0.5 shrink-0">
+                                  {[1, 2, 3, 4, 5].map(i => (
+                                    <Star key={i} size={10} fill={i <= review.rating ? "currentColor" : "none"} strokeWidth={3} className="shrink-0" />
+                                  ))}
                                 </div>
                               </div>
-                              <div className="flex text-ctu-gold gap-0.5 shrink-0">
-                                {[1, 2, 3, 4, 5].map(i => (
-                                  <Star key={i} size={10} fill={i <= review.rating ? "currentColor" : "none"} strokeWidth={3} className="shrink-0" />
-                                ))}
-                              </div>
-                            </div>
-                            
-                            {review.feedback && (
-                              <p className="text-xs text-foreground/70 font-medium leading-relaxed italic break-words">
-                                "{review.feedback}"
-                              </p>
-                            )}
-
-                            <div className="flex items-center justify-between pt-2">
-                              <button 
-                                onClick={() => handleLikeReview(review.id)}
-                                className={cn(
-                                  "flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest transition-all",
-                                  review.likedBy?.includes(profile.uid) ? "text-ctu-gold" : "text-foreground/20 hover:text-ctu-gold"
-                                )}
-                              >
-                                <ThumbsUp size={12} fill={review.likedBy?.includes(profile.uid) ? "currentColor" : "none"} />
-                                Helpful ({review.likes || 0})
-                              </button>
-
-                              {review.userId === profile.uid && (
-                                <button
-                                  onClick={() => handleDeleteRating(review.id)}
-                                  disabled={isDeleteLoading === review.id}
-                                  className="p-2 text-foreground/20 hover:text-red-500 transition-colors disabled:opacity-50"
-                                  title="Delete Rating"
-                                >
-                                  {isDeleteLoading === review.id ? (
-                                    <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-                                  ) : (
-                                    <Trash2 size={12} />
-                                  )}
-                                </button>
+                              
+                              {review.feedback && (
+                                <p className="text-xs text-foreground/70 font-medium leading-relaxed italic break-words">
+                                  "{review.feedback}"
+                                </p>
                               )}
-                            </div>
-                          </div>
-                        ))
+
+                              <div className="flex items-center justify-between pt-2">
+                                <button 
+                                  onClick={() => handleLikeReview(review.id)}
+                                  className={cn(
+                                    "flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest transition-all",
+                                    review.likedBy?.includes(profile.uid) ? "text-ctu-gold" : "text-foreground/20 hover:text-ctu-gold"
+                                  )}
+                                >
+                                  <ThumbsUp size={12} fill={review.likedBy?.includes(profile.uid) ? "currentColor" : "none"} />
+                                  Helpful ({review.likes || 0})
+                                </button>
+
+                                {review.userId === profile.uid && (
+                                  <button
+                                    onClick={() => handleDeleteRating(review.id)}
+                                    disabled={isDeleteLoading === review.id}
+                                    className="p-2 text-foreground/20 hover:text-red-500 transition-colors disabled:opacity-50"
+                                    title="Delete Rating"
+                                  >
+                                    {isDeleteLoading === review.id ? (
+                                      <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                      <Trash2 size={12} />
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
                       ) : (
                         <div className="text-center py-10 text-foreground/20 italic text-xs font-bold">
                           No reviews match your filter.

@@ -44,6 +44,8 @@ service cloud.firestore {
     }
 
     function isAdmin() {
+      // Use exists() before get() to avoid errors on non-existent users
+      // isAdmin() is used for write operations mostly, keep it simple
       return isSignedIn() && (
         isBootstrapAdmin() ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
@@ -58,8 +60,8 @@ service cloud.firestore {
     function isValidUser(data) {
       return data.keys().hasAll(['uid', 'fullName', 'idNumber', 'role']) &&
              data.uid == request.auth.uid &&
-             data.fullName is string && data.fullName.size() > 0 &&
-             data.idNumber is string && data.idNumber.size() > 0 &&
+             data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 100 &&
+             data.idNumber is string && data.idNumber.size() > 0 && data.idNumber.size() <= 20 &&
              data.role in ['student', 'admin'] &&
              (data.get('yearLevel', '') is string) &&
              (data.get('email', '') is string) &&
@@ -194,18 +196,37 @@ service cloud.firestore {
     match /subjects/{subjectId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
+      allow update: if isEmailVerified() && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['averageRating', 'ratingCount', 'totalRatingSum']) || 
+        isAdmin()
+      );
     }
 
     match /users/{userId} {
-      allow read: if isSignedIn() && (userId == request.auth.uid || isBootstrapAdmin() || isAdmin());
+      // 1. Check for self or bootstrap admin first (non-recursive)
+      allow read: if isSignedIn() && (
+        userId == request.auth.uid || 
+        isBootstrapAdmin()
+      );
+      
+      // 2. Allow admins to read all user profiles (this might be recursive if isAdmin calls get(/users/uid))
+      // To avoid recursion, we only allow admins to list or get specific users if they are definitely admins.
+      // However, current isAdmin check is recursive. Let's make it a dedicated check for read.
+      allow read: if isSignedIn() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
       
       allow create: if isSignedIn() && userId == request.auth.uid && 
                       isValidUser(incoming()) && 
                       (incoming().role == 'student' || isBootstrapAdmin());
       
-      allow update: if isSignedIn() && (userId == request.auth.uid || isAdmin()) && 
+      allow update: if isSignedIn() && (userId == request.auth.uid || isBootstrapAdmin()) && 
                       isValidUser(incoming()) &&
                       (userId != request.auth.uid || incoming().role == existing().role || isBootstrapAdmin());
+
+      // Only true admins can change roles
+      allow update: if isAdmin() && isValidUser(incoming());
     }
 
     match /userProgress/{userId} {

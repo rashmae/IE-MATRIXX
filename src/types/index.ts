@@ -31,6 +31,7 @@ export interface Subject {
   reviewCount?: number;
   averageRating?: number;
   ratingCount?: number;
+  totalRatingSum?: number;
   slotsAvailable?: number;
   totalSlots?: number;
   isFavorite?: boolean;

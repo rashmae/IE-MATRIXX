@@ -415,16 +415,16 @@ export default function Dashboard() {
                 <h3 className="text-xl sm:text-2xl md:text-4xl font-display font-black tracking-tight frosted-header">
                   {isFilterActive ? `Search Results (${filteredSubjects.length})` : 'Recommended for You'}
                 </h3>
-                <div className="flex gap-2">
+                <div className="flex gap-2 min-w-0">
                   {isFilterActive && (
                     <button 
                       onClick={clearFilters}
-                      className="text-xs font-bold text-foreground/40 hover:text-foreground/60 transition-colors bg-foreground/5 px-3 py-1.5 rounded-lg flex items-center gap-1.5"
+                      className="text-xs font-bold text-foreground/40 hover:text-foreground/60 transition-colors bg-foreground/5 px-3 py-1.5 rounded-lg flex items-center gap-1.5 whitespace-nowrap"
                     >
                       <X size={12} /> Clear Filters
                     </button>
                   )}
-                  <div className="hidden md:flex items-center gap-1 ml-4 mr-2">
+                  <div className="flex items-center gap-1 ml-2">
                     <button 
                       onClick={() => {
                         const el = document.getElementById('horizontal-scroll-container');
@@ -449,9 +449,9 @@ export default function Dashboard() {
                   {!isFilterActive && (
                     <button 
                       onClick={() => navigate('/catalog')}
-                      className="text-ctu-gold text-sm font-bold flex items-center gap-1 hover:underline px-2"
+                      className="text-ctu-gold text-[10px] sm:text-sm font-bold flex items-center gap-1 hover:underline px-2 whitespace-nowrap"
                     >
-                      View Library <ChevronRight size={16} />
+                      View Library <ChevronRight size={12} className="sm:size-4" />
                     </button>
                   )}
                 </div>
@@ -461,7 +461,7 @@ export default function Dashboard() {
                 <div className="relative group/scroll">
                    <div 
                     id="horizontal-scroll-container"
-                    className="flex gap-4 sm:gap-6 overflow-x-auto pb-10 px-4 scroll-smooth no-scrollbar snap-x snap-mandatory"
+                    className="flex gap-4 sm:gap-6 overflow-x-auto pb-10 px-4 sm:px-6 scroll-smooth snap-x snap-mandatory overscroll-x-contain"
                   >
                     {filteredSubjects.slice(0, 10).map((subject, idx) => {
                       const isDone = progressMap[subject.id]?.status === 'done';

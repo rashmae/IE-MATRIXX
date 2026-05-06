@@ -21,16 +21,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let unsubscribeProfile: (() => void) | null = null;
+
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Clean up previous profile listener if it exists
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+        unsubscribeProfile = null;
+      }
+
       setUser(firebaseUser);
       
       if (firebaseUser) {
-        // Simple one-time fetch initially
         const path = `users/${firebaseUser.uid}`;
         const userRef = doc(db, 'users', firebaseUser.uid);
         
-        // Use onSnapshot for real-time profile updates (like progress changes)
-        const unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
+        unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
           if (docSnap.exists()) {
             setProfile(docSnap.data() as User);
           } else {
@@ -38,18 +44,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           setLoading(false);
         }, (error) => {
-          handleFirestoreError(error, OperationType.GET, path);
+          // If the error is just "permission-denied" and the user is null, 
+          // it likely means they just signed out, so we ignore it.
+          if (error.code === 'permission-denied' && !auth.currentUser) {
+            console.log('[Auth] Profiler listener detached on sign-out');
+          } else {
+            handleFirestoreError(error, OperationType.GET, path);
+          }
           setLoading(false);
         });
-
-        return () => unsubscribeProfile();
       } else {
         setProfile(null);
         setLoading(false);
       }
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
   }, []);
 
   const value = React.useMemo(() => ({

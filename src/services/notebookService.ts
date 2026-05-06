@@ -1,6 +1,10 @@
+
 import { NotebookSource } from "../types";
 import { getGeminiClient, DEFAULT_MODEL } from "../lib/gemini";
 
+/**
+ * Generates a summary for a notebook based on its sources.
+ */
 export async function generateNotebookSummary(name: string, sources: NotebookSource[]) {
   const ai = getGeminiClient();
   if (!ai) return "AI Summary is currently unavailable.";
@@ -19,7 +23,10 @@ export async function generateNotebookSummary(name: string, sources: NotebookSou
   try {
     const response = await ai.models.generateContent({
       model: DEFAULT_MODEL,
-      contents: prompt
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: {
+        systemInstruction: "You are a research assistant summary tool. Be objective, concise, and academic."
+      }
     });
     return response.text;
   } catch (error) {
@@ -28,6 +35,9 @@ export async function generateNotebookSummary(name: string, sources: NotebookSou
   }
 }
 
+/**
+ * Multi-turn chat session grounded in notebook sources.
+ */
 export async function chatWithNotebook(
   notebookName: string, 
   sources: NotebookSource[], 
@@ -57,7 +67,10 @@ export async function chatWithNotebook(
   try {
     const response = await ai.models.generateContent({
       model: DEFAULT_MODEL,
-      contents: history.map(h => ({ role: h.role, parts: h.parts })).concat([{ role: 'user', parts: [{ text: userMessage }] }]),
+      contents: [
+        ...history.map(h => ({ role: h.role, parts: h.parts })),
+        { role: 'user', parts: [{ text: userMessage }] }
+      ],
       config: {
         systemInstruction: systemInstruction
       }
@@ -66,10 +79,14 @@ export async function chatWithNotebook(
     return response.text;
   } catch (error) {
     console.error("Notebook Chat Error:", error);
-    return "I encounterered an error while processing your request.";
+    return "I encountered an error while processing your request.";
   }
 }
 
+/**
+ * Searches for external resources based on a topic query. 
+ * Re-uses the pattern from gemini.ts or can be its own.
+ */
 export async function searchExternalResources(query: string) {
   const ai = getGeminiClient();
   if (!ai) return [];
@@ -78,13 +95,13 @@ export async function searchExternalResources(query: string) {
     Find high-quality academic and educational resources (articles, papers, study guides) related to: "${query}".
     Specifically focus on material relevant to Industrial Engineering if applicable.
     
-    Return the results in a JSON array of objects with 'title', 'url', and a short 'snippet'.
+    Output MUST be a JSON array of objects with 'title', 'url', and a short 'snippet'.
   `;
 
   try {
     const response = await ai.models.generateContent({ 
       model: DEFAULT_MODEL,
-      contents: prompt,
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: {
         responseMimeType: "application/json"
       }

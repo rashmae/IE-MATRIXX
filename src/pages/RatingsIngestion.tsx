@@ -156,6 +156,61 @@ export default function RatingsIngestion() {
     "Nindot kaayo pagka structure ang kurikulum.", "Daghan tag makat-onan diri sa CTU.", "Nindot ang dagan sa klase."
   ];
 
+  const recalculateAllAggregates = async () => {
+    const toastId = toast.loading("Recalculating all subject ratings for consistency...");
+    try {
+      // 1. Fetch all ratings
+      const ratingsSnap = await getDocs(collection(db, 'ratings'));
+      const subjectAggs: Record<string, { total: number, count: number }> = {};
+      
+      ratingsSnap.docs.forEach(d => {
+        const data = d.data();
+        const sid = data.subjectId;
+        if (!sid) return;
+        
+        if (!subjectAggs[sid]) subjectAggs[sid] = { total: 0, count: 0 };
+        subjectAggs[sid].total += (data.rating || 0);
+        subjectAggs[sid].count += 1;
+      });
+
+      // 2. Update all subjects found in IE_SUBJECTS plus any IDs found in aggs
+      const affectedSubjectIds = Array.from(new Set([
+        ...IE_SUBJECTS.map(s => s.id),
+        ...Object.keys(subjectAggs)
+      ]));
+
+      let batch = writeBatch(db);
+      let sc = 0;
+      
+      for (const sid of affectedSubjectIds) {
+        const agg = subjectAggs[sid] || { total: 0, count: 0 };
+        const subRef = doc(db, 'subjects', sid);
+        
+        batch.set(subRef, {
+          ratingCount: agg.count,
+          totalRatingSum: agg.total,
+          averageRating: agg.count > 0 ? Number((agg.total / agg.count).toFixed(1)) : 0,
+          lastRatingUpdate: serverTimestamp()
+        }, { merge: true });
+
+        sc++;
+        if (sc % 400 === 0) {
+          await batch.commit();
+          batch = writeBatch(db);
+        }
+      }
+      
+      if (sc % 400 !== 0) await batch.commit();
+      
+      toast.success(`Successfully synchronized ${sc} subjects with ${ratingsSnap.size} ratings.`, { id: toastId });
+      return true;
+    } catch (err) {
+      console.error("Aggregation error:", err);
+      toast.error("Deep sync failed: " + (err instanceof Error ? err.message : "Restricted"), { id: toastId });
+      return false;
+    }
+  };
+
   const handleFillQuota = async () => {
     setFilling(true);
     const toastId = toast.loading(`Generating 78 realistic respondents with year-level constraints...`);
@@ -220,23 +275,8 @@ export default function RatingsIngestion() {
       console.log(`[Seeding] Committing ratings batch...`);
       await batch.commit();
       
-      console.log(`[Seeding] Updating subject statistics...`);
-      let subBatch = writeBatch(db);
-      let sc = 0;
-      for (const [sid, agg] of Object.entries(affectedSubjects)) {
-        const subRef = doc(db, 'subjects', sid);
-        subBatch.set(subRef, {
-          averageRating: Number((agg.total / agg.count).toFixed(1)),
-          ratingCount: agg.count,
-          lastRatingUpdate: serverTimestamp()
-        }, { merge: true });
-        sc++;
-        if (sc % 400 === 0) {
-          await subBatch.commit();
-          subBatch = writeBatch(db);
-        }
-      }
-      if (sc > 0) await subBatch.commit();
+      // Perform a deep sync to ensure all aggregates match the new state
+      await recalculateAllAggregates();
 
       const totalRatingsCount = Object.values(affectedSubjects).reduce((sum, agg) => sum + agg.count, 0);
       await setDoc(doc(db, 'config', 'ratings'), {
@@ -634,30 +674,13 @@ export default function RatingsIngestion() {
                 toast.info(`Importing... ${count} records processed.`);
               }
             }
-            
+
             if (batchCount > 0) {
               await batch.commit();
             }
 
-            // Update subject documents with new aggregates
-            let subBatch = writeBatch(db);
-            let subCount = 0;
-            for (const [subId, agg] of Object.entries(subjectAggregates)) {
-              const subRef = doc(db, 'subjects', subId);
-              subBatch.set(subRef, {
-                averageRating: Number((agg.totalRating / agg.count).toFixed(1)),
-                ratingCount: agg.count,
-                lastRatingUpdate: serverTimestamp()
-              }, { merge: true });
-              subCount++;
-              if (subCount % 400 === 0) {
-                await subBatch.commit();
-                subBatch = writeBatch(db);
-              }
-            }
-            if (subCount % 400 !== 0) {
-              await subBatch.commit();
-            }
+            // Perform deep sync to update all subject totals accurately
+            await recalculateAllAggregates();
             
             try {
               await setDoc(doc(db, 'config', 'ratings'), {
@@ -881,6 +904,14 @@ export default function RatingsIngestion() {
                   >
                     {clearing ? <RefreshCw className="animate-spin" size={14} /> : <Database size={14} />}
                     Clear All Ratings
+                  </button>
+                  <button 
+                    onClick={recalculateAllAggregates}
+                    disabled={filling || clearing || syncing}
+                    className="w-full h-11 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-ctu-gold/10 text-ctu-gold hover:bg-ctu-gold hover:text-white border border-ctu-gold/20 transition-all flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className={syncing ? "animate-spin" : ""} size={14} />
+                    Deep Sync (Fix Counts)
                   </button>
                   <button 
                     onClick={handleFillQuota}

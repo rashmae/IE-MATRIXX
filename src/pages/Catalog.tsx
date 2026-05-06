@@ -101,6 +101,13 @@ export default function Catalog() {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   
+  const sortLabels: Record<string, string> = {
+    'relevance': 'Default',
+    'alpha-asc': 'A - Z',
+    'alpha-desc': 'Z - A',
+    'newest': 'Newest'
+  };
+
   const navigate = useNavigate();
 
   const activeFilterCount = useMemo(() => {
@@ -150,7 +157,7 @@ export default function Catalog() {
       let finalSubjects: Subject[] = [...IE_SUBJECTS];
       
       if (!querySnapshot.empty) {
-        const firestoreSubjects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subject));
+        const firestoreSubjects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
         
         // Merge Firestore data into our official 71 subjects
         finalSubjects = IE_SUBJECTS.map(officialSub => {
@@ -163,6 +170,9 @@ export default function Catalog() {
             return {
               ...officialSub,
               ...matchingFirestoreSub,
+              // Prioritize Firestore rating aggregates but fallback to constants if missing
+              averageRating: matchingFirestoreSub.averageRating ?? officialSub.rating ?? 0,
+              ratingCount: matchingFirestoreSub.ratingCount ?? officialSub.reviewCount ?? 0,
               id: officialSub.id, 
               yearLevel: officialSub.yearLevel,
               semester: officialSub.semester,
@@ -170,8 +180,19 @@ export default function Catalog() {
               code: officialSub.code
             };
           }
-          return officialSub;
+          return {
+            ...officialSub,
+            averageRating: officialSub.rating ?? 0,
+            ratingCount: officialSub.reviewCount ?? 0
+          };
         });
+      } else {
+        // Fallback if collection is empty
+        finalSubjects = IE_SUBJECTS.map(s => ({
+          ...s,
+          averageRating: s.rating ?? 0,
+          ratingCount: s.reviewCount ?? 0
+        }));
       }
 
       // Sort in memory by year and semester
@@ -458,12 +479,24 @@ export default function Catalog() {
           {isMobile && isMobileSearchOpen && (
             <motion.div 
               initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="mb-8 overflow-hidden"
+              animate={{ 
+                height: 'auto', 
+                opacity: 1,
+              }}
+              onAnimationComplete={() => {
+                // Ensure overflow is visible so dropdowns aren't clipped
+                // We use a style object for direct DOM manipulation if needed, 
+                // but setting a state or using transitionEnd is usually enough.
+              }}
+              exit={{ 
+                height: 0, 
+                opacity: 0,
+                transition: { duration: 0.2 }
+              }}
+              className="mb-8 relative z-20"
             >
               <div className="flex flex-col gap-4">
-                <div className="relative">
+                <div className="relative z-10">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40" size={18} />
                   <Input 
                     autoFocus
@@ -474,15 +507,15 @@ export default function Catalog() {
                   />
                   <button 
                     onClick={() => setIsMobileSearchOpen(false)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full text-foreground/40"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full text-foreground/40 tap-target"
                   >
                     <X size={16} />
                   </button>
                 </div>
 
-                <div className="flex gap-2 overflow-x-auto pb-2 px-1 no-scrollbar -mx-1">
+                <div className="flex gap-2 overflow-x-auto pb-2 px-1 no-scrollbar -mx-1 relative z-20">
                   <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
-                    <SheetTrigger className="px-5 py-2.5 rounded-[20px] text-[10px] font-black uppercase tracking-[0.2em] neumorphic-raised text-ctu-gold flex items-center gap-2 bg-background/50 border border-ctu-gold/20 shrink-0 active:neumorphic-pressed transition-all">
+                    <SheetTrigger className="px-5 py-2.5 rounded-[20px] text-[10px] font-black uppercase tracking-[0.2em] neumorphic-raised text-ctu-gold flex items-center gap-2 bg-background/50 border border-ctu-gold/20 shrink-0 active:neumorphic-pressed transition-all tap-target">
                       <SlidersHorizontal size={14} className="animate-pulse" /> Filters
                     </SheetTrigger>
                     <SheetContent side="bottom" className="h-[85dvh] rounded-t-[40px] bg-background border-none p-6 shadow-2xl">
@@ -496,15 +529,34 @@ export default function Catalog() {
                     </SheetContent>
                   </Sheet>
 
-                  <DropdownMenu open={isSortDropdownOpen} onOpenChange={setIsSortDropdownOpen}>
-                    <DropdownMenuTrigger className="px-5 py-2.5 rounded-[20px] text-[10px] font-black uppercase tracking-[0.2em] neumorphic-raised text-foreground/60 flex items-center gap-2 bg-background/50 border border-foreground/5 shrink-0 active:neumorphic-pressed transition-all">
-                      <ArrowUpDown size={14} /> Sort: {sortBy === 'relevance' ? 'Default' : sortBy.split('-')[0]}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="px-5 py-2.5 rounded-[20px] text-[10px] font-black uppercase tracking-[0.2em] neumorphic-raised text-foreground/60 flex items-center gap-2 bg-background/50 border border-foreground/5 shrink-0 active:neumorphic-pressed transition-all tap-target focus:outline-none focus:ring-1 focus:ring-ctu-gold/50">
+                      <ArrowUpDown size={14} className={cn(sortBy !== 'relevance' && "text-ctu-gold animate-bounce")} /> 
+                      Sort: {sortLabels[sortBy] || 'Default'}
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-64 bg-background/95 backdrop-blur-xl border border-foreground/5 rounded-[24px] p-2 shadow-2xl z-[100] mt-2">
-                      <DropdownMenuItem onClick={() => setSortBy('relevance')} className="rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest hover:bg-ctu-gold/10 hover:text-ctu-gold transition-colors">Relevance</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSortBy('alpha-asc')} className="rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-ctu-maroon bg-ctu-maroon/5 flex items-center justify-between">A-Z <CheckCircle2 size={14} /></DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSortBy('alpha-desc')} className="rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest hover:bg-ctu-gold/10 hover:text-ctu-gold transition-colors">Z-A</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSortBy('newest')} className="rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest hover:bg-ctu-gold/10 hover:text-ctu-gold transition-colors">Newest</DropdownMenuItem>
+                    <DropdownMenuContent 
+                      align="start" 
+                      sideOffset={8}
+                      className="w-64 bg-background/98 backdrop-blur-2xl border border-foreground/10 rounded-[28px] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-[9999] animate-in fade-in zoom-in-95 duration-200"
+                    >
+                      {[
+                        { id: 'relevance' as SortOption, label: 'Default Relevance' },
+                        { id: 'alpha-asc' as SortOption, label: 'Name: A to Z' },
+                        { id: 'alpha-desc' as SortOption, label: 'Name: Z to A' },
+                        { id: 'newest' as SortOption, label: 'Recently Updated' }
+                      ].map((item) => (
+                        <DropdownMenuItem 
+                          key={item.id}
+                          onClick={() => setSortBy(item.id)} 
+                          className={cn(
+                            "rounded-2xl px-5 py-4 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer mb-1 flex items-center justify-between",
+                            sortBy === item.id ? "bg-ctu-maroon text-white" : "hover:bg-ctu-maroon/10 hover:text-ctu-maroon"
+                          )}
+                        >
+                          {item.label}
+                          {sortBy === item.id && <CheckCircle2 size={12} />}
+                        </DropdownMenuItem>
+                      ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
 
@@ -516,7 +568,7 @@ export default function Catalog() {
                         else setSelectedYears(prev => [...prev, year]);
                       }}
                       className={cn(
-                        "px-5 py-2.5 rounded-[20px] text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all shrink-0 border",
+                        "px-5 py-2.5 rounded-[20px] text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all shrink-0 border tap-target",
                         selectedYears.includes(year) 
                           ? "bg-ctu-maroon text-white border-ctu-maroon shadow-lg neumorphic-raised" 
                           : "neumorphic-raised text-foreground/40 border-transparent bg-background/50"
@@ -813,9 +865,9 @@ export default function Catalog() {
                                               <Badge variant="outline" className="border-ctu-gold text-ctu-gold font-bold bg-ctu-gold/5 px-2 py-0.5">{subject.code}</Badge>
                                             </div>
                                             {(subject.averageRating || 0) > 0 && (
-                                              <div className="flex items-center gap-1.5 bg-ctu-gold/10 px-2 py-0.5 rounded-lg">
+                                              <div className="flex items-center gap-1.5 bg-ctu-gold/10 px-2 py-0.5 rounded-lg border border-ctu-gold/10">
                                                 <Star size={10} className="text-ctu-gold fill-ctu-gold" />
-                                                <span className="text-[10px] font-black text-ctu-gold">{subject.averageRating}</span>
+                                                <span className="text-[10px] font-black text-ctu-gold">{Number(subject.averageRating).toFixed(1)}</span>
                                                 <span className="text-[8px] font-bold text-ctu-gold/60">({subject.ratingCount})</span>
                                               </div>
                                             )}
@@ -900,9 +952,10 @@ export default function Catalog() {
                                                 <Circle size={6} className="fill-blue-500 text-blue-500" /> {subject.units} Units
                                               </span>
                                               {(subject.averageRating || 0) > 0 && (
-                                                <div className="flex items-center gap-1">
+                                                <div className="flex items-center gap-1 bg-ctu-gold/5 px-1.5 py-0.5 rounded-md border border-ctu-gold/5">
                                                   <Star size={8} className="text-ctu-gold fill-ctu-gold" />
-                                                  <span className="text-[9px] font-black text-ctu-gold">{subject.averageRating}</span>
+                                                  <span className="text-[9px] font-black text-ctu-gold">{Number(subject.averageRating).toFixed(1)}</span>
+                                                  <span className="text-[8px] font-bold text-ctu-gold/40 ml-0.5">({subject.ratingCount})</span>
                                                 </div>
                                               )}
                                             </div>
