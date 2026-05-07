@@ -2,7 +2,11 @@ import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { initializeFirestore, doc, query, collection, limit, getDocs, getDocFromServer } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import firebaseConfigJson from '../../firebase-applet-config.json';
+
+// Safely attempt to load the local config file if it exists. 
+// Using import.meta.glob avoids build errors when the file is missing in production (Vercel).
+const configs = import.meta.glob('../../firebase-applet-config.json', { eager: true, import: 'default' });
+const firebaseConfigJson = (Object.values(configs)[0] || {}) as any;
 
 /**
  * Firebase Configuration
@@ -17,7 +21,7 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseConfigJson.appId,
 };
 
-const databaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || (firebaseConfigJson as any).firestoreDatabaseId || '(default)';
+const databaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || firebaseConfigJson.firestoreDatabaseId || '(default)';
 
 // Initialize Firebase
 let app: any;
