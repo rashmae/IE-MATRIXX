@@ -17,7 +17,8 @@ export const IE_SUBJECTS: Subject[] = [
     slotsAvailable: 15,
     totalSlots: 45,
     isFavorite: true,
-    professor: 'Dr. Elena Abad'
+    professor: 'Dr. Elena Abad',
+    icon: 'Calculator'
   },
   {
     id: 'echem',
@@ -33,7 +34,8 @@ export const IE_SUBJECTS: Subject[] = [
     reviewCount: 89,
     slotsAvailable: 5,
     totalSlots: 40,
-    professor: 'Dr. Roberto Canoy'
+    professor: 'Dr. Roberto Canoy',
+    icon: 'FlaskConical'
   },
   {
     id: 'echeml',
@@ -49,7 +51,8 @@ export const IE_SUBJECTS: Subject[] = [
     reviewCount: 67,
     slotsAvailable: 2,
     totalSlots: 20,
-    professor: 'Prof. Juvy Alcantara'
+    professor: 'Prof. Juvy Alcantara',
+    icon: 'FlaskConical'
   },
   {
     id: 'bes-cfp',
@@ -66,7 +69,8 @@ export const IE_SUBJECTS: Subject[] = [
     slotsAvailable: 0,
     totalSlots: 40,
     isFavorite: true,
-    professor: 'Engr. Kenneth Almendras'
+    professor: 'Engr. Kenneth Almendras',
+    icon: 'Monitor'
   },
   {
     id: 'ie-ipc-111',
@@ -77,6 +81,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '1st',
     prerequisiteIds: [],
+    icon: 'Building2'
   },
   {
     id: 'ie-ac-111',
@@ -87,6 +92,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '1st',
     prerequisiteIds: [],
+    icon: 'Coins'
   },
   {
     id: 'ie-tech-111',
@@ -97,6 +103,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '1st',
     prerequisiteIds: [],
+    icon: 'Cpu'
   },
   {
     id: 'pe-1',
@@ -107,6 +114,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '1st',
     prerequisiteIds: [],
+    icon: 'Dumbbell'
   },
   {
     id: 'nstp-1',
@@ -117,6 +125,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '1st',
     prerequisiteIds: [],
+    icon: 'Shield'
   },
 
   // FIRST YEAR - 2nd Semester
@@ -129,6 +138,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: ['emath-111'],
+    icon: 'Calculator'
   },
   {
     id: 'ephys',
@@ -139,6 +149,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: ['emath-111'],
+    icon: 'CloudLightning'
   },
   {
     id: 'ephysl',
@@ -149,6 +160,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: ['emath-111'],
+    icon: 'CloudLightning'
   },
   {
     id: 'bes-cad',
@@ -159,6 +171,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'PenTool'
   },
   {
     id: 'ie-pc-121',
@@ -169,6 +182,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'BarChart'
   },
   {
     id: 'ie-iac-121',
@@ -179,6 +193,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'BookOpen'
   },
   {
     id: 'gec-pc',
@@ -189,6 +204,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'MessageSquare'
   },
   {
     id: 'gec-us',
@@ -199,6 +215,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'User'
   },
   {
     id: 'pe-2',
@@ -209,6 +226,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'Music'
   },
   {
     id: 'nstp-2',
@@ -219,6 +237,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: ['nstp-1'],
+    icon: 'ShieldCheck'
   },
 
   // SECOND YEAR - 1st Semester
@@ -231,6 +250,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: ['emath-122'],
+    icon: 'Variable'
   },
   {
     id: 'bes-emech',
@@ -241,6 +261,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: ['ephys'],
+    icon: 'Settings'
   },
   {
     id: 'ie-pc-212',
@@ -251,6 +272,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: ['echem', 'ephys'],
+    icon: 'Factory'
   },
   {
     id: 'ie-pc-212l',
@@ -261,6 +283,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: ['echeml', 'ephysl'],
+    icon: 'Beaker'
   },
   {
     id: 'ie-pc-213',
@@ -271,6 +294,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: ['ie-pc-121'],
+    icon: 'Table'
   },
   {
     id: 'ie-pc-214',
@@ -281,6 +305,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: [],
+    icon: 'Users'
   },
   {
     id: 'ie-ac-212',
@@ -291,6 +316,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: ['ie-iac-121'],
+    icon: 'FileText'
   },
   {
     id: 'gec-mmw',
@@ -301,6 +327,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: [],
+    icon: 'Globe'
   },
   {
     id: 'gee-tem',
@@ -311,6 +338,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: [],
+    icon: 'Lightbulb'
   },
   {
     id: 'pe-3',
@@ -321,6 +349,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: [],
+    icon: 'Trophy'
   },
 
   // SECOND YEAR - 2nd Semester
@@ -333,6 +362,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: ['emath-213'],
+    icon: 'FunctionSquare'
   },
   {
     id: 'ie-pc-226',
@@ -343,6 +373,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: ['ie-pc-212', 'ie-pc-213', 'ie-pc-214'],
+    icon: 'Timer'
   },
   {
     id: 'ie-pc-227',
@@ -353,6 +384,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: ['bes-cfp'],
+    icon: 'Database'
   },
   {
     id: 'ie-pc-228',
@@ -363,6 +395,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'Activity'
   },
   {
     id: 'ie-pe-221',
@@ -373,6 +406,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'Calendar'
   },
   {
     id: 'bes-ee',
@@ -383,6 +417,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'TrendingUp'
   },
   {
     id: 'gec-tcw',
@@ -393,6 +428,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'Earth'
   },
   {
     id: 'gec-lwr',
@@ -403,6 +439,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'History'
   },
   {
     id: 'gee-lie',
@@ -413,6 +450,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'Smartphone'
   },
   {
     id: 'pe-4',
@@ -423,6 +461,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'Users2'
   },
 
   // THIRD YEAR - 1st Semester
@@ -435,6 +474,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: ['ie-pc-225'],
+    icon: 'BarChart3'
   },
   {
     id: 'ie-pc-3110',
@@ -445,6 +485,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: ['ie-pc-213', 'ie-pc-226'],
+    icon: 'CheckCircle'
   },
   {
     id: 'ie-pc-3111',
@@ -455,6 +496,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: ['ie-pc-226'],
+    icon: 'Armchair'
   },
   {
     id: 'ie-pc-3112',
@@ -465,6 +507,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: ['ie-pc-319', 'ie-pc-3110'],
+    icon: 'GanttChart'
   },
   {
     id: 'ie-ac-313',
@@ -475,6 +518,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: ['ie-ac-212'],
+    icon: 'Briefcase'
   },
   {
     id: 'ie-ac-314',
@@ -485,6 +529,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: ['emath-122'],
+    icon: 'Thermometer'
   },
   {
     id: 'bes-t',
@@ -495,6 +540,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: [],
+    icon: 'Rocket'
   },
   {
     id: 'bes-osh',
@@ -505,6 +551,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: [],
+    icon: 'HardHat'
   },
   {
     id: 'ie-ipc-312',
@@ -515,6 +562,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: [],
+    icon: 'Search'
   },
 
   // THIRD YEAR - 2nd Semester
@@ -527,6 +575,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: ['ie-pc-319'],
+    icon: 'BarChart3'
   },
   {
     id: 'ie-pc-3214',
@@ -537,6 +586,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: ['ie-pc-3112'],
+    icon: 'Layout'
   },
   {
     id: 'ie-pc-3215',
@@ -547,6 +597,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: ['ie-pc-3111'],
+    icon: 'UserCircle'
   },
   {
     id: 'ie-ipc-323',
@@ -557,6 +608,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: ['ie-ipc-312'],
+    icon: 'FileEdit'
   },
   {
     id: 'ie-ipc-324',
@@ -567,6 +619,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'Megaphone'
   },
   {
     id: 'ie-pe-322',
@@ -577,6 +630,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: ['ie-pc-227'],
+    icon: 'Layers'
   },
   {
     id: 'gec-e',
@@ -587,6 +641,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'BookText'
   },
   {
     id: 'gee-es',
@@ -597,6 +652,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'Leaf'
   },
 
   // SUMMER
@@ -609,6 +665,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: 'Summer',
     prerequisiteIds: [],
+    icon: 'Building'
   },
 
   // FOURTH YEAR - 1st Semester
@@ -621,6 +678,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '1st',
     prerequisiteIds: ['ie-ac-314', 'ie-pc-3214'],
+    icon: 'ClipboardCheck'
   },
   {
     id: 'ie-pc-4117',
@@ -631,6 +689,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '1st',
     prerequisiteIds: ['ie-pc-3214'],
+    icon: 'Truck'
   },
   {
     id: 'ie-pc-4118',
@@ -641,6 +700,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '1st',
     prerequisiteIds: [],
+    icon: 'Share2'
   },
   {
     id: 'ie-pe-413',
@@ -651,6 +711,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '1st',
     prerequisiteIds: [],
+    icon: 'Box'
   },
   {
     id: 'ie-ac-415',
@@ -661,6 +722,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '1st',
     prerequisiteIds: ['ephys'],
+    icon: 'Zap'
   },
   {
     id: 'ie-ac-416',
@@ -671,6 +733,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '1st',
     prerequisiteIds: ['gee-es'],
+    icon: 'Waves'
   },
   {
     id: 'gec-rph',
@@ -681,6 +744,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '1st',
     prerequisiteIds: [],
+    icon: 'Book'
   },
 
   // FOURTH YEAR - 2nd Semester
@@ -693,6 +757,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'Flag'
   },
   {
     id: 'ie-pc-4220',
@@ -703,6 +768,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'ShieldAlert'
   },
   {
     id: 'ie-ipc-425',
@@ -713,6 +779,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'UserPlus'
   },
   {
     id: 'ie-pe-424',
@@ -723,6 +790,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'Compass'
   },
   {
     id: 'ie-pe-425',
@@ -733,6 +801,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'Copyright'
   },
   {
     id: 'gec-aa',
@@ -743,6 +812,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'Palette'
   },
   {
     id: 'gec-sts',
@@ -753,6 +823,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '2nd',
     prerequisiteIds: [],
+    icon: 'Atom'
   },
 ];
 

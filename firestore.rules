@@ -92,7 +92,7 @@ service cloud.firestore {
              (data.userId == request.auth.uid || isAdmin()) &&
              data.userName is string &&
              data.rating is number && data.rating >= 1 && data.rating <= 5 &&
-             (request.method == 'create' ? data.createdAt == request.time : true);
+             (request.method == 'create' ? (data.createdAt == request.time || isAdmin()) : true);
     }
 
     function isValidQuestion(data) {
@@ -304,6 +304,11 @@ service cloud.firestore {
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isEmailVerified() && isValidQuizResult(incoming());
       allow delete: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    match /config/{configId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
   }
 }

@@ -21,7 +21,69 @@ import {
   FileBarChart,
   FilePieChart,
   Upload as UploadIcon,
-  Trash2
+  Trash2,
+  Calculator,
+  FlaskConical,
+  Monitor,
+  Building2,
+  Coins,
+  Cpu,
+  Dumbbell,
+  Shield,
+  ShieldCheck,
+  PenTool,
+  BarChart,
+  BookOpen,
+  MessageSquare,
+  User as UserIcon,
+  Music,
+  Variable,
+  Settings,
+  Factory,
+  Beaker,
+  Table,
+  Users,
+  Globe,
+  Lightbulb,
+  Trophy,
+  FunctionSquare,
+  Timer,
+  Database,
+  Activity,
+  TrendingUp,
+  Earth,
+  Smartphone,
+  Users2,
+  BarChart3,
+  CheckCircle,
+  Armchair,
+  GanttChart,
+  Briefcase,
+  Thermometer,
+  Rocket,
+  HardHat,
+  Layout,
+  UserCircle,
+  FileEdit,
+  Megaphone,
+  Layers,
+  BookText,
+  Leaf,
+  Building,
+  ClipboardCheck,
+  Truck,
+  Share2,
+  Box,
+  Zap,
+  Waves,
+  Book,
+  Flag,
+  ShieldAlert,
+  UserPlus,
+  Compass,
+  Copyright,
+  Palette,
+  Atom
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
@@ -44,8 +106,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { 
   ThumbsUp, 
-  User as UserIcon,
-  MessageSquare,
+  MessageSquare as MessageIcon,
   ChevronDown as ChevronDownIcon,
   ChevronUp as ChevronUpIcon
 } from 'lucide-react';
@@ -101,6 +162,24 @@ export default function SubjectDetail() {
   const [isDeleteLoading, setIsDeleteLoading] = useState<string | null>(null);
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
   const navigate = useNavigate();
+  
+  // Icon Renderer Component
+  const SubjectIcon = ({ iconName, className }: { iconName?: string; className?: string }) => {
+    const icons: Record<string, any> = {
+      Calculator, FlaskConical, Monitor, Building2, Coins, Cpu, Dumbbell, Shield, 
+      ShieldCheck, PenTool, BarChart, BookOpen, MessageSquare: MessageIcon, User: UserIcon, Music, 
+      Variable, Settings, Factory, Beaker, Table, Users, Globe, Lightbulb, 
+      Trophy, FunctionSquare, Timer, Database, Activity, TrendingUp, Earth, 
+      Smartphone, Users2, BarChart3, CheckCircle, Armchair, GanttChart, 
+      Briefcase, Thermometer, Rocket, HardHat, Layout, UserCircle, FileEdit, 
+      Megaphone, Layers, BookText, Leaf, Building, ClipboardCheck, Truck, 
+      Share2, Box, Zap, Waves, Book, Flag, ShieldAlert, UserPlus, Compass, 
+      Copyright, Palette, Atom
+    };
+    
+    const IconComponent = iconName ? icons[iconName] : BookText;
+    return IconComponent ? <IconComponent className={className} /> : <BookText className={className} />;
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -604,9 +683,13 @@ export default function SubjectDetail() {
             {/* Header Section */}
             <section>
               <div className="flex flex-wrap gap-3 mb-6">
-                <Badge className="bg-ctu-maroon text-white border-none px-4 py-1 rounded-full text-[10px] font-bold uppercase">{subject.yearLevel} Year</Badge>
-                <Badge className="bg-ctu-gold text-white border-none px-4 py-1 rounded-full text-[10px] font-bold uppercase">{subject.semester} Semester</Badge>
-                <Badge className="neumorphic-pressed text-foreground/60 border-none px-4 py-1 rounded-full text-[10px] font-bold uppercase">{subject.units} Units</Badge>
+                <div className="w-14 h-14 rounded-2xl bg-ctu-gold/10 border border-ctu-gold/20 flex items-center justify-center text-ctu-gold mb-2 shadow-inner">
+                  <SubjectIcon iconName={subject.icon} className="w-8 h-8" />
+                </div>
+                <div className="flex gap-3 w-full">
+                  <Badge className="bg-ctu-maroon text-white border-none px-4 py-1 rounded-full text-[10px] font-bold uppercase">{subject.yearLevel} Year</Badge>
+                  <Badge className="bg-ctu-gold text-white border-none px-4 py-1 rounded-full text-[10px] font-bold uppercase">{subject.semester} Semester</Badge>
+                </div>
               </div>
               
               <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black mb-4 tracking-tighter leading-[0.9] py-2">{subject.name}</h1>

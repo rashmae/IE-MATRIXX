@@ -19,7 +19,69 @@ import {
   Calendar,
   Upload,
   FileText,
-  Star
+  Star,
+  Calculator,
+  FlaskConical,
+  Monitor,
+  Building2,
+  Coins,
+  Cpu,
+  Dumbbell,
+  Shield,
+  ShieldCheck,
+  PenTool,
+  BarChart,
+  BookOpen,
+  MessageSquare,
+  User as UserIcon,
+  Music,
+  Variable,
+  Settings,
+  Factory,
+  Beaker,
+  Table,
+  Users,
+  Globe,
+  Lightbulb,
+  Trophy,
+  FunctionSquare,
+  Timer,
+  Database,
+  Activity,
+  TrendingUp,
+  Earth,
+  Smartphone,
+  Users2,
+  BarChart3,
+  CheckCircle,
+  Armchair,
+  GanttChart,
+  Briefcase,
+  Thermometer,
+  Rocket,
+  HardHat,
+  Layout,
+  UserCircle,
+  FileEdit,
+  Megaphone,
+  Layers,
+  BookText,
+  Leaf,
+  Building,
+  ClipboardCheck,
+  Truck,
+  Share2,
+  Box,
+  Zap,
+  Waves,
+  Book,
+  Flag,
+  ShieldAlert,
+  UserPlus,
+  Compass,
+  Copyright,
+  Palette,
+  Atom
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
@@ -109,6 +171,48 @@ export default function Catalog() {
   };
 
   const navigate = useNavigate();
+  
+  // Icon Renderer Component
+  const SubjectIcon = ({ iconName, className }: { iconName?: string; className?: string }) => {
+    const icons: Record<string, any> = {
+      Calculator, FlaskConical, Monitor, Building2, Coins, Cpu, Dumbbell, Shield, 
+      ShieldCheck, PenTool, BarChart, BookOpen, MessageSquare, User: UserIcon, Music, 
+      Variable, Settings, Factory, Beaker, Table, Users, Globe, Lightbulb, 
+      Trophy, FunctionSquare, Timer, Database, Activity, TrendingUp, Earth, 
+      Smartphone, Users2, BarChart3, CheckCircle, Armchair, GanttChart, 
+      Briefcase, Thermometer, Rocket, HardHat, Layout, UserCircle, FileEdit, 
+      Megaphone, Layers, BookText, Leaf, Building, ClipboardCheck, Truck, 
+      Share2, Box, Zap, Waves, Book, Flag, ShieldAlert, UserPlus, Compass, 
+      Copyright, Palette, Atom
+    };
+    
+    const IconComponent = iconName ? icons[iconName] : BookText;
+    return IconComponent ? <IconComponent className={className} /> : <BookText className={className} />;
+  };
+  
+  // Highlight search terms component
+  const HighlightedText = ({ text, term }: { text: string; term: string }) => {
+    if (!term.trim()) return <>{text}</>;
+    
+    // Escape special characters for regex
+    const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedTerm})`, 'gi');
+    const parts = text.split(regex);
+    
+    return (
+      <>
+        {parts.map((part, i) => 
+          part.toLowerCase() === term.toLowerCase() ? (
+            <span key={i} className="bg-ctu-gold/30 rounded-sm px-0.5 text-foreground font-black">
+              {part}
+            </span>
+          ) : (
+            part
+          )
+        )}
+      </>
+    );
+  };
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -219,7 +323,8 @@ export default function Catalog() {
       const matchesSearch = 
         s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) || 
         s.code.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        s.professor?.toLowerCase().includes(debouncedSearch.toLowerCase());
+        s.professor?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        s.description?.toLowerCase().includes(debouncedSearch.toLowerCase());
         
       const matchesYear = selectedYears.length === 0 || selectedYears.includes(s.yearLevel);
       const matchesSem = selectedSems.length === 0 || selectedSems.includes(s.semester);
@@ -862,7 +967,12 @@ export default function Catalog() {
                                         <div>
                                           <div className="flex justify-between items-start mb-6">
                                             <div className="flex flex-wrap gap-2">
-                                              <Badge variant="outline" className="border-ctu-gold text-ctu-gold font-bold bg-ctu-gold/5 px-2 py-0.5">{subject.code}</Badge>
+                                              <div className="w-10 h-10 rounded-xl bg-ctu-gold/10 border border-ctu-gold/20 flex items-center justify-center text-ctu-gold mb-1">
+                                                <SubjectIcon iconName={subject.icon} className="w-5 h-5" />
+                                              </div>
+                                              <Badge variant="outline" className="border-ctu-gold text-ctu-gold font-bold bg-ctu-gold/5 px-2 py-0.5">
+                                                <HighlightedText text={subject.code} term={debouncedSearch} />
+                                              </Badge>
                                             </div>
                                             {(subject.averageRating || 0) > 0 && (
                                               <div className="flex items-center gap-1.5 bg-ctu-gold/10 px-2 py-0.5 rounded-lg border border-ctu-gold/10">
@@ -874,8 +984,14 @@ export default function Catalog() {
                                           </div>
 
                           <h3 className="text-2xl font-display font-black text-foreground mb-3 group-hover:text-ctu-gold transition-colors leading-tight line-clamp-2 uppercase tracking-tighter italic">
-                                          {subject.name}
-                                        </h3>
+                                            <HighlightedText text={subject.name} term={debouncedSearch} />
+                                          </h3>
+
+                                          {debouncedSearch && subject.description?.toLowerCase().includes(debouncedSearch.toLowerCase()) && (
+                                            <p className="text-[10px] text-foreground/50 mb-4 line-clamp-2 leading-relaxed">
+                                              <HighlightedText text={subject.description} term={debouncedSearch} />
+                                            </p>
+                                          )}
 
                                         {isAdmin && (
                                           <Button
@@ -940,13 +1056,23 @@ export default function Catalog() {
                                       <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-6 relative z-10 w-full px-4 sm:px-0">
                                         <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                                           <div className="shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-xl neumorphic-raised bg-background/50 border border-foreground/5 shadow-inner">
-                                            <span className="text-[10px] font-black text-ctu-maroon leading-none mb-1">{subject.code.split(' ')[0]}</span>
-                                            <span className="text-[12px] font-black text-foreground leading-none">{subject.code.split(' ')[1] || subject.code}</span>
+                                            <SubjectIcon iconName={subject.icon} className="w-5 h-5 text-ctu-gold opacity-50 absolute pointer-events-none" />
+                                            <span className="text-[10px] font-black text-ctu-maroon leading-none mb-1 z-10">
+                                              <HighlightedText text={subject.code.split(' ')[0]} term={debouncedSearch} />
+                                            </span>
+                                            <span className="text-[12px] font-black text-foreground leading-none">
+                                              <HighlightedText text={subject.code.split(' ')[1] || subject.code} term={debouncedSearch} />
+                                            </span>
                                           </div>
                                           <div className="min-w-0">
                                             <h3 className="text-sm sm:text-base font-black text-foreground line-clamp-1 group-hover:text-ctu-gold transition-colors uppercase tracking-tight italic">
-                                              {subject.name}
+                                              <HighlightedText text={subject.name} term={debouncedSearch} />
                                             </h3>
+                                            {debouncedSearch && subject.description?.toLowerCase().includes(debouncedSearch.toLowerCase()) && (
+                                              <p className="text-[9px] text-foreground/40 line-clamp-1 mb-0.5">
+                                                <HighlightedText text={subject.description} term={debouncedSearch} />
+                                              </p>
+                                            )}
                                             <div className="flex items-center gap-3 mt-0.5">
                                               <span className="text-[9px] text-foreground/40 font-bold uppercase tracking-widest flex items-center gap-1">
                                                 <Circle size={6} className="fill-blue-500 text-blue-500" /> {subject.units} Units

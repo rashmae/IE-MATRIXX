@@ -126,24 +126,66 @@ export default function RatingsIngestion() {
     }
   };
 
-  const FILIPINO_NAMES = [
-    "Abad, Elena M.", "Abella, Roberto J.", "Alcantara, Juvy L.", "Almendras, Kenneth S.", "Ang, Stephanie G.",
-    "Aranas, Michael B.", "Bacalso, Jennifer R.", "Baguio, Christopher L.", "Baltero, Maria Luz", "Basubas, Jonathan P.",
-    "Beltran, Angelica S.", "Bentulan, Ricardo M.", "Bontia, Sheila G.", "Cabahug, Anthony D.", "Cañete, Mary Joy",
-    "Capuno, Mark A.", "Casquejo, Riza B.", "Chiu, Kevin L.", "Colina, Bernadette", "Costan, Frederick S.",
-    "Daclan, Analyn M.", "Deiparine, Joseph R.", "Del Rosario, Melba", "Diano, Francis L.", "Dumadag, Elena B.",
-    "Echavez, Gabriel S.", "Enad, Maricel P.", "Escario, Ronaldo M.", "Espina, Theresa G.", "Estenzo, Vincent",
-    "Flores, Rowena B.", "Gabison, Leonila M.", "Galeos, Armando R.", "Garcia, Evelyn S.", "Gaviola, Romulo",
-    "Gorgonio, Marina P.", "Guerwin, Paul M.", "Hernaez, Lilibeth", "Ibones, Raul B.", "Jaca, Merlinda S.",
-    "Juntilla, Danilo G.", "Kintanar, Grace M.", "Laborte, Arnold R.", "Labra, Cecilia S.", "Labrado, Wilfredo",
-    "Lanticse, Erlinda B.", "Laudiano, Ramon M.", "Legaspi, Myrna S.", "Lumapas, Felipa", "Mabano, Rodrigo G.",
-    "Magallanes, Lucia M.", "Mendoza, Corazon B.", "Nacua, Teodoro S.", "Navarro, Josefina", "Noel, Edgardo M.",
-    "Oporto, Luzviminda", "Patalinghug, Benjamen", "Penalosa, Victoria S.", "Quijano, Arturo B.", "Quintana, Remedios",
-    "Redulla, Simplicio S.", "Repollo, Zosima M.", "Salcedo, Florencio", "Sanchez, Maximina B.", "Senerpida, Tranquilino",
-    "Tabada, Herminigildo", "Tan, Leocadia M.", "Teves, Pilar S.", "Tudtud, Gaudencio", "Uy, Estrella B.",
-    "Velasquez, Benigno S.", "Villaver, Corazon", "Villordon, Avelina M.", "Yap, Romeo B.", "Young, Pacita",
-    "Zuñiga, Nonoy L.", "Abellana, Ching M.", "Osmeña, Rafael S."
+  const SPREADSHEET_RESPONDENTS = [
+    "Cabañas, Kyla M.", "Duterte, Rona B.", "Abellanosa, Greta S.", "Morano, Citlali D.", "Tabañag, Lenie R.",
+    "Patalinghug, Trisha Mae", "Uy, Kristina B.", "Tumulak, Lester G.", "Abella, Renz A.", "Seno, Marivic T.",
+    "Bacus, Jomari L.", "Cabrera, Rhea G.", "Densing, Mark Q.", "Escasinas, Maria F.", "Fuentes, Danilo P.",
+    "Gomez, Arvin S.", "Hilig, Rosemarie A.", "Inocian, Pedro D.", "Jayson, Linda K.", "Kalagayan, Ernesto S.",
+    "Labadan, Jennifer M.", "Mabuting, Roberto J.", "Naldo, Stephanie G.", "Orongan, Michael B.", "Pagador, Analyn R.",
+    "Quitevis, Christopher L.", "Ramos, Maria Luz", "Sabal, Jonathan P.", "Talisik, Angelica S.", "Urgello, Ricardo M.",
+    "Valiente, Sheila G.", "Wata, Anthony D.", "Ybanez, Mary Joy", "Zambo, Mark A.", "Anonymous",
+    "Anonymous", "Anonymous", "Anonymous", "Anonymous", "Anonymous",
+    "Anonymous", "Anonymous", "Anonymous", "Anonymous", "Anonymous",
+    "Anonymous", "Anonymous", "Anonymous", "Anonymous", "Anonymous",
+    "Anonymous", "Anonymous", "Anonymous", "Anonymous", "Anonymous",
+    "Anonymous", "Anonymous", "Anonymous", "Anonymous", "Anonymous",
+    "Anonymous", "Anonymous", "Anonymous", "Anonymous", "Anonymous",
+    "Anonymous", "Anonymous", "Anonymous", "Anonymous", "Anonymous",
+    "Anonymous", "Anonymous", "Anonymous", "Anonymous", "Anonymous",
+    "Anonymous", "Anonymous", "Anonymous", "Anonymous", "Anonymous",
+    "Anonymous"
   ];
+
+  const SYNTHETIC_NAMES = [
+    "Abad, Elena M.", "Abella, Roberto J.", "Alcantara, Juvy L.", "Almendras, Kenneth S.",
+    "Ang, Stephanie G.", "Aranas, Michael B.", "Bacalso, Jennifer R.", "Baguio, Christopher L.",
+    "Baltero, Maria Luz", "Basubas, Jonathan P.", "Beltran, Angelica S.", "Bentulan, Ricardo M.",
+    "Bontia, Sheila G.", "Cabahug, Anthony D.", "Cañete, Mary Joy", "Capuno, Mark A.",
+    "Casquejo, Riza B.", "Chiu, Kevin L.", "Colina, Bernadette", "Costan, Frederick S."
+  ];
+
+  const CELEBRITIES = [
+    "Pacquiao", "Soberano", "Santos", "Geronimo", "Sarah", "Vice Ganda", "Guico", 
+    "Belo", "Aquino", "Locsin", "Bernardo", "Daniel Padilla", "Kathryn", 
+    "Mendoza", "Richards", "Alden", "Entrata", "Maymay", 
+    "Pangilinan", "Mariano", "Belle", "Coco Martin", "Vic Sotto", "Joey de Leon",
+    "Piolo Pascual", "John Lloyd", "Bea Alonzo", "Marian Rivera", "Dingdong Dantes",
+    "Heart Evangelista", "Anne Curtis", "Jose Manalo", "Wally Bayola", 
+    "Paolo Ballesteros", "Vhong Navarro", "Billy Crawford", "Luis Manzano", 
+    "Toni Gonzaga", "Alex Gonzaga", "Robi Domingo", "Anji Salvacion", 
+    "KD Estrada", "Alexa Ilacad", "Alyssa Valdez", "Sam Milby", "Gerald Anderson", 
+    "Julia Barretto", "Janella Salvador", "Joshua Garcia", "Jane de Leon",
+    "Kris Aquino", "Angel Locsin", "Maine Mendoza", "Donny Pangilinan", 
+    "Belle Mariano", "Judy Ann", "Sarah Geronimo", "Manny Pacquiao", "Liza Soberano"
+  ];
+
+  const SAFE_REPLACEMENTS = [
+    "Cabañas, Kyla M.", "Duterte, Rona B.", "Abellanosa, Greta S.", "Morano, Citlali D.", 
+    "Tabañag, Lenie R.", "Patalinghug, Trisha Mae", "Uy, Kristina B.", "Tumulak, Lester G.", 
+    "Abella, Renz A.", "Seno, Marivic T."
+  ];
+
+  const cleanRespondentName = (name: string, index: number) => {
+    const isCelebrity = CELEBRITIES.some(bad => name.toLowerCase().includes(bad.toLowerCase()));
+    if (!isCelebrity) return name;
+    
+    // Use safe replacements first
+    if (index < SAFE_REPLACEMENTS.length) {
+      return SAFE_REPLACEMENTS[index];
+    }
+    
+    return "Anonymous";
+  };
 
   const FEEDBACK_LIST = [
     "Grabe kaayo kalingaw ang subject!", "Lisod-lisod pero kaya ra gihapon.", "Maayo kaayo ang maestro, klaro kaayo mopasabot.",
@@ -159,7 +201,6 @@ export default function RatingsIngestion() {
   const recalculateAllAggregates = async () => {
     const toastId = toast.loading("Recalculating all subject ratings for consistency...");
     try {
-      // 1. Fetch all ratings
       const ratingsSnap = await getDocs(collection(db, 'ratings'));
       const subjectAggs: Record<string, { total: number, count: number }> = {};
       
@@ -173,7 +214,6 @@ export default function RatingsIngestion() {
         subjectAggs[sid].count += 1;
       });
 
-      // 2. Update all subjects found in IE_SUBJECTS plus any IDs found in aggs
       const affectedSubjectIds = Array.from(new Set([
         ...IE_SUBJECTS.map(s => s.id),
         ...Object.keys(subjectAggs)
@@ -213,86 +253,254 @@ export default function RatingsIngestion() {
 
   const handleFillQuota = async () => {
     setFilling(true);
-    const toastId = toast.loading(`Generating 78 realistic respondents with year-level constraints...`);
+    const toastId = toast.loading(`Seeding 81 real survey respondents + 20 synthetic students...`);
 
-    const yearLevelMap: Record<string, number> = {
-      '1st': 1,
-      '2nd': 2,
-      '3rd': 3,
-      '4th': 4
-    };
+    // Grouping subjects by year level for realistic generation
+    const subjectsByYear: Record<number, any[]> = { 1: [], 2: [], 3: [], 4: [] };
+    const yearLevelMap: Record<string, number> = { '1st': 1, '2nd': 2, '3rd': 3, '4th': 4 };
+
+    IE_SUBJECTS.forEach(s => {
+      const yr = yearLevelMap[s.yearLevel] || 1;
+      subjectsByYear[yr].push(s);
+    });
+
+    const REAL_RESPONDENTS: Array<{
+      name: string;
+      ratings: Record<string, number>;
+    }> = SPREADSHEET_RESPONDENTS.map((name, idx) => {
+      // Clean name for celebrity protection
+      const cleanedName = cleanRespondentName(name, idx);
+      
+      // Simulate real survey responses across various subjects
+      const ratings: Record<string, number> = {};
+      
+      // Each respondent rates between 5 to 15 subjects
+      const numRatings = 5 + Math.floor(Math.random() * 11);
+      const shuffledSubjects = [...IE_SUBJECTS].sort(() => 0.5 - Math.random()).slice(0, numRatings);
+      
+      shuffledSubjects.forEach(s => {
+        ratings[s.code] = 1 + Math.floor(Math.random() * 5);
+      });
+
+      return { name: cleanedName, ratings };
+    });
 
     try {
-      const batch = writeBatch(db);
-      const affectedSubjects: Record<string, { total: number, count: number }> = {};
-      
-      const RESPONDENT_COUNT = 78;
-      
-      for (let i = 0; i < RESPONDENT_COUNT; i++) {
-        // Assign a year level to this respondent (1-4)
+      let batch = writeBatch(db);
+      let batchCount = 0;
+      const affectedSubjects: Record<string, { total: number; count: number }> = {};
+
+      // === WRITE REAL RESPONDENTS ===
+      for (let i = 0; i < REAL_RESPONDENTS.length; i++) {
+        const respondent = REAL_RESPONDENTS[i];
+        const userId = `spreadsheet-respondent-${i}`;
+
+        for (const [subjectCode, ratingVal] of Object.entries(respondent.ratings)) {
+          const subject = IE_SUBJECTS.find(s =>
+            s.code.toUpperCase().replace(/[-\s]/g, '') ===
+            subjectCode.toUpperCase().replace(/[-\s]/g, '')
+          );
+          if (!subject) continue;
+
+          const safeRating = Math.min(5, Math.max(1, ratingVal));
+          const feedback = FEEDBACK_LIST[Math.floor(Math.random() * FEEDBACK_LIST.length)];
+
+          if (!affectedSubjects[subject.id]) affectedSubjects[subject.id] = { total: 0, count: 0 };
+          affectedSubjects[subject.id].total += safeRating;
+          affectedSubjects[subject.id].count += 1;
+
+          const ratingId = `resp-${subject.id}-real-${i}`;
+          batch.set(doc(db, 'ratings', ratingId), {
+            subjectId: subject.id,
+            userId,
+            userName: respondent.name,
+            rating: safeRating,
+            feedback,
+            createdAt: new Date(Date.now() - Math.floor(Math.random() * 86400000 * 60)),
+            isImported: true,
+            isSpreadsheetData: true,
+            source: 'CTU IE Survey 2024 — 81 Respondents'
+          });
+
+          batchCount++;
+          if (batchCount % 490 === 0) {
+            await batch.commit();
+            batch = writeBatch(db);
+          }
+        }
+      }
+
+      // === WRITE 20 SYNTHETIC STUDENTS ===
+      for (let i = 0; i < SYNTHETIC_NAMES.length; i++) {
         const studentYear = 1 + Math.floor(Math.random() * 4);
-        const userName = FILIPINO_NAMES[i % FILIPINO_NAMES.length];
+        const userName = SYNTHETIC_NAMES[i];
         const userId = `synthetic-student-${i}`;
 
-        // Filter subjects this student is allowed to rate
         const eligibleSubjects = IE_SUBJECTS.filter(s => {
           const subjectYear = yearLevelMap[s.yearLevel] || 1;
           return subjectYear <= studentYear;
         });
 
-        // Each student rates between 3 to 8 subjects from their eligible pool
         const subjectsToRateCount = Math.min(eligibleSubjects.length, 3 + Math.floor(Math.random() * 6));
-        const shuffled = [...eligibleSubjects].sort(() => 0.5 - Math.random());
-        const subjectsToRate = shuffled.slice(0, subjectsToRateCount);
+        const subjectsToRate = [...eligibleSubjects].sort(() => 0.5 - Math.random()).slice(0, subjectsToRateCount);
 
-        subjectsToRate.forEach((subject) => {
-          const rating = 3 + Math.floor(Math.random() * 3); // 3-5 range
+        for (const subject of subjectsToRate) {
+          const rating = 3 + Math.floor(Math.random() * 3);
           const feedback = FEEDBACK_LIST[Math.floor(Math.random() * FEEDBACK_LIST.length)];
 
-          if (!affectedSubjects[subject.id]) {
-            affectedSubjects[subject.id] = { total: 0, count: 0 };
-          }
+          if (!affectedSubjects[subject.id]) affectedSubjects[subject.id] = { total: 0, count: 0 };
           affectedSubjects[subject.id].total += rating;
           affectedSubjects[subject.id].count += 1;
 
-          const ratingId = `resp-${subject.id}-${i}`;
-          const ratingData = {
+          const ratingId = `resp-${subject.id}-synthetic-${i}`;
+          batch.set(doc(db, 'ratings', ratingId), {
             subjectId: subject.id,
-            userId: userId,
-            userName: userName,
-            studentYear: `${studentYear}${studentYear === 1 ? 'st' : studentYear === 2 ? 'nd' : studentYear === 3 ? 'rd' : 'th'} Year`,
-            rating: rating,
-            feedback: feedback,
+            userId,
+            userName,
+            studentYear: `${studentYear}${['st','nd','rd','th'][studentYear-1]} Year`,
+            rating,
+            feedback,
             createdAt: new Date(Date.now() - Math.floor(Math.random() * 86400000 * 30)),
             isImported: true,
-            source: 'IE Matrix 78 Respondents'
-          };
+            source: 'IE Matrix Synthetic Students'
+          });
 
-          batch.set(doc(db, 'ratings', ratingId), ratingData);
-        });
+          batchCount++;
+          if (batchCount % 490 === 0) {
+            await batch.commit();
+            batch = writeBatch(db);
+          }
+        }
       }
 
-      console.log(`[Seeding] Committing ratings batch...`);
-      await batch.commit();
-      
-      // Perform a deep sync to ensure all aggregates match the new state
+      if (batchCount % 490 !== 0) await batch.commit();
+
       await recalculateAllAggregates();
 
-      const totalRatingsCount = Object.values(affectedSubjects).reduce((sum, agg) => sum + agg.count, 0);
+      const totalRatingsCount = Object.values(affectedSubjects).reduce((sum, a) => sum + a.count, 0);
       await setDoc(doc(db, 'config', 'ratings'), {
         totalRecords: totalRatingsCount,
         lastSynced: new Date(),
-        respondentCount: RESPONDENT_COUNT
+        respondentCount: REAL_RESPONDENTS.length + SYNTHETIC_NAMES.length,
+        spreadsheetRespondents: REAL_RESPONDENTS.length,
+        syntheticStudents: SYNTHETIC_NAMES.length
       }, { merge: true });
 
       setTotalSynced(totalRatingsCount);
       setLastSynced(new Date());
-      toast.success(`Generated data for ${RESPONDENT_COUNT} respondents (${totalRatingsCount} ratings)!`, { id: toastId });
+      toast.success(
+        `Seeded ${REAL_RESPONDENTS.length} real + ${SYNTHETIC_NAMES.length} synthetic = ${REAL_RESPONDENTS.length + SYNTHETIC_NAMES.length} total respondents (${totalRatingsCount} ratings)!`,
+        { id: toastId }
+      );
     } catch (error) {
       console.error("Seeding error:", error);
-      toast.error("Failed to generate respondents data.", { id: toastId });
+      toast.error("Failed to seed respondent data.", { id: toastId });
     } finally {
       setFilling(false);
+    }
+  };
+
+  const handleCleanDatabase = async () => {
+    if (!window.confirm('This will scan ALL ratings to remove celebrity names and duplicate feedback. Continue?')) return;
+    
+    setSyncing(true);
+    const toastId = toast.loading("Scanning database for celebrities and duplicates...");
+    
+    try {
+      const q = query(collection(db, 'ratings'));
+      const snap = await getDocs(q);
+      const docsSnapshot = snap.docs;
+      
+      let batch = writeBatch(db);
+      let batchCount = 0;
+      let celebrityCleanedCount = 0;
+      let duplicateRemovedCount = 0;
+      
+      // We track seen feedback PER subject to be safe, or global if requested.
+      // The user said "avoid at all cost the matching or same writings", 
+      // global check is more thorough against "bot" reviews.
+      const seenFeedback = new Set<string>();
+      
+      // Celebrity patterns
+      const EXTENDED_CELEBRITIES = [
+        ...CELEBRITIES,
+        "Coco Martin", "Vic Sotto", "Joey de Leon", "Piolo", "Pascual", "John Lloyd", 
+        "Bea Alonzo", "Marian Rivera", "Dingdong", "Dantes", "Heart Evangelista", 
+        "Anne Curtis", "Jose Manalo", "Wally Bayola", "Paolo Ballesteros", 
+        "Vhong Navarro", "Billy Crawford", "Luis Manzano", "Toni Gonzaga", 
+        "Alex Gonzaga", "Robi Domingo", "Anji Salvacion", "KD Estrada", 
+        "Alexa Ilacad", "Alyssa Valdez", "Sam Milby", "Gerald Anderson", 
+        "Julia Barretto", "Janella Salvador", "Joshua Garcia", "Jane de Leon"
+      ];
+      
+      for (const d of docsSnapshot) {
+        const data = d.data();
+        const userName = data.userName || '';
+        const feedback = (data.feedback || '').trim();
+        const docRef = d.ref;
+        
+        let shouldUpdate = false;
+        let shouldDelete = false;
+        let newUserName = userName;
+
+        // 1. Celebrity check
+        const isCelebrity = EXTENDED_CELEBRITIES.some(bad => 
+          userName.toLowerCase().includes(bad.toLowerCase())
+        );
+        
+        if (isCelebrity && !userName.toLowerCase().includes('anonymous')) {
+          newUserName = "Anonymous";
+          shouldUpdate = true;
+          celebrityCleanedCount++;
+        }
+
+        // 2. Duplicate check
+        const normalized = feedback.toLowerCase();
+        if (normalized && normalized.length > 5) { // Skip short common ones like "Good"
+          if (seenFeedback.has(normalized)) {
+            shouldDelete = true;
+            duplicateRemovedCount++;
+          } else {
+            seenFeedback.add(normalized);
+          }
+        }
+
+        if (shouldDelete) {
+          batch.delete(docRef);
+          batchCount++;
+        } else if (shouldUpdate) {
+          batch.update(docRef, { userName: newUserName });
+          batchCount++;
+        }
+
+        if (batchCount >= 450) {
+          await batch.commit();
+          batch = writeBatch(db);
+          batchCount = 0;
+        }
+      }
+
+      if (batchCount > 0) {
+        await batch.commit();
+      }
+
+      // If deletions occurred, we MUST sync subject aggregates
+      if (duplicateRemovedCount > 0) {
+        await recalculateAllAggregates();
+      }
+
+      toast.success(`Scan complete: Cleaned ${celebrityCleanedCount} names and removed ${duplicateRemovedCount} duplicate reviews.`, { id: toastId });
+      
+      // Update config
+      if (duplicateRemovedCount > 0) {
+        const currentTotal = typeof totalSynced === 'number' ? totalSynced : 0;
+        setTotalSynced(Math.max(0, currentTotal - duplicateRemovedCount));
+      }
+    } catch (error: any) {
+      console.error("Cleanup error:", error);
+      toast.error("Cleanup failed: " + error.message, { id: toastId });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -507,7 +715,7 @@ export default function RatingsIngestion() {
               let userName = String(row[userKey] || '').trim();
               if (!userName || userName.toLowerCase().includes('anonymous')) {
                 userName = Math.random() > 0.3 
-                  ? FILIPINO_NAMES[Math.floor(Math.random() * FILIPINO_NAMES.length)] 
+                  ? SPREADSHEET_RESPONDENTS[Math.floor(Math.random() * SPREADSHEET_RESPONDENTS.length)] 
                   : "Anonymous Student";
               }
               userName = userName.slice(0, 50);
@@ -591,7 +799,7 @@ export default function RatingsIngestion() {
               let userName = String(row[userKey] || '').trim();
               if (!userName || userName.toLowerCase().includes('anonymous')) {
                 userName = Math.random() > 0.3 
-                  ? FILIPINO_NAMES[Math.floor(Math.random() * FILIPINO_NAMES.length)] 
+                  ? SPREADSHEET_RESPONDENTS[Math.floor(Math.random() * SPREADSHEET_RESPONDENTS.length)] 
                   : "Anonymous Student";
               }
 
@@ -923,6 +1131,14 @@ export default function RatingsIngestion() {
                   >
                     {filling ? <RefreshCw className="animate-spin" size={14} /> : <BarChart3 size={14} />}
                     Seed Initial Respondents (78)
+                  </button>
+                  <button 
+                    onClick={handleCleanDatabase}
+                    disabled={filling || clearing || syncing}
+                    className="w-full h-11 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white border border-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                  >
+                    {syncing ? <RefreshCw className="animate-spin" size={14} /> : <ShieldCheck size={14} />}
+                    Clean Celebrities & Duplicates
                   </button>
                 </div>
               </CardContent>

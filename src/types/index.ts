@@ -39,6 +39,7 @@ export interface Subject {
   updatedAt?: any;
   professor?: string;
   isAvailable?: boolean;
+  icon?: string;
 }
 
 export interface Rating {

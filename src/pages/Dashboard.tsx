@@ -16,7 +16,66 @@ import {
   Trophy,
   Cpu,
   FlaskConical as FlaskConIcon,
-  Bell
+  Bell,
+  Calculator,
+  FlaskConical,
+  Monitor,
+  Building2,
+  Coins,
+  Dumbbell,
+  Shield,
+  ShieldCheck,
+  PenTool,
+  BarChart,
+  MessageSquare,
+  User as UserIcon,
+  Music,
+  Variable,
+  Settings,
+  Factory,
+  Beaker,
+  Table,
+  Users,
+  Globe,
+  Lightbulb,
+  FunctionSquare,
+  Timer,
+  Database,
+  Activity,
+  TrendingUp,
+  Earth,
+  Smartphone,
+  Users2,
+  BarChart3,
+  CheckCircle,
+  Armchair,
+  GanttChart,
+  Briefcase,
+  Thermometer,
+  Rocket,
+  HardHat,
+  Layout,
+  UserCircle,
+  FileEdit,
+  Megaphone,
+  Layers,
+  BookText,
+  Leaf,
+  Building,
+  ClipboardCheck,
+  Truck,
+  Share2,
+  Box,
+  Zap,
+  Waves,
+  Book,
+  Flag,
+  ShieldAlert,
+  UserPlus,
+  Compass,
+  Copyright,
+  Palette,
+  Atom
 } from 'lucide-react';
 import { useAuth } from '@/src/context/AuthContext';
 import { useProgress } from '@/src/hooks/useProgress';
@@ -47,6 +106,24 @@ export default function Dashboard() {
   const [selectedYear, setSelectedYear] = useLocalStorage<YearLevel | 'All'>('dashboard-year-filter', 'All');
   const [showOnlyRemaining, setShowOnlyRemaining] = useState(false);
   const navigate = useNavigate();
+  
+  // Icon Renderer Component
+  const SubjectIcon = ({ iconName, className }: { iconName?: string; className?: string }) => {
+    const icons: Record<string, any> = {
+      Calculator, FlaskConical, Monitor, Building2, Coins, Cpu, Dumbbell, Shield, 
+      ShieldCheck, PenTool, BarChart, BookOpen, MessageSquare, User: UserIcon, Music, 
+      Variable, Settings, Factory, Beaker, Table, Users, Globe, Lightbulb, 
+      Trophy, FunctionSquare, Timer, Database, Activity, TrendingUp, Earth, 
+      Smartphone, Users2, BarChart3, CheckCircle, Armchair, GanttChart, 
+      Briefcase, Thermometer, Rocket, HardHat, Layout, UserCircle, FileEdit, 
+      Megaphone, Layers, BookText, Leaf, Building, ClipboardCheck, Truck, 
+      Share2, Box, Zap, Waves, Book, Flag, ShieldAlert, UserPlus, Compass, 
+      Copyright, Palette, Atom
+    };
+    
+    const IconComponent = iconName ? icons[iconName] : BookText;
+    return IconComponent ? <IconComponent className={className} /> : <BookText className={className} />;
+  };
 
   useEffect(() => {
     if (!authLoading && !profile) {
@@ -472,28 +549,29 @@ export default function Dashboard() {
                         '4th': 'border-l-emerald-500'
                       };
                       
-                      const DepartmentIcon = subject.department?.toLowerCase().includes('chem') ? FlaskConIcon : 
-                                            subject.department?.toLowerCase().includes('math') ? BookOpen : 
-                                            subject.department?.toLowerCase().includes('phy') ? FlaskConIcon : Cpu;
-
                       return (
                         <GlowCard 
                           key={subject.id} 
                           glowColor={idx % 2 === 0 ? 'blue' : 'orange'}
                           customSize
                           className={cn(
-                            "w-56 sm:w-64 md:w-72 shrink-0 min-h-[160px] h-auto hover:scale-[1.05] transition-all cursor-pointer border-none flex flex-col justify-between snap-start tap-target rounded-3xl p-5 overflow-hidden border-l-4",
+                            "w-56 sm:w-64 md:w-72 shrink-0 min-h-[180px] h-auto hover:scale-[1.05] transition-all cursor-pointer border-none flex flex-col justify-between snap-start tap-target rounded-3xl p-5 overflow-hidden border-l-4",
                             yearColors[subject.yearLevel] || 'border-l-foreground/10'
                           )}
                           onClick={() => navigate(`/catalog/${subject.id}`)}
                         >
                           <div className="relative z-10 w-full min-w-0">
                             <div className="flex justify-between items-start mb-3">
-                              <Badge variant="outline" className="border-ctu-gold text-ctu-gold text-[10px] font-bold bg-ctu-gold/5 max-w-[80%] truncate">
-                                {subject.code}
-                              </Badge>
+                              <div className="flex gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-ctu-gold/10 flex items-center justify-center text-ctu-gold shrink-0">
+                                  <SubjectIcon iconName={subject.icon} className="w-4 h-4" />
+                                </div>
+                                <Badge variant="outline" className="border-ctu-gold text-ctu-gold text-[10px] font-bold bg-ctu-gold/5 max-w-[80%] truncate h-8 flex items-center">
+                                  {subject.code}
+                                </Badge>
+                              </div>
                               {isDone && (
-                                <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-white shrink-0">
+                                <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-white shrink-0 mt-1.5">
                                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-3 h-3">
                                       <polyline points="20 6 9 17 4 12" />
@@ -502,12 +580,9 @@ export default function Dashboard() {
                                 </div>
                               )}
                             </div>
-                            <div className="flex gap-3 mb-2">
-                              <DepartmentIcon size={16} className="text-foreground/20 shrink-0 mt-1" />
-                              <h4 className="font-bold text-foreground text-clamp-2 text-sm sm:text-base leading-tight">
-                                {subject.name}
-                              </h4>
-                            </div>
+                            <h4 className="font-bold text-foreground text-clamp-2 text-sm sm:text-base leading-tight mb-2">
+                              {subject.name}
+                            </h4>
                             <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-wider text-clamp-1">
                               {subject.department || 'IE Department'}
                             </p>

@@ -33,7 +33,68 @@ import {
   Target,
   AlertCircle,
   Lock,
-  Loader2
+  Loader2,
+  Calculator,
+  FlaskConical,
+  Monitor,
+  Building2,
+  Coins,
+  Cpu,
+  Dumbbell,
+  Shield,
+  ShieldCheck,
+  PenTool,
+  BarChart,
+  BookOpen,
+  MessageSquare,
+  User as UserIcon,
+  Music,
+  Variable,
+  Settings,
+  Factory,
+  Beaker,
+  Table,
+  Globe,
+  Lightbulb,
+  Trophy,
+  FunctionSquare,
+  Timer,
+  Database,
+  Activity,
+  TrendingUp,
+  Earth,
+  Smartphone,
+  Users2,
+  BarChart3,
+  CheckCircle,
+  Armchair,
+  GanttChart,
+  Briefcase,
+  Thermometer,
+  Rocket,
+  HardHat,
+  Layout,
+  UserCircle,
+  FileEdit,
+  Megaphone,
+  Layers,
+  BookText,
+  Leaf,
+  Building,
+  ClipboardCheck,
+  Truck,
+  Share2,
+  Box,
+  Zap,
+  Waves,
+  Book,
+  Flag,
+  ShieldAlert,
+  UserPlus,
+  Compass,
+  Copyright,
+  Palette,
+  Atom
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
@@ -192,6 +253,24 @@ export default function StudyTools() {
 
   const navigate = useNavigate();
   const aiAvailable = isAIAvailable();
+  
+  // Icon Renderer Component
+  const SubjectIcon = ({ iconName, className }: { iconName?: string; className?: string }) => {
+    const icons: Record<string, any> = {
+      Calculator, FlaskConical, Monitor, Building2, Coins, Cpu, Dumbbell, Shield, 
+      ShieldCheck, PenTool, BarChart, BookOpen, MessageSquare, User: UserIcon, Music, 
+      Variable, Settings, Factory, Beaker, Table, Users, Globe, Lightbulb, 
+      Trophy, FunctionSquare, Timer, Database, Activity, TrendingUp, Earth, 
+      Smartphone, Users2, BarChart3, CheckCircle, Armchair, GanttChart, 
+      Briefcase, Thermometer, Rocket, HardHat, Layout, UserCircle, FileEdit, 
+      Megaphone, Layers, BookText, Leaf, Building, ClipboardCheck, Truck, 
+      Share2, Box, Zap, Waves, Book, Flag, ShieldAlert, UserPlus, Compass, 
+      Copyright, Palette, Atom
+    };
+    
+    const IconComponent = iconName ? icons[iconName] : BookText;
+    return IconComponent ? <IconComponent className={className} /> : <BookText className={className} />;
+  };
 
   const getSubjectInfo = useCallback((code: string) => {
     return IE_SUBJECTS.find(s => s.code.toLowerCase() === code.toLowerCase() || s.id.toLowerCase() === code.toLowerCase());
@@ -1358,12 +1437,20 @@ export default function StudyTools() {
                                 
                                 <div className="relative z-10">
                                   <div className="flex justify-between items-center mb-4">
-                                    <span className={cn(
-                                      "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-foreground/[0.03]",
-                                      isDone ? "text-emerald-500" : isPrep ? "text-ctu-gold" : "text-foreground/20"
-                                    )}>
-                                      {subject.code}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <div className={cn(
+                                        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                                        isDone ? "bg-emerald-500/10 text-emerald-500" : isPrep ? "bg-ctu-gold/10 text-ctu-gold" : "bg-foreground/5 text-foreground/20"
+                                      )}>
+                                        <SubjectIcon iconName={subject.icon} className="w-4 h-4" />
+                                      </div>
+                                      <span className={cn(
+                                        "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-foreground/[0.03]",
+                                        isDone ? "text-emerald-500" : isPrep ? "text-ctu-gold" : "text-foreground/20"
+                                      )}>
+                                        {subject.code}
+                                      </span>
+                                    </div>
                                     {isDone && <Award size={18} className="text-emerald-500" />}
                                   </div>
                                   <h5 className={cn(
@@ -1493,7 +1580,7 @@ export default function StudyTools() {
                           <div className="flex items-center justify-between mb-6 sm:mb-10">
                             <div className="flex items-center gap-4">
                                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-ctu-maroon to-ctu-gold/60 flex items-center justify-center text-white shadow-xl shadow-ctu-maroon/20 group-hover:rotate-12 transition-transform">
-                                 <Users size={24} className="sm:size-8" />
+                                 <SubjectIcon iconName={getSubjectInfo(group.subjectCode)?.icon || 'Users'} className="w-6 h-6 sm:w-8 sm:h-8" />
                                </div>
                                <Badge className="bg-foreground/[0.03] text-foreground/40 border-none text-[9px] sm:text-[11px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-full shadow-sm">
                                  {group.subjectCode}

@@ -15,7 +15,66 @@ import {
   GraduationCap,
   Search,
   X,
-  Trophy
+  Trophy,
+  FlaskConical,
+  Monitor,
+  Building2,
+  Coins,
+  Cpu,
+  Dumbbell,
+  Shield,
+  ShieldCheck,
+  PenTool,
+  BarChart,
+  BookOpen,
+  MessageSquare,
+  User as UserIcon,
+  Music,
+  Variable,
+  Settings,
+  Factory,
+  Beaker,
+  Table,
+  Users,
+  Globe,
+  Lightbulb,
+  FunctionSquare,
+  Timer,
+  Database,
+  Activity,
+  Earth,
+  Smartphone,
+  Users2,
+  BarChart3,
+  CheckCircle,
+  Armchair,
+  GanttChart,
+  Briefcase,
+  Thermometer,
+  Rocket,
+  HardHat,
+  Layout,
+  UserCircle,
+  FileEdit,
+  Megaphone,
+  Layers,
+  BookText,
+  Leaf,
+  Building,
+  ClipboardCheck,
+  Truck,
+  Share2,
+  Box,
+  Zap,
+  Waves,
+  Book,
+  Flag,
+  ShieldAlert,
+  UserPlus,
+  Compass,
+  Copyright,
+  Palette,
+  Atom
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
@@ -83,6 +142,24 @@ export default function ProgressPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 300);
   const navigate = useNavigate();
+  
+  // Icon Renderer Component
+  const SubjectIcon = ({ iconName, className }: { iconName?: string; className?: string }) => {
+    const icons: Record<string, any> = {
+      Calculator, FlaskConical, Monitor, Building2, Coins, Cpu, Dumbbell, Shield, 
+      ShieldCheck, PenTool, BarChart, BookOpen, MessageSquare, User: UserIcon, Music, 
+      Variable, Settings, Factory, Beaker, Table, Users, Globe, Lightbulb, 
+      Trophy, FunctionSquare, Timer, Database, Activity, TrendingUp, Earth, 
+      Smartphone, Users2, BarChart3, CheckCircle, Armchair, GanttChart, 
+      Briefcase, Thermometer, Rocket, HardHat, Layout, UserCircle, FileEdit, 
+      Megaphone, Layers, BookText, Leaf, Building, ClipboardCheck, Truck, 
+      Share2, Box, Zap, Waves, Book, Flag, ShieldAlert, UserPlus, Compass, 
+      Copyright, Palette, Atom
+    };
+    
+    const IconComponent = iconName ? icons[iconName] : BookText;
+    return IconComponent ? <IconComponent className={className} /> : <BookText className={className} />;
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -405,105 +482,117 @@ export default function ProgressPage() {
                   const arePrerequisitesMet = unmetPrerequisites.length === 0;
                   
                   return (
-                    <div 
-                      key={subject.id}
-                      className={cn(
-                        "flex items-center justify-between p-6 rounded-2xl transition-all",
-                        status === 'done' ? "neumorphic-pressed" : "neumorphic-raised"
-                      )}
-                    >
-                      <div className="flex-1 min-w-0 mr-6">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="text-xs font-bold text-ctu-gold uppercase tracking-widest">{subject.code}</p>
-                          {prerequisites.length > 0 && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <div className={cn(
-                                    "cursor-help p-1 rounded-md",
-                                    arePrerequisitesMet ? "text-blue-500" : "text-ctu-maroon animate-pulse"
-                                  )}>
-                                    <LinkIcon size={12} />
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <div className="text-[10px] space-y-1">
-                                    <p className="font-bold border-b border-foreground/5 pb-1 mb-1">Prerequisites:</p>
-                                    {prerequisites.map(pr => (
-                                      <div key={pr.id} className="flex items-center gap-2">
-                                        {(progressMap[pr.id]?.status || 'not_yet') === 'done' ? 
-                                          <CheckCircle2 size={10} className="text-green-500" /> : 
-                                          <AlertCircle size={10} className="text-ctu-maroon" />
-                                        }
-                                        <span className={cn(
-                                          (progressMap[pr.id]?.status || 'not_yet') === 'done' ? "text-foreground" : "text-foreground/40 font-bold"
-                                        )}>
-                                          {pr.code}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                        </div>
-                        <p className="text-sm font-bold text-foreground truncate">{subject.name}</p>
-                        
-                        {status === 'done' && (
-                          <div className="mt-3 flex items-center gap-3">
-                            <span className="text-[10px] uppercase font-bold text-foreground/30 tracking-widest">Entry Grade (1.0-5.0):</span>
-                            <div className="relative w-24">
-                              <Input 
-                                type="number"
-                                step="0.25"
-                                min="1.0"
-                                max="5.0"
-                                placeholder="Grd"
-                                value={grade || ''}
-                                onChange={(e) => {
-                                  const val = parseFloat(e.target.value);
-                                  if (!isNaN(val)) {
-                                    setGrade(subject.id, val);
-                                  } else if (e.target.value === '') {
-                                    updateProgress(subject.id, { grade: undefined });
-                                  }
-                                }}
-                                className="h-8 text-[11px] font-bold neumorphic-pressed border-none text-center bg-transparent focus:ring-ctu-gold pr-1"
-                              />
-                            </div>
-                            {grade !== undefined && grade !== null && (
-                              <Badge className={cn(
-                                "text-[10px] font-bold border-none",
-                                grade <= 1.5 ? "bg-emerald-500/20 text-emerald-500" :
-                                grade <= 2.25 ? "bg-blue-500/20 text-blue-500" :
-                                grade <= 3.0 ? "bg-ctu-gold/20 text-ctu-gold" : "bg-ctu-maroon/20 text-ctu-maroon"
-                              )}>
-                                {grade <= 1.5 ? "Excellent" : 
-                                 grade <= 2.25 ? "Good" :
-                                 grade <= 3.0 ? "Passed" : "Failed"}
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => toggleStatus(subject.id)}
-                        aria-label={`Mark ${subject.code} as ${status === 'not_yet' ? 'In Progress' : status === 'in_progress' ? 'Done' : 'Not Yet'}`}
-                        className={cn(
-                          "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase transition-all whitespace-nowrap",
-                          status === 'done' ? "bg-green-500/10 text-green-500 neumorphic-pressed" :
-                          status === 'in_progress' ? "bg-ctu-gold/10 text-ctu-gold neumorphic-pressed" :
-                          "neumorphic-raised text-foreground/40 hover:text-foreground hover:neumorphic-pressed",
-                          (status === 'in_progress' && !arePrerequisitesMet) && "opacity-50 grayscale"
-                        )}
-                      >
-                        {status === 'done' ? <CheckCircle2 size={14} /> :
-                         status === 'in_progress' ? <Clock size={14} /> :
-                         <Circle size={14} />}
-                        {status.replace('_', ' ')}
-                      </button>
-                    </div>
+                     <div 
+                       key={subject.id}
+                       className={cn(
+                         "flex items-start gap-4 p-6 rounded-2xl transition-all",
+                         status === 'done' ? "neumorphic-pressed" : "neumorphic-raised"
+                       )}
+                     >
+                       <div className={cn(
+                         "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                         status === 'done' ? "bg-emerald-500/10 text-emerald-500" : status === 'in_progress' ? "bg-ctu-gold/10 text-ctu-gold" : "bg-foreground/5 text-foreground/20"
+                       )}>
+                         <SubjectIcon iconName={subject.icon} className="w-5 h-5" />
+                       </div>
+                       
+                       <div className="flex-1 min-w-0">
+                         <div className="flex items-center justify-between gap-4">
+                           <div className="flex flex-col min-w-0">
+                             <div className="flex items-center gap-2 mb-0.5">
+                               <p className="text-[10px] font-black text-ctu-gold uppercase tracking-widest">{subject.code}</p>
+                               {prerequisites.length > 0 && (
+                                 <TooltipProvider>
+                                   <Tooltip>
+                                     <TooltipTrigger>
+                                       <div className={cn(
+                                         "cursor-help p-0.5 rounded",
+                                         arePrerequisitesMet ? "text-blue-500" : "text-ctu-maroon animate-pulse"
+                                       )}>
+                                         <LinkIcon size={10} />
+                                       </div>
+                                     </TooltipTrigger>
+                                     <TooltipContent>
+                                       <div className="text-[10px] space-y-1">
+                                         <p className="font-bold border-b border-foreground/5 pb-1 mb-1">Prerequisites:</p>
+                                         {prerequisites.map(pr => (
+                                           <div key={pr.id} className="flex items-center gap-2">
+                                             {(progressMap[pr.id]?.status || 'not_yet') === 'done' ? 
+                                               <CheckCircle2 size={10} className="text-green-500" /> : 
+                                               <AlertCircle size={10} className="text-ctu-maroon" />
+                                             }
+                                             <span className={cn(
+                                               (progressMap[pr.id]?.status || 'not_yet') === 'done' ? "text-foreground" : "text-foreground/40 font-bold"
+                                             )}>
+                                               {pr.code}
+                                             </span>
+                                           </div>
+                                         ))}
+                                       </div>
+                                     </TooltipContent>
+                                   </Tooltip>
+                                 </TooltipProvider>
+                               )}
+                             </div>
+                             <p className="text-sm font-black text-foreground truncate uppercase tracking-tight">{subject.name}</p>
+                           </div>
+
+                           <button
+                             onClick={() => toggleStatus(subject.id)}
+                             aria-label={`Mark ${subject.code} as ${status === 'not_yet' ? 'In Progress' : status === 'in_progress' ? 'Done' : 'Not Yet'}`}
+                             className={cn(
+                               "flex items-center gap-2 px-3 py-2 rounded-xl text-[9px] font-black uppercase transition-all whitespace-nowrap shrink-0",
+                               status === 'done' ? "bg-green-500/10 text-green-500 neumorphic-pressed" :
+                               status === 'in_progress' ? "bg-ctu-gold/10 text-ctu-gold neumorphic-pressed" :
+                               "neumorphic-raised text-foreground/40 hover:text-foreground hover:neumorphic-pressed",
+                               (status === 'in_progress' && !arePrerequisitesMet) && "opacity-50 grayscale"
+                             )}
+                           >
+                             {status === 'done' ? <CheckCircle2 size={12} /> :
+                              status === 'in_progress' ? <Clock size={12} /> :
+                              <Circle size={12} />}
+                             {status.replace('_', ' ')}
+                           </button>
+                         </div>
+                         
+                         {status === 'done' && (
+                           <div className="mt-4 flex items-center gap-3">
+                             <span className="text-[9px] uppercase font-black text-foreground/30 tracking-widest">Entry Grade</span>
+                             <div className="relative w-20">
+                               <Input 
+                                 type="number"
+                                 step="0.25"
+                                 min="1.0"
+                                 max="5.0"
+                                 placeholder="Grd"
+                                 value={grade || ''}
+                                 onChange={(e) => {
+                                   const val = parseFloat(e.target.value);
+                                   if (!isNaN(val)) {
+                                     setGrade(subject.id, val);
+                                   } else if (e.target.value === '') {
+                                     updateProgress(subject.id, { grade: undefined });
+                                   }
+                                 }}
+                                 className="h-8 text-[11px] font-black neumorphic-pressed border-none text-center bg-transparent focus:ring-ctu-gold pr-1"
+                               />
+                             </div>
+                             {grade !== undefined && grade !== null && (
+                               <Badge className={cn(
+                                 "text-[9px] font-black border-none px-2 py-0.5",
+                                 grade <= 1.5 ? "bg-emerald-500/20 text-emerald-500" :
+                                 grade <= 2.25 ? "bg-blue-500/20 text-blue-500" :
+                                 grade <= 3.0 ? "bg-ctu-gold/20 text-ctu-gold" : "bg-ctu-maroon/20 text-ctu-maroon"
+                               )}>
+                                 {grade <= 1.5 ? "Excellent" : 
+                                  grade <= 2.25 ? "Good" :
+                                  grade <= 3.0 ? "Passed" : "Failed"}
+                               </Badge>
+                             )}
+                           </div>
+                         )}
+                       </div>
+                     </div>
                   );
                 })}
               </div>

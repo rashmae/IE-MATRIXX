@@ -2,34 +2,22 @@ import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { initializeFirestore, doc, query, collection, limit, getDocs, getDocFromServer } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import firebaseConfigJson from '../../firebase-applet-config.json';
 
 /**
  * Firebase Configuration
- * 
- * In the AI Studio environment, these are often provided via a local JSON file.
- * However, for production deployments (like Vercel), you MUST set these as 
- * environment variables in your deployment dashboard.
- * 
- * Required Variables:
- * VITE_FIREBASE_API_KEY
- * VITE_FIREBASE_AUTH_DOMAIN
- * VITE_FIREBASE_PROJECT_ID
- * VITE_FIREBASE_STORAGE_BUCKET
- * VITE_FIREBASE_MESSAGING_SENDER_ID
- * VITE_FIREBASE_APP_ID
- * VITE_FIREBASE_DATABASE_ID (optional, defaults to (default))
  */
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfigJson.apiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfigJson.authDomain,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseConfigJson.projectId,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfigJson.storageBucket,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfigJson.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseConfigJson.appId,
 };
 
-const databaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || '(default)';
+const databaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || (firebaseConfigJson as any).firestoreDatabaseId || '(default)';
 
 // Initialize Firebase
 let app: any;
