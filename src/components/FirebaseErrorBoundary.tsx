@@ -19,12 +19,11 @@ export class FirebaseErrorBoundary extends React.Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: any) {
-    if (error?.message?.includes('VITE_FIREBASE_DATABASE_ID') || 
-        error?.message?.includes('client is offline') ||
-        error?.message?.includes('not found')) {
-      return { hasError: true, errorMessage: error.message };
-    }
-    return { hasError: false, errorMessage: '' };
+    // Catch ALL errors to prevent white screen
+    return { 
+      hasError: true, 
+      errorMessage: error?.message || 'An unexpected application error occurred.' 
+    };
   }
 
   componentDidCatch(error: any, errorInfo: any) {

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, X, Send, Loader2, Bot, ArrowRight } from 'lucide-react';
-import { getCurriculumAdvice, askQuestion } from '@/src/lib/gemini';
+import { getCurriculumAdvice, askQuestion, isAIAvailable } from '@/src/lib/gemini';
 import { IE_SUBJECTS } from '@/src/lib/constants';
 import { useAuth } from '@/src/context/AuthContext';
 import { useProgress } from '@/src/hooks/useProgress';
@@ -84,6 +84,16 @@ export default function AIAssistant() {
 
   const handleGetInitialAdvice = async () => {
     if (!profile) return;
+
+    if (!isAIAvailable()) {
+      setMessages([{
+        role: 'assistant',
+        content: "👋 Hello! I'm your **IE Matrix AI Advisor**. \n\nI noticed that the Gemini API is not yet configured. To enable project-specific advice, curriculum planning, and interactive chat, please add your `VITE_GEMINI_API_KEY` to the environment variables. \n\nIn the meantime, you can still explore the Study Hub, create flashcards, and join squads!"
+      }]);
+      setIsOpen(true);
+      return;
+    }
+
     setLoading(true);
     setIsOpen(true);
     
@@ -101,6 +111,15 @@ export default function AIAssistant() {
     if (e) e.preventDefault();
     const userMessage = customMessage || input.trim();
     if (!userMessage || loading) return;
+
+    if (!isAIAvailable()) {
+      setMessages(prev => [...prev, 
+        { role: 'user', content: userMessage },
+        { role: 'assistant', content: "Offline mode: AI functionality requires a Gemini API key. Please configure VITE_GEMINI_API_KEY." }
+      ]);
+      setInput('');
+      return;
+    }
 
     setInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);

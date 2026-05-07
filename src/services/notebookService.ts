@@ -1,11 +1,14 @@
 
 import { NotebookSource } from "../types";
-import { generateContent, DEFAULT_MODEL } from "../lib/gemini";
+import { getGeminiClient, DEFAULT_MODEL } from "../lib/gemini";
 
 /**
  * Generates a summary for a notebook based on its sources.
  */
-export async function generateNotebookSummary(name: string, sources: NotebookSource[]) {
+export async function generateNotebookSummary(name: string, sources: NotebookSource[]): Promise<string> {
+  const ai = getGeminiClient();
+  if (!ai) return "AI summarization is unavailable. Please configure VITE_GEMINI_API_KEY.";
+
   const sourcesText = sources.map(s => `Source: ${s.title}\nContent: ${s.content}`).join('\n\n---\n\n');
   
   const prompt = `
@@ -18,17 +21,18 @@ export async function generateNotebookSummary(name: string, sources: NotebookSou
   `;
 
   try {
-    const response = await generateContent({
+    const response = await ai.models.generateContent({
       model: DEFAULT_MODEL,
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      contents: prompt,
       config: {
         systemInstruction: "You are a research assistant summary tool. Be objective, concise, and academic."
       }
     });
-    return response.text;
-  } catch (error) {
-    console.error("Summary Error:", error);
-    return "Failed to generate summary.";
+
+    return response.text || "Summary unavailable.";
+  } catch (error: any) {
+    console.error("[Notebook] Summary error:", error?.message || error);
+    return "Summary generation failed. Please try again.";
   }
 }
 
@@ -40,7 +44,10 @@ export async function chatWithNotebook(
   sources: NotebookSource[], 
   history: { role: 'user' | 'model', parts: { text: string }[] }[],
   userMessage: string
-) {
+): Promise<string> {
+  const ai = getGeminiClient();
+  if (!ai) return "The AI notebook assistant requires a Gemini API key to function. Please configure VITE_GEMINI_API_KEY in your environment variables.";
+
   const sourcesText = sources.map(s => `[ID: ${s.id}] Source: ${s.title}\nContent: ${s.content}`).join('\n\n---\n\n');
   
   const systemInstruction = `
@@ -59,28 +66,34 @@ export async function chatWithNotebook(
   `;
 
   try {
-    const response = await generateContent({
+    // We use generateContent with the history provided
+    const contents = [
+      ...history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.parts[0].text }] })),
+      { role: 'user', parts: [{ text: userMessage }] }
+    ];
+
+    const response = await ai.models.generateContent({ 
       model: DEFAULT_MODEL,
-      contents: [
-        ...history.map(h => ({ role: h.role, parts: h.parts })),
-        { role: 'user', parts: [{ text: userMessage }] }
-      ],
+      contents,
       config: {
         systemInstruction: systemInstruction
       }
     });
 
-    return response.text;
-  } catch (error) {
-    console.error("Notebook Chat Error:", error);
-    return "I encountered an error while processing your request.";
+    return response.text || "I couldn't generate a response. Please try again.";
+  } catch (error: any) {
+    console.error("[Notebook] Chat error:", error?.message || error);
+    return "I encountered an error. Please check your connection and try again.";
   }
 }
 
 /**
  * Searches for external resources based on a topic query. 
  */
-export async function searchExternalResources(query: string) {
+export async function searchExternalResources(query: string): Promise<any[]> {
+  const ai = getGeminiClient();
+  if (!ai) return [];
+
   const prompt = `
     Find high-quality academic and educational resources (articles, papers, study guides) related to: "${query}".
     Specifically focus on material relevant to Industrial Engineering if applicable.
@@ -89,14 +102,15 @@ export async function searchExternalResources(query: string) {
   `;
 
   try {
-    const response = await generateContent({ 
+    const response = await ai.models.generateContent({ 
       model: DEFAULT_MODEL,
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      contents: prompt,
       config: {
         responseMimeType: "application/json"
       }
     });
-    return JSON.parse(response.text || "[]");
+    const text = response.text;
+    return JSON.parse(text || "[]");
   } catch (e) {
     console.error("Failed to parse search results:", e);
     return [];

@@ -3,6 +3,12 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
+// Global guard for unhandled AI promise rejections
+window.addEventListener('unhandledrejection', (event) => {
+  console.warn('[AI MATRIX] Unhandled Rejection:', event.reason);
+  event.preventDefault(); // Prevent standard browser crash logs if possible
+});
+
 try {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

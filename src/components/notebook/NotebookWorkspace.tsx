@@ -17,10 +17,12 @@ import {
   Globe,
   Upload,
   BrainCircuit,
-  X
+  X,
+  AlertCircle
 } from 'lucide-react';
 import { useNotebook, useNotebooks } from '@/src/hooks/useNotebooks';
 import { chatWithNotebook, searchExternalResources, generateNotebookSummary } from '@/src/services/notebookService';
+import { isAIAvailable } from '@/src/lib/gemini';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -119,6 +121,7 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
   const [manualUrl, setManualUrl] = useState('');
   const [manualContent, setManualContent] = useState('');
   const [isAddingManual, setIsAddingManual] = useState(false);
+  const aiAvailable = isAIAvailable();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -129,6 +132,11 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || isChatLoading || !notebook) return;
+
+    if (!aiAvailable) {
+      toast.error('AI is not configured. Please add VITE_GEMINI_API_KEY.');
+      return;
+    }
 
     const userMessage = chatInput;
     setChatInput('');
@@ -158,6 +166,10 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
 
   const handleSearch = async () => {
     if (!searchQuery.trim() || isSearching) return;
+    if (!aiAvailable) {
+      toast.error('AI features like external search are unavailable without an API key.');
+      return;
+    }
     setIsSearching(true);
     try {
       const results = await searchExternalResources(searchQuery);
@@ -209,6 +221,10 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
 
   const handleSummarize = async () => {
     if (sources.length === 0 || isSummarizing || !notebook) return;
+    if (!aiAvailable) {
+      toast.error('AI Guide requires an API key.');
+      return;
+    }
     setIsSummarizing(true);
     try {
       const summary = await generateNotebookSummary(notebook.name, sources);
@@ -314,7 +330,17 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col bg-background relative overflow-hidden">
+        <div className="flex-1 flex flex-col bg-background relative overflow-hidden min-w-0">
+          {/* AI unavailable notice inside notebook */}
+          {!aiAvailable && (
+            <div className="shrink-0 mx-4 mt-4 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+              <p className="text-xs font-bold text-amber-500 flex items-center gap-2">
+                <AlertCircle size={14} /> AI chat requires VITE_GEMINI_API_KEY to be configured.
+              </p>
+            </div>
+          )}
+
+          {/* Messages — native scroll, NOT ScrollArea */}
           <div 
             ref={scrollRef} 
             className="flex-1 p-4 sm:p-8 overflow-y-auto overscroll-contain custom-scrollbar scroll-smooth"
@@ -328,7 +354,10 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
                   <div>
                     <h3 className="text-2xl font-black text-foreground">Ask anything about your sources</h3>
                     <p className="text-foreground/40 text-sm max-w-md mx-auto mt-2 leading-relaxed">
-                      Your personal context-aware research assistant. Summarize, extract facts, or analyze your imported materials.
+                      {aiAvailable 
+                        ? "Your personal context-aware research assistant. Summarize, extract facts, or analyze your imported materials."
+                        : "AI features are currently disabled. Please configure VITE_GEMINI_API_KEY to use the research assistant."
+                      }
                     </p>
                   </div>
                   <div className="flex flex-wrap justify-center gap-3">
@@ -342,6 +371,7 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
                         key={suggest}
                         variant="outline" 
                         onClick={() => setChatInput(suggest)}
+                        disabled={!aiAvailable}
                         className="h-auto py-2.5 rounded-3xl border-foreground/10 hover:bg-ctu-gold/5 hover:text-ctu-gold text-[10px] font-bold uppercase tracking-widest px-4 sm:px-6 tap-target whitespace-normal text-center max-w-[200px]"
                       >
                         {suggest}
@@ -428,35 +458,29 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
             </div>
           </div>
 
-          {/* Chat Input Fix */}
-          <div className="shrink-0 p-4 sm:p-8 pt-0 border-t border-foreground/5 bg-background sticky bottom-0 z-20">
-            <div className="max-w-3xl mx-auto">
-              <form 
-                onSubmit={handleSendMessage}
-                className="relative group neumorphic-raised rounded-2xl sm:rounded-[36px] bg-background p-1.5 sm:p-2 pr-2 sm:pr-4 shadow-2xl"
-              >
-                <div className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 text-foreground/20 group-focus-within:text-ctu-gold transition-colors">
-                  <Sparkles size={18} className="sm:size-5" />
-                </div>
-                <Input 
-                  placeholder="Ask a question..." 
+          {/* Chat Input Fix — mobile-first, ALWAYS shrink-0, NEVER absolute */}
+          <div className="shrink-0 border-t border-foreground/5 bg-background p-3 sm:p-4 safe-bottom">
+            <form onSubmit={handleSendMessage} className="max-w-3xl mx-auto">
+              <div className="flex items-center gap-2 neumorphic-raised rounded-2xl px-4 py-2">
+                <input
                   value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  className="bg-transparent border-none h-12 sm:h-16 pl-10 sm:pl-14 pr-12 sm:pr-16 focus-visible:ring-0 text-foreground placeholder:text-foreground/20 text-sm font-medium"
+                  onChange={e => setChatInput(e.target.value)}
+                  placeholder={aiAvailable ? "Ask a question about your sources..." : "AI unavailable — configure VITE_GEMINI_API_KEY"}
+                  disabled={!aiAvailable || isChatLoading}
+                  className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-foreground/30 font-medium h-10 min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
-                <Button 
+                <Button
                   type="submit"
-                  disabled={isChatLoading || !chatInput.trim()}
-                  size="icon"
-                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 h-8 sm:h-12 w-8 sm:w-12 rounded-full bg-ctu-maroon hover:bg-ctu-maroon/90 text-white shadow-lg transition-all active:scale-90 disabled:opacity-50"
+                  disabled={isChatLoading || !chatInput.trim() || !aiAvailable}
+                  className="h-9 w-9 rounded-xl bg-ctu-maroon text-white p-0 shrink-0 disabled:opacity-40 active:scale-90 transition-all flex items-center justify-center"
                 >
-                  <Send size={16} className="sm:size-5" />
+                  <Send size={15} />
                 </Button>
-              </form>
-              <p className="text-[8px] sm:text-[9px] text-center text-foreground/20 font-bold uppercase tracking-[2px] sm:tracking-[3px] mt-3 sm:mt-4 pb-safe">
+              </div>
+              <p className="hidden sm:block text-[8px] sm:text-[9px] text-center text-foreground/20 font-bold uppercase tracking-[2px] sm:tracking-[3px] mt-2">
                 Answers generated using notebook context
               </p>
-            </div>
+            </form>
           </div>
         </div>
       </div>
