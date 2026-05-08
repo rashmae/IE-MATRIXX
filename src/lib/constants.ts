@@ -17,7 +17,7 @@ export const IE_SUBJECTS: Subject[] = [
     slotsAvailable: 15,
     totalSlots: 45,
     isFavorite: true,
-    professor: 'Dr. Elena Abad',
+    syllabusUrl: 'https://example.com/syllabus/emath-111.pdf',
     icon: 'Calculator'
   },
   {
@@ -34,7 +34,7 @@ export const IE_SUBJECTS: Subject[] = [
     reviewCount: 89,
     slotsAvailable: 5,
     totalSlots: 40,
-    professor: 'Dr. Roberto Canoy',
+    syllabusUrl: 'https://example.com/syllabus/echem.pdf',
     icon: 'FlaskConical'
   },
   {
@@ -51,7 +51,7 @@ export const IE_SUBJECTS: Subject[] = [
     reviewCount: 67,
     slotsAvailable: 2,
     totalSlots: 20,
-    professor: 'Prof. Juvy Alcantara',
+    syllabusUrl: 'https://example.com/syllabus/echeml.pdf',
     icon: 'FlaskConical'
   },
   {
@@ -69,7 +69,7 @@ export const IE_SUBJECTS: Subject[] = [
     slotsAvailable: 0,
     totalSlots: 40,
     isFavorite: true,
-    professor: 'Engr. Kenneth Almendras',
+    syllabusUrl: 'https://example.com/syllabus/bes-cfp.pdf',
     icon: 'Monitor'
   },
   {
@@ -81,6 +81,13 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '1st',
     prerequisiteIds: [],
+    rating: 4.5,
+    reviewCount: 112,
+    averageRating: 4.5,
+    ratingCount: 112,
+    syllabusUrl: 'https://example.com/syllabus/ie-ipc-111.pdf',
+    isAvailable: true,
+    topics: ['Engineering Profession', 'IE Basics', 'History of IE'],
     icon: 'Building2'
   },
   {
@@ -92,6 +99,9 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '1st',
     prerequisiteIds: [],
+    rating: 4.3,
+    reviewCount: 88,
+    syllabusUrl: 'https://example.com/syllabus/ie-ac-111.pdf',
     icon: 'Coins'
   },
   {
@@ -103,6 +113,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '1st',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/ie-tech-111.pdf',
     icon: 'Cpu'
   },
   {
@@ -114,6 +125,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '1st',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/pe-1.pdf',
     icon: 'Dumbbell'
   },
   {
@@ -125,6 +137,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '1st',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/nstp-1.pdf',
     icon: 'Shield'
   },
 
@@ -138,6 +151,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: ['emath-111'],
+    syllabusUrl: 'https://example.com/syllabus/emath-122.pdf',
     icon: 'Calculator'
   },
   {
@@ -149,6 +163,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: ['emath-111'],
+    syllabusUrl: 'https://example.com/syllabus/ephys.pdf',
     icon: 'CloudLightning'
   },
   {
@@ -160,6 +175,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: ['emath-111'],
+    syllabusUrl: 'https://example.com/syllabus/ephysl.pdf',
     icon: 'CloudLightning'
   },
   {
@@ -171,6 +187,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/bes-cad.pdf',
     icon: 'PenTool'
   },
   {
@@ -182,6 +199,9 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: [],
+    rating: 4.1,
+    reviewCount: 92,
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-121.pdf',
     icon: 'BarChart'
   },
   {
@@ -193,6 +213,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/ie-iac-121.pdf',
     icon: 'BookOpen'
   },
   {
@@ -204,6 +225,9 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: [],
+    rating: 4.4,
+    reviewCount: 156,
+    syllabusUrl: 'https://example.com/syllabus/gec-pc.pdf',
     icon: 'MessageSquare'
   },
   {
@@ -215,6 +239,9 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: [],
+    rating: 4.6,
+    reviewCount: 178,
+    syllabusUrl: 'https://example.com/syllabus/gec-us.pdf',
     icon: 'User'
   },
   {
@@ -226,6 +253,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/pe-2.pdf',
     icon: 'Music'
   },
   {
@@ -237,6 +265,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '1st',
     semester: '2nd',
     prerequisiteIds: ['nstp-1'],
+    syllabusUrl: 'https://example.com/syllabus/nstp-2.pdf',
     icon: 'ShieldCheck'
   },
 
@@ -250,6 +279,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: ['emath-122'],
+    syllabusUrl: 'https://example.com/syllabus/emath-213.pdf',
     icon: 'Variable'
   },
   {
@@ -261,6 +291,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: ['ephys'],
+    syllabusUrl: 'https://example.com/syllabus/bes-emech.pdf',
     icon: 'Settings'
   },
   {
@@ -272,6 +303,9 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: ['echem', 'ephys'],
+    rating: 4.2,
+    reviewCount: 76,
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-212.pdf',
     icon: 'Factory'
   },
   {
@@ -283,6 +317,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: ['echeml', 'ephysl'],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-212l.pdf',
     icon: 'Beaker'
   },
   {
@@ -294,6 +329,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: ['ie-pc-121'],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-213.pdf',
     icon: 'Table'
   },
   {
@@ -305,6 +341,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-214.pdf',
     icon: 'Users'
   },
   {
@@ -316,6 +353,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: ['ie-iac-121'],
+    syllabusUrl: 'https://example.com/syllabus/ie-ac-212.pdf',
     icon: 'FileText'
   },
   {
@@ -327,6 +365,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/gec-mmw.pdf',
     icon: 'Globe'
   },
   {
@@ -338,6 +377,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/gee-tem.pdf',
     icon: 'Lightbulb'
   },
   {
@@ -349,6 +389,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '1st',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/pe-3.pdf',
     icon: 'Trophy'
   },
 
@@ -362,6 +403,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: ['emath-213'],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-225.pdf',
     icon: 'FunctionSquare'
   },
   {
@@ -373,6 +415,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: ['ie-pc-212', 'ie-pc-213', 'ie-pc-214'],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-226.pdf',
     icon: 'Timer'
   },
   {
@@ -384,6 +427,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: ['bes-cfp'],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-227.pdf',
     icon: 'Database'
   },
   {
@@ -395,6 +439,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-228.pdf',
     icon: 'Activity'
   },
   {
@@ -406,6 +451,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/ie-pe-221.pdf',
     icon: 'Calendar'
   },
   {
@@ -417,6 +463,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/bes-ee.pdf',
     icon: 'TrendingUp'
   },
   {
@@ -428,6 +475,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/gec-tcw.pdf',
     icon: 'Earth'
   },
   {
@@ -439,6 +487,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/gec-lwr.pdf',
     icon: 'History'
   },
   {
@@ -450,6 +499,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/gee-lie.pdf',
     icon: 'Smartphone'
   },
   {
@@ -461,6 +511,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '2nd',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/pe-4.pdf',
     icon: 'Users2'
   },
 
@@ -474,6 +525,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: ['ie-pc-225'],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-319.pdf',
     icon: 'BarChart3'
   },
   {
@@ -485,6 +537,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: ['ie-pc-213', 'ie-pc-226'],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-3110.pdf',
     icon: 'CheckCircle'
   },
   {
@@ -496,6 +549,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: ['ie-pc-226'],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-3111.pdf',
     icon: 'Armchair'
   },
   {
@@ -507,6 +561,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: ['ie-pc-319', 'ie-pc-3110'],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-3112.pdf',
     icon: 'GanttChart'
   },
   {
@@ -518,6 +573,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: ['ie-ac-212'],
+    syllabusUrl: 'https://example.com/syllabus/ie-ac-313.pdf',
     icon: 'Briefcase'
   },
   {
@@ -529,6 +585,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: ['emath-122'],
+    syllabusUrl: 'https://example.com/syllabus/ie-ac-314.pdf',
     icon: 'Thermometer'
   },
   {
@@ -540,6 +597,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/bes-t.pdf',
     icon: 'Rocket'
   },
   {
@@ -551,6 +609,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/bes-osh.pdf',
     icon: 'HardHat'
   },
   {
@@ -562,6 +621,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '1st',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/ie-ipc-312.pdf',
     icon: 'Search'
   },
 
@@ -575,6 +635,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: ['ie-pc-319'],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-3213.pdf',
     icon: 'BarChart3'
   },
   {
@@ -586,6 +647,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: ['ie-pc-3112'],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-3214.pdf',
     icon: 'Layout'
   },
   {
@@ -597,6 +659,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: ['ie-pc-3111'],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-3215.pdf',
     icon: 'UserCircle'
   },
   {
@@ -608,6 +671,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: ['ie-ipc-312'],
+    syllabusUrl: 'https://example.com/syllabus/ie-ipc-323.pdf',
     icon: 'FileEdit'
   },
   {
@@ -619,6 +683,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/ie-ipc-324.pdf',
     icon: 'Megaphone'
   },
   {
@@ -630,6 +695,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: ['ie-pc-227'],
+    syllabusUrl: 'https://example.com/syllabus/ie-pe-322.pdf',
     icon: 'Layers'
   },
   {
@@ -641,6 +707,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/gec-e.pdf',
     icon: 'BookText'
   },
   {
@@ -652,6 +719,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '3rd',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/gee-es.pdf',
     icon: 'Leaf'
   },
 
@@ -665,6 +733,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: 'Summer',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-400.pdf',
     icon: 'Building'
   },
 
@@ -678,6 +747,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '1st',
     prerequisiteIds: ['ie-ac-314', 'ie-pc-3214'],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-4116.pdf',
     icon: 'ClipboardCheck'
   },
   {
@@ -689,6 +759,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '1st',
     prerequisiteIds: ['ie-pc-3214'],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-4117.pdf',
     icon: 'Truck'
   },
   {
@@ -700,6 +771,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '1st',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-4118.pdf',
     icon: 'Share2'
   },
   {
@@ -711,6 +783,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '1st',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/ie-pe-413.pdf',
     icon: 'Box'
   },
   {
@@ -722,6 +795,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '1st',
     prerequisiteIds: ['ephys'],
+    syllabusUrl: 'https://example.com/syllabus/ie-ac-415.pdf',
     icon: 'Zap'
   },
   {
@@ -733,6 +807,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '1st',
     prerequisiteIds: ['gee-es'],
+    syllabusUrl: 'https://example.com/syllabus/ie-ac-416.pdf',
     icon: 'Waves'
   },
   {
@@ -744,6 +819,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '1st',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/gec-rph.pdf',
     icon: 'Book'
   },
 
@@ -757,6 +833,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-4219.pdf',
     icon: 'Flag'
   },
   {
@@ -768,6 +845,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/ie-pc-4220.pdf',
     icon: 'ShieldAlert'
   },
   {
@@ -779,6 +857,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/ie-ipc-425.pdf',
     icon: 'UserPlus'
   },
   {
@@ -790,6 +869,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/ie-pe-424.pdf',
     icon: 'Compass'
   },
   {
@@ -801,6 +881,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/ie-pe-425.pdf',
     icon: 'Copyright'
   },
   {
@@ -812,6 +893,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/gec-aa.pdf',
     icon: 'Palette'
   },
   {
@@ -823,6 +905,7 @@ export const IE_SUBJECTS: Subject[] = [
     yearLevel: '4th',
     semester: '2nd',
     prerequisiteIds: [],
+    syllabusUrl: 'https://example.com/syllabus/gec-sts.pdf',
     icon: 'Atom'
   },
 ];

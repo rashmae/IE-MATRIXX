@@ -37,8 +37,8 @@ export interface Subject {
   isFavorite?: boolean;
   createdAt?: any;
   updatedAt?: any;
-  professor?: string;
   isAvailable?: boolean;
+  topics?: string[];
   icon?: string;
 }
 

@@ -323,7 +323,6 @@ export default function Catalog() {
       const matchesSearch = 
         s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) || 
         s.code.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        s.professor?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         s.description?.toLowerCase().includes(debouncedSearch.toLowerCase());
         
       const matchesYear = selectedYears.length === 0 || selectedYears.includes(s.yearLevel);
@@ -605,7 +604,7 @@ export default function Catalog() {
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40" size={18} />
                   <Input 
                     autoFocus
-                    placeholder="Subject, code, professor..." 
+                    placeholder="Subject or code..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="bg-background border-none neumorphic-pressed pl-12 pr-12 h-14 rounded-2xl focus-ring"
@@ -766,7 +765,7 @@ export default function Catalog() {
                 <div className="relative flex-1">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40" size={18} />
                   <Input 
-                    placeholder="Search subject name, code, or professor..." 
+                    placeholder="Search subject name or code..." 
                     aria-label="Search subjects"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -974,13 +973,11 @@ export default function Catalog() {
                                                 <HighlightedText text={subject.code} term={debouncedSearch} />
                                               </Badge>
                                             </div>
-                                            {(subject.averageRating || 0) > 0 && (
-                                              <div className="flex items-center gap-1.5 bg-ctu-gold/10 px-2 py-0.5 rounded-lg border border-ctu-gold/10">
-                                                <Star size={10} className="text-ctu-gold fill-ctu-gold" />
-                                                <span className="text-[10px] font-black text-ctu-gold">{Number(subject.averageRating).toFixed(1)}</span>
-                                                <span className="text-[8px] font-bold text-ctu-gold/60">({subject.ratingCount})</span>
-                                              </div>
-                                            )}
+                                            <div className="flex items-center gap-1.5 bg-ctu-gold/10 px-2 py-0.5 rounded-lg border border-ctu-gold/10">
+                                              <Star size={10} className="text-ctu-gold fill-ctu-gold" />
+                                              <span className="text-[10px] font-black text-ctu-gold">{Number(subject.averageRating || 0).toFixed(1)}</span>
+                                              <span className="text-[8px] font-bold text-ctu-gold/60">({subject.ratingCount || 0})</span>
+                                            </div>
                                           </div>
 
                           <h3 className="text-2xl font-display font-black text-foreground mb-3 group-hover:text-ctu-gold transition-colors leading-tight line-clamp-2 uppercase tracking-tighter italic">
@@ -1077,13 +1074,11 @@ export default function Catalog() {
                                               <span className="text-[9px] text-foreground/40 font-bold uppercase tracking-widest flex items-center gap-1">
                                                 <Circle size={6} className="fill-blue-500 text-blue-500" /> {subject.units} Units
                                               </span>
-                                              {(subject.averageRating || 0) > 0 && (
-                                                <div className="flex items-center gap-1 bg-ctu-gold/5 px-1.5 py-0.5 rounded-md border border-ctu-gold/5">
-                                                  <Star size={8} className="text-ctu-gold fill-ctu-gold" />
-                                                  <span className="text-[9px] font-black text-ctu-gold">{Number(subject.averageRating).toFixed(1)}</span>
-                                                  <span className="text-[8px] font-bold text-ctu-gold/40 ml-0.5">({subject.ratingCount})</span>
-                                                </div>
-                                              )}
+                                              <div className="flex items-center gap-1 bg-ctu-gold/5 px-1.5 py-0.5 rounded-md border border-ctu-gold/5">
+                                                <Star size={8} className="text-ctu-gold fill-ctu-gold" />
+                                                <span className="text-[9px] font-black text-ctu-gold">{Number(subject.averageRating || 0).toFixed(1)}</span>
+                                                <span className="text-[8px] font-bold text-ctu-gold/40 ml-0.5">({subject.ratingCount || 0})</span>
+                                              </div>
                                             </div>
                                           </div>
                                         </div>

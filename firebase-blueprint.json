@@ -125,9 +125,10 @@
         "semester": { "type": "string", "enum": ["1st Sem", "2nd Sem", "Summer"] },
         "courseDescription": { "type": "string" },
         "prerequisites": { "type": "array", "items": { "type": "string" } },
-        "instructor": { "type": "string" },
         "courseOutcomes": { "type": "array", "items": { "type": "string" } },
         "topics": { "type": "array", "items": { "type": "string" } },
+        "averageRating": { "type": "number" },
+        "ratingCount": { "type": "number" },
         "syllabusURL": { "type": "string" },
         "isAvailable": { "type": "boolean" },
         "updatedAt": { "type": "string", "format": "date-time" }

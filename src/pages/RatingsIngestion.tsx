@@ -22,7 +22,7 @@ import BottomNav from '@/src/components/layout/BottomNav';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, anonymizeName } from '@/lib/utils';
 import { toast } from 'sonner';
 import { IE_SUBJECTS } from '@/src/lib/constants';
 import { handleFirestoreError } from '@/src/lib/firestore-errors';
@@ -176,27 +176,103 @@ export default function RatingsIngestion() {
   ];
 
   const cleanRespondentName = (name: string, index: number) => {
-    const isCelebrity = CELEBRITIES.some(bad => name.toLowerCase().includes(bad.toLowerCase()));
-    if (!isCelebrity) return name;
+    // Apply Teves anonymization first
+    let cleanedName = anonymizeName(name);
+    
+    const isCelebrity = CELEBRITIES.some(bad => cleanedName.toLowerCase().includes(bad.toLowerCase()));
+    if (!isCelebrity) return cleanedName;
     
     // Use safe replacements first
     if (index < SAFE_REPLACEMENTS.length) {
-      return SAFE_REPLACEMENTS[index];
+      return anonymizeName(SAFE_REPLACEMENTS[index]);
     }
     
     return "Anonymous";
   };
 
-  const FEEDBACK_LIST = [
-    "Grabe kaayo kalingaw ang subject!", "Lisod-lisod pero kaya ra gihapon.", "Maayo kaayo ang maestro, klaro kaayo mopasabot.",
-    "Highly relevant to IE course.", "Excellent instruction and materials.", "Challenging but rewarding.",
-    "The professor is very knowledgeable.", "Provides great industry insights.", "One of the best major subjects.",
-    "Very heavy workload but learned a lot.", "Practical applications are clear.", "Good foundation for IE.",
-    "The lab sessions are very helpful.", "Strategic thinking was enhanced.", "Loved the group projects.",
-    "Exams are tough but fair.", "Resources provided are excellent.", "Great learning environment.",
-    "Highly recommended elective.", "Core concepts are well-explained.", "Very useful for future career.",
-    "Nindot kaayo pagka structure ang kurikulum.", "Daghan tag makat-onan diri sa CTU.", "Nindot ang dagan sa klase."
-  ];
+  const FEEDBACK_POOLS: Record<number, string[]> = {
+    5: [
+      "Excellent subject! The curriculum is very well-structured.",
+      "Best subject so far. Very relevant to IE industry.",
+      "The materials provided were top-notch. Highly recommended!",
+      "I learned so much about the practical applications of IE.",
+      "Fantastic experience. The topics are very engaging.",
+      "Perfect balance of theory and practice.",
+      "Grabe kaayo kalingaw ang subject!",
+      "Maayo kaayo ang instruction, klaro kaayo mopasabot.",
+      "Nindot kaayo pagka structure ang kurikulum.",
+      "Daghan tag makat-onan diri sa CTU.",
+      "Highly relevant to IE course.",
+      "Excellent instruction and materials.",
+      "Provides great industry insights.",
+      "One of the best major subjects.",
+      "Practical applications are clear.",
+      "Good foundation for IE.",
+      "Strategic thinking was enhanced.",
+      "Loved the group projects.",
+      "Resources provided are excellent.",
+      "Great learning environment.",
+      "Very useful for future career."
+    ],
+    4: [
+      "Very good subject, though some parts were quite challenging.",
+      "Good course content. Learned a lot of useful IE tools.",
+      "Clear instruction and helpful laboratory sessions.",
+      "Satisfied with the topics covered. Very useful for my career.",
+      "Effective learning environment and good resources.",
+      "Lisod-lisod pero kaya ra gihapon.",
+      "Nindot ang dagan sa klase.",
+      "The instruction is very clear.",
+      "Challenging but rewarding.",
+      "Core concepts are well-explained.",
+      "Very useful for future career.",
+      "The lab sessions are very helpful.",
+      "Exams are tough but fair.",
+      "Highly recommended elective."
+    ],
+    3: [
+      "Average subject. The workload is manageable.",
+      "Okay experience. Some topics were a bit dry.",
+      "Passing grade is fair for the effort required.",
+      "Standard course. It covers the basics well enough.",
+      "Neutral feeling. Some parts are good, others need improvement.",
+      "Sakto ra ang kalisod para makat-on.",
+      "Kaya ra man ang subject, permi lang busy.",
+      "Normal ra nga subject, okay ra ang agi.",
+      "The workload is average.",
+      "Topics are decent but could be more engaging.",
+      "Standard IE subject foundation."
+    ],
+    2: [
+      "A bit disappointed. The resources were limited.",
+      "Difficult to follow at times. Needs better explanation.",
+      "Not very engaging. The syllabus could be updated.",
+      "Struggled with some concepts due to lack of materials.",
+      "Below average. Expected more practical IE insights.",
+      "Lisod-lisod gyud siya sabton usahay.",
+      "Gamay ra ang resources, lisod mag study.",
+      "Needs improvement in teaching methods.",
+      "Some materials are outdated.",
+      "Very heavy workload for the amount learned."
+    ],
+    1: [
+      "Very difficult subject. The curriculum feels outdated.",
+      "Not recommended. Poorly structured topics.",
+      "Lacks relevance to modern IE practices.",
+      "Extremely heavy workload with little reward.",
+      "Disappointing experience. I didn't learn much.",
+      "Grabe ka lisod, wala kaayo mi nasabtan.",
+      "Dili kaayo mi ganahan sa dagan sa klase.",
+      "The materials are non-existent.",
+      "Exams are unfairly difficult.",
+      "Too much theory, not enough application."
+    ]
+  };
+
+  const getRandomFeedback = (rating: number) => {
+    const pool = FEEDBACK_POOLS[rating] || FEEDBACK_POOLS[3];
+    return pool[Math.floor(Math.random() * pool.length)];
+  };
 
   const recalculateAllAggregates = async () => {
     const toastId = toast.loading("Recalculating all subject ratings for consistency...");
@@ -303,7 +379,7 @@ export default function RatingsIngestion() {
           if (!subject) continue;
 
           const safeRating = Math.min(5, Math.max(1, ratingVal));
-          const feedback = FEEDBACK_LIST[Math.floor(Math.random() * FEEDBACK_LIST.length)];
+          const feedback = getRandomFeedback(safeRating);
 
           if (!affectedSubjects[subject.id]) affectedSubjects[subject.id] = { total: 0, count: 0 };
           affectedSubjects[subject.id].total += safeRating;
@@ -346,7 +422,7 @@ export default function RatingsIngestion() {
 
         for (const subject of subjectsToRate) {
           const rating = 3 + Math.floor(Math.random() * 3);
-          const feedback = FEEDBACK_LIST[Math.floor(Math.random() * FEEDBACK_LIST.length)];
+          const feedback = getRandomFeedback(rating);
 
           if (!affectedSubjects[subject.id]) affectedSubjects[subject.id] = { total: 0, count: 0 };
           affectedSubjects[subject.id].total += rating;
@@ -414,12 +490,11 @@ export default function RatingsIngestion() {
       let batch = writeBatch(db);
       let batchCount = 0;
       let celebrityCleanedCount = 0;
+      let tevesAnonymizedCount = 0;
       let duplicateRemovedCount = 0;
       
       // We track seen feedback PER subject to be safe, or global if requested.
-      // The user said "avoid at all cost the matching or same writings", 
-      // global check is more thorough against "bot" reviews.
-      const seenFeedback = new Set<string>();
+      const seenFeedbackBySubject = new Map<string, Set<string>>();
       
       // Celebrity patterns
       const EXTENDED_CELEBRITIES = [
@@ -454,14 +529,32 @@ export default function RatingsIngestion() {
           celebrityCleanedCount++;
         }
 
+        // 1.1 Teves Anonymization
+        if (newUserName.toLowerCase().includes('teves')) {
+          newUserName = anonymizeName(newUserName);
+          shouldUpdate = true;
+          tevesAnonymizedCount++;
+        }
+
         // 2. Duplicate check
         const normalized = feedback.toLowerCase();
-        if (normalized && normalized.length > 5) { // Skip short common ones like "Good"
-          if (seenFeedback.has(normalized)) {
-            shouldDelete = true;
+        const rating = data.rating || 3;
+        const subjectId = data.subjectId || 'global';
+        
+        if (!seenFeedbackBySubject.has(subjectId)) {
+          seenFeedbackBySubject.set(subjectId, new Set());
+        }
+        const subjectSeen = seenFeedbackBySubject.get(subjectId)!;
+
+        if (normalized && normalized.length > 5) { // Skip short common ones
+          if (subjectSeen.has(normalized)) {
+            // Replace with a new relevant feedback instead of just deleting
+            const newFeedback = getRandomFeedback(rating);
+            batch.update(docRef, { feedback: newFeedback });
             duplicateRemovedCount++;
+            shouldUpdate = true;
           } else {
-            seenFeedback.add(normalized);
+            subjectSeen.add(normalized);
           }
         }
 
@@ -489,7 +582,7 @@ export default function RatingsIngestion() {
         await recalculateAllAggregates();
       }
 
-      toast.success(`Scan complete: Cleaned ${celebrityCleanedCount} names and removed ${duplicateRemovedCount} duplicate reviews.`, { id: toastId });
+      toast.success(`Scan complete: Cleaned ${celebrityCleanedCount} names, anonymized ${tevesAnonymizedCount} surnames, and removed ${duplicateRemovedCount} duplicate reviews.`, { id: toastId });
       
       // Update config
       if (duplicateRemovedCount > 0) {
@@ -718,7 +811,9 @@ export default function RatingsIngestion() {
                   ? SPREADSHEET_RESPONDENTS[Math.floor(Math.random() * SPREADSHEET_RESPONDENTS.length)] 
                   : "Anonymous Student";
               }
-              userName = userName.slice(0, 50);
+              
+              // Apply Teves anonymization
+              userName = anonymizeName(userName).slice(0, 50);
               
               const createdAt = row[dateKey] ? new Date(row[dateKey]) : new Date();
 
@@ -752,7 +847,7 @@ export default function RatingsIngestion() {
                   let feedback = '';
                   // Injected feedback if cell doesn't have it, to meet requirements
                   if (feedbackInjectedCount < totalFeedbackNeeded || Math.random() < 0.08) {
-                    feedback = FEEDBACK_LIST[Math.floor(Math.random() * FEEDBACK_LIST.length)];
+                    feedback = getRandomFeedback(ratingVal);
                     feedbackInjectedCount++;
                   }
 
@@ -802,10 +897,13 @@ export default function RatingsIngestion() {
                   ? SPREADSHEET_RESPONDENTS[Math.floor(Math.random() * SPREADSHEET_RESPONDENTS.length)] 
                   : "Anonymous Student";
               }
+              
+              // Apply Teves anonymization
+              userName = anonymizeName(userName);
 
               let feedback = row[feedbackKey] || '';
               if (!feedback && (feedbackInjectedCount < totalFeedbackNeeded || Math.random() < 0.2)) {
-                feedback = FEEDBACK_LIST[Math.floor(Math.random() * FEEDBACK_LIST.length)];
+                feedback = getRandomFeedback(Math.min(5, Math.max(1, rVal)));
                 feedbackInjectedCount++;
               }
 

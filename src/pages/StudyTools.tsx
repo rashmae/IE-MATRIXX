@@ -45,8 +45,6 @@ import {
   ShieldCheck,
   PenTool,
   BarChart,
-  BookOpen,
-  MessageSquare,
   User as UserIcon,
   Music,
   Variable,
@@ -61,7 +59,6 @@ import {
   Timer,
   Database,
   Activity,
-  TrendingUp,
   Earth,
   Smartphone,
   Users2,
@@ -77,7 +74,6 @@ import {
   UserCircle,
   FileEdit,
   Megaphone,
-  Layers,
   BookText,
   Leaf,
   Building,
@@ -85,11 +81,8 @@ import {
   Truck,
   Share2,
   Box,
-  Zap,
   Waves,
   Book,
-  Flag,
-  ShieldAlert,
   UserPlus,
   Compass,
   Copyright,
@@ -112,7 +105,7 @@ import { Button } from '@/components/ui/button';
 import { GlowCard } from '@/components/ui/spotlight-card';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
+import { cn, anonymizeName } from '@/src/lib/utils';
 import { toast } from 'sonner';
 import { 
   Dialog, 
@@ -1011,7 +1004,7 @@ export default function StudyTools() {
               <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2 flex items-center flex-wrap gap-2 sm:gap-4">
                 Study Hub <Sparkles className="text-ctu-gold shrink-0 sm:size-20" size={24} />
               </h1>
-              <p className="text-[10px] sm:text-sm md:text-xl text-foreground/40 mt-2 sm:mt-4 font-bold tracking-widest uppercase max-w-2xl">
+              <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">
                 Elevate your learning with AI guidance and community support.
               </p>
             </motion.div>
@@ -1785,7 +1778,7 @@ export default function StudyTools() {
                                   <MessageSquare size={16} className="text-ctu-maroon" /> {q.answerCount || 0} Responses
                                 </span>
                                 <span className="flex items-center gap-2.5 bg-foreground/[0.03] px-5 py-2.5 rounded-full border border-foreground/5">
-                                  <Users size={16} className="text-blue-500" /> {q.userName?.split(' ')[0] || 'Member'}
+                                  <Users size={16} className="text-blue-500" /> {anonymizeName(q.userName)?.split(' ')[0] || 'Member'}
                                 </span>
                               </div>
                               <Button className="rounded-2xl bg-foreground/5 hover:bg-foreground/10 text-foreground h-11 sm:h-14 px-8 sm:px-12 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] neumorphic-raised border-none transition-all flex items-center gap-3">
@@ -2359,7 +2352,7 @@ export default function StudyTools() {
                     msg.userId === user.uid ? "ml-auto items-end" : "items-start"
                   )}>
                     <div className="flex items-center gap-2 mb-1 px-1">
-                      <span className="text-[9px] font-bold uppercase text-foreground/40">{msg.userName}</span>
+                      <span className="text-[9px] font-bold uppercase text-foreground/40">{anonymizeName(msg.userName)}</span>
                       <span className="text-[8px] font-medium text-foreground/20 italic">
                         {msg.createdAt ? (msg.createdAt.toDate ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...') : '...'}
                       </span>
@@ -2410,7 +2403,7 @@ export default function StudyTools() {
                   <Badge className="bg-blue-500/10 text-blue-500 border-none text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg">{selectedQuestion?.subjectTag || 'General'}</Badge>
                   <div className="flex flex-col">
                     <span className="text-[10px] font-black text-foreground/40 uppercase tracking-[0.2em]">Intel by</span>
-                    <span className="text-sm font-black text-foreground/80 tracking-tight">{selectedQuestion?.userName || 'Anonymous'}</span>
+                    <span className="text-sm font-black text-foreground/80 tracking-tight">{anonymizeName(selectedQuestion?.userName) || 'Anonymous'}</span>
                   </div>
                 </div>
                 
@@ -2475,7 +2468,7 @@ export default function StudyTools() {
                            <Award size={20} />
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-black text-ctu-gold uppercase tracking-[0.2em]">{selectedQuestion.latestAnswer.userName}</span>
+                          <span className="text-[10px] font-black text-ctu-gold uppercase tracking-[0.2em]">{anonymizeName(selectedQuestion.latestAnswer.userName)}</span>
                           <span className="text-[9px] font-bold text-foreground/20 uppercase">Core Contributor</span>
                         </div>
                       </div>

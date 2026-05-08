@@ -42,7 +42,6 @@ import {
   Timer,
   Database,
   Activity,
-  TrendingUp,
   Earth,
   Smartphone,
   Users2,
@@ -57,7 +56,6 @@ import {
   Layout,
   UserCircle,
   FileEdit,
-  Megaphone,
   Layers,
   BookText,
   Leaf,
@@ -91,7 +89,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { GlowCard } from '@/components/ui/spotlight-card';
 import { Label } from '@/components/ui/label';
 import { HeaderSkeleton, StatSkeleton, CardSkeleton } from '@/src/components/SkeletonLoader';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 import { BrainCircuit } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -186,8 +184,7 @@ export default function Dashboard() {
       const matchesSearch = 
         s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         s.code.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        s.department?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        s.professor?.toLowerCase().includes(debouncedSearch.toLowerCase());
+        s.department?.toLowerCase().includes(debouncedSearch.toLowerCase());
       
       const matchesYear = selectedYear === 'All' || s.yearLevel === selectedYear;
       

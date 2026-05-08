@@ -110,7 +110,7 @@ import {
   ChevronDown as ChevronDownIcon,
   ChevronUp as ChevronUpIcon
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, anonymizeName } from '@/src/lib/utils';
 import { toast } from 'sonner';
 import { handleFirestoreError } from '@/src/lib/firestore-errors';
 
@@ -778,6 +778,40 @@ export default function SubjectDetail() {
               </div>
             </section>
 
+            {/* Course Insights */}
+            {((subject.topics && subject.topics.length > 0)) && (
+              <section className="space-y-6">
+                <h2 className="text-4xl font-display font-black text-foreground tracking-tight border-b-4 border-blue-500 pb-4 w-fit">Course Insights</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="neumorphic-card p-6 flex items-center gap-5">
+                    <div className="w-14 h-14 rounded-2xl neumorphic-pressed flex items-center justify-center text-ctu-gold">
+                      <Layers size={28} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] mb-1">Academic Weight</p>
+                      <p className="text-xl font-black text-foreground tracking-tight">{subject.units} Units</p>
+                    </div>
+                  </div>
+                </div>
+
+                {subject.topics && subject.topics.length > 0 && (
+                  <div className="neumorphic-card p-8">
+                    <h3 className="font-bold text-foreground flex items-center gap-2 mb-6">
+                      <div className="w-1.5 h-6 bg-blue-500 rounded-full" />
+                      Key Modules & Topics
+                    </h3>
+                    <div className="flex flex-wrap gap-3">
+                      {subject.topics.map((topic, i) => (
+                        <div key={i} className="px-4 py-2 neumorphic-raised rounded-xl text-xs font-bold text-foreground/70 border border-white/10">
+                          {topic}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+
             {/* Prerequisite Chain */}
             <section className="space-y-6">
               <h2 className="text-4xl font-display font-black text-foreground tracking-tight border-b-4 border-ctu-maroon pb-4 w-fit">Prerequisite Flow</h2>
@@ -1033,9 +1067,9 @@ export default function SubjectDetail() {
                           <p className="text-sm font-bold text-foreground truncate group-hover:text-ctu-gold transition-colors">{res.title}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <div className="w-4 h-4 rounded-full neumorphic-pressed flex items-center justify-center text-[7px] font-bold text-ctu-gold">
-                              {res.userName[0]}
+                              {anonymizeName(res.userName)[0]}
                             </div>
-                            <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-widest">By {res.userName}</p>
+                            <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-widest">By {anonymizeName(res.userName)}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1156,7 +1190,7 @@ export default function SubjectDetail() {
                                   </div>
                                   <div className="min-w-0 flex-1">
                                     <p className={cn("text-xs font-bold flex items-center gap-2 truncate", review.userId === profile.uid ? "text-ctu-gold" : "text-foreground")}>
-                                      {review.userName}
+                                      {anonymizeName(review.userName)}
                                       {review.userId === profile.uid && <span className="text-[8px] uppercase tracking-widest text-ctu-gold/50 shrink-0">(You)</span>}
                                     </p>
                                     <div className="flex flex-wrap gap-1 mt-0.5">
