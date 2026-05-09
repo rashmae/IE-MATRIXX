@@ -39,6 +39,8 @@ export interface Subject {
   updatedAt?: any;
   isAvailable?: boolean;
   topics?: string[];
+  objectives?: string[];
+  learningOutcomes?: string[];
   icon?: string;
 }
 
@@ -181,7 +183,7 @@ export interface NotebookMessage {
   createdAt: any;
 }
 
-export interface Notification {
+export interface MatrixNotification {
   id: string;
   userId: string;
   title: string;

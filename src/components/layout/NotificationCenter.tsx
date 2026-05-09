@@ -13,6 +13,7 @@ import {
   MoreVertical
 } from 'lucide-react';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { MatrixNotification as MatrixNotificationType } from '@/src/types/index';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -41,7 +42,7 @@ export default function NotificationCenter() {
     }
   };
 
-  const handleNotificationClick = (n: any) => {
+  const handleNotificationClick = (n: MatrixNotificationType) => {
     markAsRead(n.id);
     if (n.link) {
       navigate(n.link);

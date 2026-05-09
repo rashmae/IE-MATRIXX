@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { 
   LayoutDashboard, 
@@ -39,6 +39,9 @@ import { signOut } from 'firebase/auth';
 
 export default function Sidebar({ user }: SidebarProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isBoardPage = location.pathname === '/bulletin';
 
   const handleLogout = async () => {
     try {
@@ -57,46 +60,48 @@ export default function Sidebar({ user }: SidebarProps) {
 
   return (
     <aside className="hidden lg:flex flex-col w-72 h-screen bg-background border-r border-foreground/5 sticky top-0 z-10 transition-colors duration-300">
-      {/* Logo */}
-      <div className="p-8 pb-4 flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {/* AI Robot Logo in Sidebar */}
-            <div className="relative w-10 h-10 shrink-0" aria-hidden="true">
-              <div className="absolute inset-0 bg-ctu-gold/20 rounded-full blur-lg animate-pulse" />
-              <div className="relative w-full h-full neumorphic-raised rounded-full p-0.5 flex items-center justify-center bg-background overflow-hidden border border-white/5">
-                <div className="absolute inset-0 border border-ctu-gold/20 rounded-full animate-[spin_10s_linear_infinite]" />
-                
-                <div className="relative w-7 h-7 rounded-full bg-gradient-to-br from-ctu-gold via-ctu-maroon to-navy-deep flex items-center justify-center shadow-inner overflow-hidden">
-                  <motion.div 
-                    animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    className="w-4 h-4 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)] flex items-center justify-center"
-                    role="img"
-                    aria-label="IE Matrix AI Logo"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-navy-deep flex items-center justify-center">
-                      <div className="w-1 h-1 rounded-full bg-ctu-gold animate-ping" />
-                    </div>
-                  </motion.div>
+      {/* Logo and Brand - Hidden on Board Page */}
+      {!isBoardPage && (
+        <div className="p-8 pb-4 flex flex-col gap-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {/* AI Robot Logo in Sidebar */}
+              <div className="relative w-10 h-10 shrink-0" aria-hidden="true">
+                <div className="absolute inset-0 bg-ctu-gold/20 rounded-full blur-lg animate-pulse" />
+                <div className="relative w-full h-full neumorphic-raised rounded-full p-0.5 flex items-center justify-center bg-background overflow-hidden border border-white/5">
+                  <div className="absolute inset-0 border border-ctu-gold/20 rounded-full animate-[spin_10s_linear_infinite]" />
+                  
+                  <div className="relative w-7 h-7 rounded-full bg-gradient-to-br from-ctu-gold via-ctu-maroon to-navy-deep flex items-center justify-center shadow-inner overflow-hidden">
+                    <motion.div 
+                      animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                      className="w-4 h-4 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)] flex items-center justify-center"
+                      role="img"
+                      aria-label="IE Matrix AI Logo"
+                    >
+                      <div className="w-2 h-2 rounded-full bg-navy-deep flex items-center justify-center">
+                        <div className="w-1 h-1 rounded-full bg-ctu-gold animate-ping" />
+                      </div>
+                    </motion.div>
+                  </div>
                 </div>
               </div>
+              <span 
+                className="text-2xl font-black tracking-tighter flex items-center frosted-header"
+                style={{ height: '36px', width: 'auto' }}
+              >
+                IE MATRIX
+              </span>
             </div>
-            <span 
-              className="text-2xl font-black tracking-tighter flex items-center frosted-header"
-              style={{ height: '36px', width: 'auto' }}
-            >
-              IE MATRIX
-            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+               <NotificationCenter />
+            </div>
+            <ThemeToggle className="neumorphic-raised" />
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex-1">
-             <NotificationCenter />
-          </div>
-          <ThemeToggle className="neumorphic-raised" />
-        </div>
-      </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 px-6 space-y-4 mt-4">
@@ -143,18 +148,20 @@ export default function Sidebar({ user }: SidebarProps) {
 
       {/* User Info */}
       <div className="p-6 border-t border-foreground/5 space-y-4">
-        <button 
-          onClick={() => navigate('/profile')}
-          className="flex items-center gap-3 w-full text-left neumorphic-raised hover:neumorphic-pressed p-3 rounded-2xl transition-all group"
-        >
-          <div className="w-10 h-10 rounded-full bg-ctu-gold flex items-center justify-center text-navy-deep font-bold text-sm shadow-inner group-hover:scale-110 transition-transform">
-            {user ? getInitials(user.fullName) : <User size={20} />}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-foreground truncate">{user?.fullName || 'Guest'}</p>
-            <p className="text-[11px] text-foreground/40 truncate font-bold uppercase tracking-wider">{user?.idNumber || '00-00000-000'}</p>
-          </div>
-        </button>
+        {!isBoardPage && (
+          <button 
+            onClick={() => navigate('/profile')}
+            className="flex items-center gap-3 w-full text-left neumorphic-raised hover:neumorphic-pressed p-3 rounded-2xl transition-all group"
+          >
+            <div className="w-10 h-10 rounded-full bg-ctu-gold flex items-center justify-center text-navy-deep font-bold text-sm shadow-inner group-hover:scale-110 transition-transform">
+              {user ? getInitials(user.fullName) : <User size={20} />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-foreground truncate">{user?.fullName || 'Guest'}</p>
+              <p className="text-[11px] text-foreground/40 truncate font-bold uppercase tracking-wider">{user?.idNumber || '00-00000-000'}</p>
+            </div>
+          </button>
+        )}
         <button 
           onClick={handleLogout}
           className="flex items-center gap-3 px-5 py-4 w-full rounded-2xl text-xs font-bold uppercase tracking-wider text-red-500 neumorphic-raised hover:neumorphic-pressed transition-all duration-300"

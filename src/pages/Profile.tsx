@@ -54,8 +54,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
 
+import { useNotifications } from '@/src/hooks/useNotifications';
+
 export default function Profile() {
   const { profile: user, loading: authLoading } = useAuth();
+  const { requestPermission } = useNotifications();
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -330,19 +333,37 @@ export default function Profile() {
                   {[
                     { icon: User, label: 'Personal Information' },
                     { icon: Shield, label: 'Security & Password' },
-                    { icon: Bell, label: 'Notification Preferences' },
+                    { 
+                      icon: Bell, 
+                      label: 'Web Push Notifications',
+                      hasToggle: true,
+                      onClick: async () => {
+                        const granted = await requestPermission();
+                        if (granted) toast.success('Browser notifications enabled!');
+                        else toast.error('Permission denied. Please check browser settings.');
+                      }
+                    },
                     { icon: Globe, label: 'Language (English)' },
                   ].map((item, i) => (
                     <button 
                       key={i} 
-                      onClick={() => toast.info(`${item.label} settings coming soon in v2.5`)}
+                      onClick={item.onClick || (() => toast.info(`${item.label} settings coming soon in v2.5`))}
                       className="w-full flex items-center justify-between p-4 rounded-2xl neumorphic-raised hover:neumorphic-pressed transition-all group"
                     >
                       <div className="flex items-center gap-4">
                         <item.icon size={20} className="text-foreground/40 group-hover:text-ctu-gold transition-colors" />
                         <span className="text-sm font-bold text-foreground/80">{item.label}</span>
                       </div>
-                      <ChevronRight size={18} className="text-foreground/20" />
+                      {item.hasToggle ? (
+                         <div className={cn(
+                           "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                           (typeof Notification !== 'undefined' && Notification.permission === 'granted') ? "bg-emerald-500/10 text-emerald-500" : "bg-foreground/5 text-foreground/40"
+                         )}>
+                           {(typeof Notification !== 'undefined' && Notification.permission === 'granted') ? 'Enabled' : 'Disabled'}
+                         </div>
+                      ) : (
+                        <ChevronRight size={18} className="text-foreground/20" />
+                      )}
                     </button>
                   ))}
                 </CardContent>

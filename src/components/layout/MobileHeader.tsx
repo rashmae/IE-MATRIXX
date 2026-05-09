@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext';
 import { User } from 'lucide-react';
 import NotificationCenter from './NotificationCenter';
@@ -8,6 +8,11 @@ import NotificationCenter from './NotificationCenter';
 export default function MobileHeader() {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isBoardPage = location.pathname === '/bulletin';
+
+  if (isBoardPage) return null;
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -49,7 +54,7 @@ export default function MobileHeader() {
           </div>
         </div>
 
-        <span className="text-4xl font-black tracking-tighter frosted-header uppercase leading-none mt-1">
+        <span className="text-2xl min-[380px]:text-3xl min-[420px]:text-4xl font-black tracking-tighter frosted-header uppercase leading-none mt-1">
           IE MATRIX
         </span>
       </motion.div>

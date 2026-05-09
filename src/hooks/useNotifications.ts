@@ -14,18 +14,18 @@ import {
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/src/lib/firebase';
 import { useAuth } from '@/src/context/AuthContext';
-import { Notification } from '@/src/types';
+import { MatrixNotification as MatrixNotificationType } from '@/src/types/index';
 import { toast } from 'sonner';
 
 export function useNotifications() {
-  const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { profile } = useAuth(); // AuthContext uses profile
+  const [notifications, setNotifications] = useState<MatrixNotificationType[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const isFirstLoad = useRef(true);
 
   useEffect(() => {
-    if (!user) {
+    if (!profile) {
       setNotifications([]);
       setUnreadCount(0);
       setLoading(false);
@@ -35,19 +35,19 @@ export function useNotifications() {
     const path = 'notifications';
     const q = query(
       collection(db, path),
-      where('userId', '==', user.uid),
+      where('userId', '==', profile.uid),
       orderBy('createdAt', 'desc'),
       limit(20)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs: Notification[] = [];
+      const msgs: MatrixNotificationType[] = [];
       let unread = 0;
-      let newestNotification: Notification | null = null;
+      let newestNotification: MatrixNotificationType | null = null;
       
       snapshot.docChanges().forEach((change) => {
         if (change.type === 'added' && !isFirstLoad.current) {
-          const data = change.doc.data() as Notification;
+          const data = change.doc.data() as MatrixNotificationType;
           if (!data.read) {
             newestNotification = { id: change.doc.id, ...data };
           }
@@ -56,18 +56,27 @@ export function useNotifications() {
 
       snapshot.forEach((doc) => {
         const data = doc.data();
-        msgs.push({ id: doc.id, ...data } as Notification);
+        msgs.push({ id: doc.id, ...data } as MatrixNotificationType);
         if (!data.read) unread++;
       });
       
       if (newestNotification) {
-        toast.info((newestNotification as Notification).title, {
-          description: (newestNotification as Notification).message,
-          action: (newestNotification as Notification).link ? {
+        // Sonner Toast
+        toast.info((newestNotification as MatrixNotificationType).title, {
+          description: (newestNotification as MatrixNotificationType).message,
+          action: (newestNotification as MatrixNotificationType).link ? {
             label: 'View',
-            onClick: () => window.location.href = (newestNotification as Notification).link!
+            onClick: () => window.location.href = (newestNotification as MatrixNotificationType).link!
           } : undefined
         });
+
+        // Browser Notification
+        if (typeof window !== 'undefined' && "Notification" in window && window.Notification.permission === "granted") {
+          new window.Notification((newestNotification as MatrixNotificationType).title, {
+            body: (newestNotification as MatrixNotificationType).message,
+            icon: '/icon-192x192.png' // Adjust to project's icon if available
+          });
+        }
       }
 
       setNotifications(msgs);
@@ -80,7 +89,20 @@ export function useNotifications() {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [profile]);
+
+  const requestPermission = async () => {
+    if (typeof window === 'undefined' || !("Notification" in window)) return false;
+    
+    if (window.Notification.permission === "granted") return true;
+    
+    if (window.Notification.permission !== "denied") {
+      const permission = await window.Notification.requestPermission();
+      return permission === "granted";
+    }
+    
+    return false;
+  };
 
   const markAsRead = async (id: string) => {
     try {
@@ -92,7 +114,7 @@ export function useNotifications() {
   };
 
   const markAllAsRead = async () => {
-    if (!user || notifications.length === 0) return;
+    if (!profile || notifications.length === 0) return;
     
     try {
       const batch = writeBatch(db);
@@ -109,7 +131,7 @@ export function useNotifications() {
   };
 
   const clearAll = async () => {
-    if (!user || notifications.length === 0) return;
+    if (!profile || notifications.length === 0) return;
     
     try {
       const batch = writeBatch(db);
@@ -129,6 +151,7 @@ export function useNotifications() {
     unreadCount,
     markAsRead,
     markAllAsRead,
-    clearAll
+    clearAll,
+    requestPermission
   };
 }

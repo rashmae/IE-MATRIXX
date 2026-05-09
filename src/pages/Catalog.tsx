@@ -131,7 +131,8 @@ import { useAuth } from '@/src/context/AuthContext';
 import { useProgress } from '@/src/hooks/useProgress';
 import { getGWAColor } from '@/src/lib/gradeUtils';
 import { db } from '@/src/lib/firebase';
-import { collection, getDocs, query, orderBy, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { extractSyllabusFromUrl, extractSyllabusFromFile } from '@/src/services/aiService';
 
 type SortOption = 'relevance' | 'alpha-asc' | 'alpha-desc' | 'newest';
 
@@ -152,6 +153,7 @@ export default function Catalog() {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [activeSubject, setActiveSubject] = useState<Subject | null>(null);
   const [syllabusUrlInput, setSyllabusUrlInput] = useState('');
+  const [syllabusFile, setSyllabusFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Advanced Filter State
@@ -228,12 +230,70 @@ export default function Catalog() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && !profile) {
-      navigate('/login');
+    if (!profile) {
+      setSubjects([]);
+      setSubjectsLoading(false);
+      return;
     }
 
-    if (profile) {
-      fetchSubjects();
+    setSubjectsLoading(true);
+    const path = 'subjects';
+    const q = query(collection(db, path));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const firestoreSubjects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      
+      // Merge Firestore data into our official 71 subjects
+      const finalSubjects = IE_SUBJECTS.map(officialSub => {
+        const matchingFirestoreSub = firestoreSubjects.find(fs => 
+          fs.id === officialSub.id || 
+          (fs.code && fs.code.replace(/\s/g, '').toLowerCase() === officialSub.code.replace(/\s/g, '').toLowerCase())
+        );
+        
+        if (matchingFirestoreSub) {
+          return {
+            ...officialSub,
+            ...matchingFirestoreSub,
+            averageRating: matchingFirestoreSub.averageRating ?? officialSub.rating ?? 0,
+            ratingCount: matchingFirestoreSub.ratingCount ?? officialSub.reviewCount ?? 0,
+            id: officialSub.id, 
+            yearLevel: officialSub.yearLevel,
+            semester: officialSub.semester,
+            units: officialSub.units,
+            code: officialSub.code
+          };
+        }
+        return {
+          ...officialSub,
+          averageRating: officialSub.rating ?? 0,
+          ratingCount: officialSub.reviewCount ?? 0
+        };
+      });
+
+      // Sort in memory
+      const yearOrder = { '1st': 1, '2nd': 2, '3rd': 3, '4th': 4 };
+      const semOrder = { '1st': 1, '2nd': 2, 'Summer': 3 };
+
+      finalSubjects.sort((a, b) => {
+        const yearDiff = (yearOrder[a.yearLevel as keyof typeof yearOrder] || 0) - (yearOrder[b.yearLevel as keyof typeof yearOrder] || 0);
+        if (yearDiff !== 0) return yearDiff;
+        return (semOrder[a.semester as keyof typeof semOrder] || 0) - (semOrder[b.semester as keyof typeof semOrder] || 0);
+      });
+      
+      setSubjects(finalSubjects);
+      setSubjectsLoading(false);
+    }, (error) => {
+      console.error("Error syncing subjects:", error);
+      setSubjects(IE_SUBJECTS);
+      setSubjectsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [profile]);
+
+  useEffect(() => {
+    if (!authLoading && !profile) {
+      navigate('/login');
     }
     
     const params = new URLSearchParams(window.location.search);
@@ -252,70 +312,7 @@ export default function Catalog() {
   }, [profile, authLoading, navigate]);
 
   const fetchSubjects = async () => {
-    setSubjectsLoading(true);
-    try {
-      const q = query(collection(db, 'subjects'));
-      const querySnapshot = await getDocs(q);
-      
-      // Start with our official 71 subjects
-      let finalSubjects: Subject[] = [...IE_SUBJECTS];
-      
-      if (!querySnapshot.empty) {
-        const firestoreSubjects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-        
-        // Merge Firestore data into our official 71 subjects
-        finalSubjects = IE_SUBJECTS.map(officialSub => {
-          const matchingFirestoreSub = firestoreSubjects.find(fs => 
-            (fs.code && fs.code.replace(/\s/g, '').toLowerCase() === officialSub.code.replace(/\s/g, '').toLowerCase()) ||
-            fs.id === officialSub.id
-          );
-          
-          if (matchingFirestoreSub) {
-            return {
-              ...officialSub,
-              ...matchingFirestoreSub,
-              // Prioritize Firestore rating aggregates but fallback to constants if missing
-              averageRating: matchingFirestoreSub.averageRating ?? officialSub.rating ?? 0,
-              ratingCount: matchingFirestoreSub.ratingCount ?? officialSub.reviewCount ?? 0,
-              id: officialSub.id, 
-              yearLevel: officialSub.yearLevel,
-              semester: officialSub.semester,
-              units: officialSub.units,
-              code: officialSub.code
-            };
-          }
-          return {
-            ...officialSub,
-            averageRating: officialSub.rating ?? 0,
-            ratingCount: officialSub.reviewCount ?? 0
-          };
-        });
-      } else {
-        // Fallback if collection is empty
-        finalSubjects = IE_SUBJECTS.map(s => ({
-          ...s,
-          averageRating: s.rating ?? 0,
-          ratingCount: s.reviewCount ?? 0
-        }));
-      }
-
-      // Sort in memory by year and semester
-      const yearOrder = { '1st': 1, '2nd': 2, '3rd': 3, '4th': 4 };
-      const semOrder = { '1st': 1, '2nd': 2, 'Summer': 3 };
-
-      finalSubjects.sort((a, b) => {
-        const yearDiff = (yearOrder[a.yearLevel as keyof typeof yearOrder] || 0) - (yearOrder[b.yearLevel as keyof typeof yearOrder] || 0);
-        if (yearDiff !== 0) return yearDiff;
-        return (semOrder[a.semester as keyof typeof semOrder] || 0) - (semOrder[b.semester as keyof typeof semOrder] || 0);
-      });
-      
-      setSubjects(finalSubjects);
-    } catch (error) {
-      console.error("Error fetching subjects:", error);
-      setSubjects(IE_SUBJECTS);
-    } finally {
-      setSubjectsLoading(false);
-    }
+    // Deprecated in favor of onSnapshot useEffect
   };
 
   const filteredSubjects = useMemo(() => {
@@ -384,31 +381,80 @@ export default function Catalog() {
     e.stopPropagation();
     setActiveSubject(subject);
     setSyllabusUrlInput(subject.syllabusUrl || '');
+    setSyllabusFile(null);
     setIsUploadDialogOpen(true);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSyllabusFile(e.target.files[0]);
+    }
+  };
+
   const handleSaveSyllabus = async () => {
-    if (!activeSubject || !syllabusUrlInput.trim()) return;
+    if (!activeSubject) return;
+    if (!syllabusUrlInput.trim() && !syllabusFile) return;
 
     setIsSaving(true);
     try {
+      let aiMetadata = {};
+      
+      // Step 1: Perform AI Extraction from File or URL
+      if (syllabusFile) {
+        toast.info("Analyzing syllabus PDF...", { 
+          description: "Gemini is extracting data from your file.",
+          duration: 6000 
+        });
+
+        // Convert file to base64
+        const fileContent = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const result = e.target?.result as string;
+            const base64 = result.split(',')[1];
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(syllabusFile);
+        });
+
+        const extracted = await extractSyllabusFromFile(fileContent, syllabusFile.type);
+        if (extracted) {
+          aiMetadata = extracted;
+          toast.success("PDF extraction complete!");
+        }
+      } else if (syllabusUrlInput && syllabusUrlInput !== activeSubject.syllabusUrl) {
+        toast.info("Extracting data from syllabus URL...", { 
+          description: "This might take a moment while Gemini analyzes the link.",
+          duration: 5000 
+        });
+        
+        const extracted = await extractSyllabusFromUrl(syllabusUrlInput);
+        if (extracted) {
+          aiMetadata = extracted;
+          toast.success("URL extraction complete!");
+        }
+      }
+
       const subjectRef = doc(db, 'subjects', activeSubject.id);
       await updateDoc(subjectRef, {
         syllabusUrl: syllabusUrlInput,
         isAvailable: true,
+        ...aiMetadata,
         updatedAt: serverTimestamp()
       });
 
       // Update local state for immediate feedback
       setSubjects(prev => prev.map(s => 
         s.id === activeSubject.id 
-          ? { ...s, syllabusUrl: syllabusUrlInput, isAvailable: true } 
+          ? { ...s, syllabusUrl: syllabusUrlInput, isAvailable: true, ...aiMetadata } 
           : s
       ));
 
       toast.success("Syllabus updated successfully!");
       setIsUploadDialogOpen(false);
       setActiveSubject(null);
+      setSyllabusFile(null);
     } catch (error) {
       console.error("Error updating syllabus:", error);
       toast.error("Failed to update syllabus.");
@@ -962,163 +1008,166 @@ export default function Catalog() {
                                     )} />
                                     
                                     {viewMode === 'grid' ? (
-                                      <div className="p-5 flex flex-col h-full justify-between relative z-10 w-full">
-                                        <div>
-                                          <div className="flex justify-between items-start mb-6">
-                                            <div className="flex flex-wrap gap-2">
-                                              <div className="w-10 h-10 rounded-xl bg-ctu-gold/10 border border-ctu-gold/20 flex items-center justify-center text-ctu-gold mb-1">
-                                                <SubjectIcon iconName={subject.icon} className="w-5 h-5" />
-                                              </div>
-                                              <Badge variant="outline" className="border-ctu-gold text-ctu-gold font-bold bg-ctu-gold/5 px-2 py-0.5">
-                                                <HighlightedText text={subject.code} term={debouncedSearch} />
-                                              </Badge>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 bg-ctu-gold/10 px-2 py-0.5 rounded-lg border border-ctu-gold/10">
-                                              <Star size={10} className="text-ctu-gold fill-ctu-gold" />
-                                              <span className="text-[10px] font-black text-ctu-gold">{Number(subject.averageRating || 0).toFixed(1)}</span>
-                                              <span className="text-[8px] font-bold text-ctu-gold/60">({subject.ratingCount || 0})</span>
+                                      <div className="p-6 flex flex-col h-full relative z-10 w-full group/card">
+                                        {/* Card Top: Code & Rating */}
+                                        <div className="flex justify-between items-start mb-4">
+                                          <div className="flex flex-col gap-1">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-ctu-gold/60">
+                                              {subject.yearLevel} Year • {subject.semester}
+                                            </span>
+                                            <div className="bg-ctu-maroon/10 text-ctu-maroon border border-ctu-maroon/20 px-3 py-1 rounded-lg text-xs font-black tracking-widest inline-flex items-center w-fit shadow-sm">
+                                              <HighlightedText text={subject.code} term={debouncedSearch} />
                                             </div>
                                           </div>
+                                          
+                                          <div className="flex items-center gap-1.5 bg-background/50 backdrop-blur-md px-2 py-1 rounded-xl border border-white/10 neumorphic-raised">
+                                            <Star size={10} className="text-ctu-gold fill-ctu-gold" />
+                                            <span className="text-[10px] font-black text-foreground">{Number(subject.averageRating || 0).toFixed(1)}</span>
+                                            {subject.ratingCount > 0 && <span className="text-[8px] font-bold text-foreground/40">({subject.ratingCount})</span>}
+                                          </div>
+                                        </div>
 
-                          <h3 className="text-2xl font-display font-black text-foreground mb-3 group-hover:text-ctu-gold transition-colors leading-tight line-clamp-2 uppercase tracking-tighter italic">
+                                        {/* Card Middle: Icon & Title */}
+                                        <div className="flex-1 flex flex-col items-center justify-center py-4 text-center">
+                                          <div className="w-20 h-20 rounded-[2rem] neumorphic-raised bg-background/40 flex items-center justify-center text-ctu-gold mb-6 group-hover/card:scale-110 transition-transform duration-500 relative">
+                                            <div className="absolute inset-0 bg-ctu-gold/5 rounded-inherit animate-pulse" />
+                                            <SubjectIcon iconName={subject.icon} className="w-10 h-10 relative z-10 drop-shadow-[0_0_15px_rgba(234,179,8,0.3)]" />
+                                          </div>
+                                          
+                                          <h3 className="text-2xl font-black text-foreground mb-3 group-hover/card:text-ctu-gold transition-colors leading-[1.1] text-center uppercase tracking-tighter italic">
                                             <HighlightedText text={subject.name} term={debouncedSearch} />
                                           </h3>
 
-                                          {debouncedSearch && subject.description?.toLowerCase().includes(debouncedSearch.toLowerCase()) && (
-                                            <p className="text-[10px] text-foreground/50 mb-4 line-clamp-2 leading-relaxed">
-                                              <HighlightedText text={subject.description} term={debouncedSearch} />
-                                            </p>
-                                          )}
-
-                                        {isAdmin && (
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={(e) => handleOpenUploadDialog(subject, e)}
-                                            className="mb-4 h-8 text-[10px] font-bold uppercase tracking-widest border-ctu-gold/20 hover:bg-ctu-gold/5 text-ctu-gold"
-                                          >
-                                            <Upload size={12} className="mr-1.5" />
-                                            Update Syllabus
-                                          </Button>
-                                        )}
-                                        
-                                        <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-[10px] text-foreground/40 font-bold uppercase tracking-wider mb-6">
-                                          <span className="flex items-center gap-1"><Circle size={8} className="fill-blue-500 text-blue-500" /> {subject.units} Units</span>
-                                        </div>
-                                      </div>
-
-                                      <div className="flex items-center justify-between pt-5 border-t border-foreground/5">
-                                        <div className="flex items-center gap-2">
-                                          {subject.prerequisiteIds.length > 0 ? (
-                                            <div className="flex items-center gap-1 text-blue-500 text-[10px] font-bold uppercase tracking-widest bg-blue-500/5 px-2 py-1 rounded-md">
-                                              <LinkIcon size={12} />
-                                              Prereq
-                                            </div>
-                                          ) : (
-                                            <span className="text-[10px] text-foreground/20 uppercase font-bold tracking-widest">No Prerequisites</span>
-                                          )}
-                                        </div>
-                                        
-                                        <div className="flex items-center gap-1.5">
-                                          {progressMap[subject.id]?.status === 'done' ? (
-                                            <div className="flex items-center gap-2">
-                                              {progressMap[subject.id]?.grade && (
-                                                <div className={cn(
-                                                  "px-2 py-0.5 rounded-md text-[10px] font-black border-2 border-current",
-                                                  getGWAColor(progressMap[subject.id].grade!)
-                                                )}>
-                                                  GWA {progressMap[subject.id].grade!.toFixed(1)}
-                                                </div>
-                                              )}
-                                              <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-md">
-                                                <CheckCircle2 size={12} />
-                                                <span className="text-[10px] font-bold uppercase tracking-widest">Completed</span>
-                                              </div>
-                                            </div>
-                                          ) : progressMap[subject.id]?.status === 'in_progress' ? (
-                                            <div className="flex items-center gap-1.5 bg-ctu-gold/10 text-ctu-gold px-2 py-1 rounded-md">
-                                              <Clock size={12} />
-                                              <span className="text-[10px] font-bold uppercase tracking-widest">In Progress</span>
-                                            </div>
-                                          ) : (
-                                            <div className="flex items-center gap-1.5 bg-foreground/5 text-foreground/20 px-2 py-1 rounded-md">
-                                              <Circle size={12} />
-                                              <span className="text-[10px] font-bold uppercase tracking-widest">Not Started</span>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                      <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-6 relative z-10 w-full px-4 sm:px-0">
-                                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                                          <div className="shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-xl neumorphic-raised bg-background/50 border border-foreground/5 shadow-inner">
-                                            <SubjectIcon iconName={subject.icon} className="w-5 h-5 text-ctu-gold opacity-50 absolute pointer-events-none" />
-                                            <span className="text-[10px] font-black text-ctu-maroon leading-none mb-1 z-10">
-                                              <HighlightedText text={subject.code.split(' ')[0]} term={debouncedSearch} />
+                                          <div className="flex items-center gap-4 text-[10px] text-foreground/40 font-black uppercase tracking-[0.15em]">
+                                            <span className="flex items-center gap-1.5 bg-foreground/5 px-2 py-1 rounded-md">
+                                              <Circle size={6} className="fill-blue-500 text-blue-500" /> 
+                                              {subject.units} Units
                                             </span>
-                                            <span className="text-[12px] font-black text-foreground leading-none">
-                                              <HighlightedText text={subject.code.split(' ')[1] || subject.code} term={debouncedSearch} />
-                                            </span>
-                                          </div>
-                                          <div className="min-w-0">
-                                            <h3 className="text-sm sm:text-base font-black text-foreground line-clamp-1 group-hover:text-ctu-gold transition-colors uppercase tracking-tight italic">
-                                              <HighlightedText text={subject.name} term={debouncedSearch} />
-                                            </h3>
-                                            {debouncedSearch && subject.description?.toLowerCase().includes(debouncedSearch.toLowerCase()) && (
-                                              <p className="text-[9px] text-foreground/40 line-clamp-1 mb-0.5">
-                                                <HighlightedText text={subject.description} term={debouncedSearch} />
-                                              </p>
-                                            )}
-                                            <div className="flex items-center gap-3 mt-0.5">
-                                              <span className="text-[9px] text-foreground/40 font-bold uppercase tracking-widest flex items-center gap-1">
-                                                <Circle size={6} className="fill-blue-500 text-blue-500" /> {subject.units} Units
+                                            {subject.prerequisiteIds.length > 0 && (
+                                              <span className="flex items-center gap-1.5 bg-ctu-maroon/5 text-ctu-maroon/60 px-2 py-1 rounded-md">
+                                                <LinkIcon size={10} />
+                                                Prereqs
                                               </span>
-                                              <div className="flex items-center gap-1 bg-ctu-gold/5 px-1.5 py-0.5 rounded-md border border-ctu-gold/5">
-                                                <Star size={8} className="text-ctu-gold fill-ctu-gold" />
-                                                <span className="text-[9px] font-black text-ctu-gold">{Number(subject.averageRating || 0).toFixed(1)}</span>
-                                                <span className="text-[8px] font-bold text-ctu-gold/40 ml-0.5">({subject.ratingCount || 0})</span>
-                                              </div>
-                                            </div>
+                                            )}
                                           </div>
                                         </div>
 
-                                        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 shrink-0 sm:min-w-[120px]">
-                                          <div className="flex items-center">
-                                            {subject.prerequisiteIds.length > 0 ? (
-                                              <Badge variant="outline" className="border-blue-500/20 text-blue-500 text-[8px] font-black uppercase tracking-tighter bg-blue-500/5 h-5 px-1.5">
-                                                Prereq
-                                              </Badge>
-                                            ) : (
-                                              <span className="text-[8px] text-foreground/20 font-bold uppercase tracking-widest hidden sm:block">Core</span>
-                                            )}
-                                          </div>
+                                        {/* Card Bottom: Admin & Progress */}
+                                        <div className="mt-6 pt-5 border-t border-foreground/5 space-y-4">
+                                          {isAdmin && (
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={(e) => handleOpenUploadDialog(subject, e)}
+                                              className="w-full h-10 text-[10px] font-black uppercase tracking-widest neumorphic-raised hover:neumorphic-pressed border-none text-ctu-gold/80"
+                                            >
+                                              <Upload size={14} className="mr-2" />
+                                              Update Syllabus
+                                            </Button>
+                                          )}
 
-                                          <div className="flex items-center gap-2">
+                                          <div className="flex items-center justify-between">
                                             {progressMap[subject.id]?.status === 'done' ? (
-                                              <>
+                                              <div className="flex items-center gap-2 w-full">
+                                                <div className="flex-1 flex items-center gap-2 bg-emerald-500/10 text-emerald-500 px-3 py-2 rounded-xl border border-emerald-500/20">
+                                                  <CheckCircle2 size={16} />
+                                                  <span className="text-[10px] font-black uppercase tracking-widest">Completed</span>
+                                                </div>
                                                 {progressMap[subject.id]?.grade && (
                                                   <div className={cn(
-                                                    "px-1.5 py-0.5 rounded-md text-[9px] font-black border border-current shrink-0",
+                                                    "px-3 py-2 rounded-xl text-[11px] font-black border-2 border-current shadow-sm h-10 flex items-center justify-center min-w-[70px]",
                                                     getGWAColor(progressMap[subject.id].grade!)
                                                   )}>
                                                     {progressMap[subject.id].grade!.toFixed(1)}
                                                   </div>
                                                 )}
-                                                <div className="w-7 h-7 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 border border-emerald-500/20">
-                                                  <CheckCircle2 size={14} />
-                                                </div>
-                                              </>
+                                              </div>
                                             ) : progressMap[subject.id]?.status === 'in_progress' ? (
-                                              <div className="w-7 h-7 rounded-full bg-ctu-gold/10 text-ctu-gold flex items-center justify-center shrink-0 border border-ctu-gold/20">
-                                                <Clock size={14} className="animate-spin-slow" />
+                                              <div className="w-full flex items-center gap-3 bg-ctu-gold/10 text-ctu-gold px-3 py-2 rounded-xl border border-ctu-gold/20">
+                                                <Clock size={16} className="animate-spin-slow" />
+                                                <span className="text-[10px] font-black uppercase tracking-widest">In Progress</span>
                                               </div>
                                             ) : (
-                                              <div className="w-7 h-7 rounded-full bg-foreground/5 text-foreground/20 flex items-center justify-center shrink-0 border border-foreground/10">
-                                                <Circle size={12} />
+                                              <div className="w-full flex items-center justify-between group/status">
+                                                <div className="flex items-center gap-3 bg-foreground/5 text-foreground/30 px-3 py-2 rounded-xl border border-transparent transition-all group-hover/card:border-foreground/10 group-hover/card:bg-foreground/10 flex-1">
+                                                  <Circle size={14} />
+                                                  <span className="text-[10px] font-black uppercase tracking-widest">Not Started</span>
+                                                </div>
+                                                <ChevronRight size={20} className="text-foreground/10 group-hover/card:text-ctu-gold group-hover/card:translate-x-1 transition-all ml-2" />
                                               </div>
                                             )}
-                                            <ChevronRight size={16} className="text-foreground/20 group-hover:text-ctu-gold transition-colors translate-x-0 group-hover:translate-x-1" />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-8 relative z-10 w-full px-5 py-4 group/card">
+                                        {/* Left Side: Code & Icon */}
+                                        <div className="flex items-center gap-5 flex-1 min-w-0">
+                                          <div className="shrink-0 w-16 h-16 rounded-2xl neumorphic-raised bg-background/50 border border-foreground/5 flex flex-col items-center justify-center relative overflow-hidden">
+                                            <div className="absolute top-0 left-0 w-full h-1 bg-ctu-maroon/20" />
+                                            <SubjectIcon iconName={subject.icon} className="w-6 h-6 text-ctu-gold mb-1" />
+                                            <span className="text-[10px] font-black text-foreground drop-shadow-sm">
+                                              <HighlightedText text={subject.code} term={debouncedSearch} />
+                                            </span>
+                                          </div>
+                                          
+                                          <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                              <h3 className="text-lg font-black text-foreground line-clamp-1 group-hover/card:text-ctu-gold transition-colors uppercase tracking-tighter italic">
+                                                <HighlightedText text={subject.name} term={debouncedSearch} />
+                                              </h3>
+                                              {subject.prerequisiteIds.length > 0 && (
+                                                <Badge variant="outline" className="border-blue-500/20 text-blue-500 text-[8px] font-black uppercase tracking-tighter bg-blue-500/5 h-4 px-1 shrink-0">
+                                                  Prereq
+                                                </Badge>
+                                              )}
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-4">
+                                              <span className="text-[10px] text-foreground/40 font-black uppercase tracking-widest flex items-center gap-1.5">
+                                                <Circle size={8} className="fill-blue-500 text-blue-500" /> {subject.units} Units
+                                              </span>
+                                              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-foreground/5 border border-foreground/5">
+                                                <Star size={10} className="text-ctu-gold fill-ctu-gold" />
+                                                <span className="text-[10px] font-black text-foreground/60">{Number(subject.averageRating || 0).toFixed(1)}</span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        {/* Right Side: Status & Actions */}
+                                        <div className="flex items-center justify-between sm:justify-end gap-6 shrink-0 sm:min-w-[180px]">
+                                          <div className="flex items-center gap-3">
+                                            {progressMap[subject.id]?.status === 'done' ? (
+                                              <div className="flex items-center gap-3">
+                                                {progressMap[subject.id]?.grade && (
+                                                  <div className={cn(
+                                                    "px-2 py-1 rounded-lg text-[10px] font-black border-2 border-current",
+                                                    getGWAColor(progressMap[subject.id].grade!)
+                                                  )}>
+                                                    {progressMap[subject.id].grade!.toFixed(1)}
+                                                  </div>
+                                                )}
+                                                <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-500 px-3 py-2 rounded-xl border border-emerald-500/20">
+                                                  <CheckCircle2 size={16} />
+                                                  <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Completed</span>
+                                                </div>
+                                              </div>
+                                            ) : progressMap[subject.id]?.status === 'in_progress' ? (
+                                              <div className="flex items-center gap-2 bg-ctu-gold/10 text-ctu-gold px-3 py-2 rounded-xl border border-ctu-gold/20">
+                                                <Clock size={16} className="animate-spin-slow" />
+                                                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Active</span>
+                                              </div>
+                                            ) : (
+                                              <div className="flex items-center gap-2 bg-foreground/5 text-foreground/20 px-3 py-2 rounded-xl border border-foreground/5">
+                                                <Circle size={14} />
+                                                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Unstarted</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                          
+                                          <div className="h-10 w-10 flex items-center justify-center rounded-xl neumorphic-raised hover:neumorphic-pressed transition-all text-foreground/10 group-hover/card:text-ctu-gold">
+                                            <ChevronRight size={20} className="transition-transform group-hover/card:translate-x-1" />
                                           </div>
                                         </div>
                                       </div>
@@ -1192,7 +1241,55 @@ export default function Catalog() {
               </p>
             </div>
           </div>
-          <DialogFooter className="sm:justify-end gap-3">
+            <div className="space-y-4 pt-2">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-foreground/5" />
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase font-black tracking-widest">
+                  <span className="bg-background px-2 text-foreground/20">OR</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="syllabus-file" className="text-xs font-bold uppercase tracking-widest text-foreground/40 ml-1">
+                  Upload PDF Syllabus (Recommended)
+                </label>
+                <div className="relative group">
+                  <Input
+                    id="syllabus-file"
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <label 
+                    htmlFor="syllabus-file" 
+                    className={cn(
+                      "flex flex-col items-center justify-center w-full h-32 rounded-2xl border-2 border-dashed transition-all cursor-pointer",
+                      syllabusFile 
+                        ? "border-emerald-500/50 bg-emerald-500/5" 
+                        : "border-foreground/10 hover:border-ctu-gold/50 hover:bg-ctu-gold/5"
+                    )}
+                  >
+                    {syllabusFile ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <CheckCircle2 className="text-emerald-500" size={32} />
+                        <span className="text-xs font-black text-emerald-500 line-clamp-1 px-4">{syllabusFile.name}</span>
+                        <span className="text-[10px] font-bold text-emerald-500/60 uppercase">File Ready for Extraction</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <Upload className="text-foreground/20 group-hover:text-ctu-gold transition-colors" size={32} />
+                        <span className="text-xs font-black text-foreground/40 uppercase tracking-widest pt-2">Click or Drag PDF</span>
+                        <span className="text-[9px] font-bold text-foreground/20 uppercase tracking-widest">Supports files up to 20MB</span>
+                      </div>
+                    )}
+                  </label>
+                </div>
+              </div>
+            </div>
+          <DialogFooter className="sm:justify-end gap-3 px-6 pb-6">
             <Button
               type="button"
               variant="ghost"
@@ -1204,7 +1301,7 @@ export default function Catalog() {
             <Button
               type="button"
               onClick={handleSaveSyllabus}
-              disabled={isSaving || !syllabusUrlInput.trim()}
+              disabled={isSaving || (!syllabusUrlInput.trim() && !syllabusFile)}
               className="bg-ctu-gold hover:bg-ctu-gold/90 text-white rounded-xl px-8 font-bold h-12 shadow-lg shadow-ctu-gold/20"
             >
               {isSaving ? "Saving..." : "Save Syllabus"}

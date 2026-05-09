@@ -85,6 +85,7 @@ import { Subject, Announcement, CalendarEvent, YearLevel } from '@/src/types/ind
 import { IE_SUBJECTS, ANNOUNCEMENTS, CALENDAR_EVENTS } from '@/src/lib/constants';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { GlowCard } from '@/components/ui/spotlight-card';
 import { Label } from '@/components/ui/label';
@@ -631,7 +632,14 @@ export default function Dashboard() {
                   <CardTitle className="text-3xl font-black text-ctu-maroon uppercase tracking-[0.2em]">
                     Alerts
                   </CardTitle>
-                  <Bell size={24} className="text-ctu-maroon/20" />
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => navigate('/notifications')}
+                    className="text-[10px] font-black uppercase tracking-widest text-foreground/40 hover:text-ctu-maroon"
+                  >
+                    View All
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <NotificationsList maxItems={3} />

@@ -15,9 +15,11 @@ import {
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
 
+import { useNotifications } from '@/src/hooks/useNotifications';
+
 const mainNavItems = [
   { name: 'Home', icon: LayoutDashboard, path: '/dashboard' },
-  { name: 'Board', icon: Megaphone, path: '/bulletin' },
+  { name: 'Board', icon: Megaphone, path: '/bulletin', hasBadge: true },
   { name: 'Study', icon: Sparkles, path: '/study' },
   { name: 'Catalog', icon: BookOpen, path: '/catalog' },
   { name: 'GWA', icon: TrendingUp, path: '/progress' },
@@ -30,6 +32,7 @@ const extraItems = [
 ];
 
 export default function BottomNav() {
+  const { unreadCount } = useNotifications();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
@@ -115,8 +118,16 @@ export default function BottomNav() {
               style={{ minWidth: '40px' }}
             >
               {({ isActive }) => (
-                <div className="flex items-center gap-2 px-3">
-                  <item.icon size={18} className={cn("shrink-0", isActive && "text-ctu-gold")} />
+                <div className="flex items-center gap-2 px-3 relative">
+                  <div className="relative">
+                    <item.icon size={18} className={cn("shrink-0", isActive && "text-ctu-gold")} />
+                    {item.hasBadge && unreadCount > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ctu-gold opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-ctu-gold border border-ctu-maroon"></span>
+                      </span>
+                    )}
+                  </div>
                   <AnimatePresence>
                     {isActive && (
                       <motion.span

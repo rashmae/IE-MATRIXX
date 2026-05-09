@@ -16,6 +16,7 @@ import Bulletin from './pages/Bulletin';
 import Calendar from './pages/Calendar';
 import Resources from './pages/Resources';
 import Profile from './pages/Profile';
+import Notifications from './pages/Notifications';
 import AdminDashboard from './pages/AdminDashboard';
 import SyllabusIngestion from './pages/SyllabusIngestion';
 import RatingsIngestion from './pages/RatingsIngestion';
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/resources" element={<Resources />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/ingest" element={<SyllabusIngestion />} />
             <Route path="/admin/ratings" element={<RatingsIngestion />} />

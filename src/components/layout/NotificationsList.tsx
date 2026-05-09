@@ -15,13 +15,16 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
+import { MatrixNotification as MatrixNotificationType } from '@/src/types/index';
+
 interface NotificationsListProps {
   maxItems?: number;
+  filterType?: string | 'all';
   className?: string;
   onItemClick?: () => void;
 }
 
-export default function NotificationsList({ maxItems = 5, className, onItemClick }: NotificationsListProps) {
+export default function NotificationsList({ maxItems = 5, filterType = 'all', className, onItemClick }: NotificationsListProps) {
   const { notifications, loading, markAsRead } = useNotifications();
   const navigate = useNavigate();
 
@@ -35,7 +38,7 @@ export default function NotificationsList({ maxItems = 5, className, onItemClick
     }
   };
 
-  const handleNotificationClick = (n: any) => {
+  const handleNotificationClick = (n: MatrixNotificationType) => {
     markAsRead(n.id);
     if (onItemClick) onItemClick();
     if (n.link) {
@@ -43,7 +46,11 @@ export default function NotificationsList({ maxItems = 5, className, onItemClick
     }
   };
 
-  const displayNotifications = maxItems ? notifications.slice(0, maxItems) : notifications;
+  const filtered = filterType === 'all' 
+    ? notifications 
+    : notifications.filter(n => n.type === filterType);
+
+  const displayNotifications = maxItems ? filtered.slice(0, maxItems) : filtered;
 
   if (loading) {
     return (
@@ -97,7 +104,21 @@ export default function NotificationsList({ maxItems = 5, className, onItemClick
                 )}>
                   {n.title}
                 </h4>
-                {n.link && <ExternalLink size={10} className="text-foreground/20 group-hover:text-ctu-gold transition-colors" />}
+                <div className="flex items-center gap-1">
+                  {!n.read && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markAsRead(n.id);
+                      }}
+                      className="p-1 rounded-full hover:bg-foreground/10 text-foreground/40 hover:text-green-500 transition-colors"
+                      title="Mark as read"
+                    >
+                      <CheckCircle2 size={14} />
+                    </button>
+                  )}
+                  {n.link && <ExternalLink size={10} className="text-foreground/20 group-hover:text-ctu-gold transition-colors" />}
+                </div>
               </div>
               <p className={cn(
                 "text-[11px] mt-1 line-clamp-2",

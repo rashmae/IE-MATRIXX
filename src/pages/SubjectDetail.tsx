@@ -127,6 +127,7 @@ import {
   serverTimestamp,
   doc,
   getDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   onSnapshot,
@@ -461,11 +462,22 @@ export default function SubjectDetail() {
           const currentCount = subSnap.exists() ? (subSnap.data().ratingCount || 0) : 1;
           const newTotal = currentTotal + ratingDelta;
           
-          await updateDoc(subjectRef, {
-            totalRatingSum: increment(ratingDelta),
-            averageRating: Number((newTotal / Math.max(1, currentCount)).toFixed(1)),
-            updatedAt: serverTimestamp()
-          }).catch(err => console.warn("Could not sync subject rating:", err));
+          if (subSnap.exists()) {
+            await updateDoc(subjectRef, {
+              totalRatingSum: increment(ratingDelta),
+              averageRating: Number((newTotal / Math.max(1, currentCount)).toFixed(1)),
+              updatedAt: serverTimestamp()
+            }).catch(err => console.warn("Could not sync subject rating:", err));
+          } else {
+            // Document doesn't exist yet, create it
+            await setDoc(subjectRef, {
+              ...subject,
+              totalRatingSum: newTotal,
+              ratingCount: currentCount,
+              averageRating: Number((newTotal / Math.max(1, currentCount)).toFixed(1)),
+              updatedAt: serverTimestamp()
+            }, { merge: true }).catch(err => console.warn("Could not create subject doc:", err));
+          }
         }
 
         toast.success('Review updated!');
@@ -491,12 +503,23 @@ export default function SubjectDetail() {
         const newCount = currentCount + 1;
         const newTotal = currentTotal + userRating;
 
-        await updateDoc(subjectRef, {
-          totalRatingSum: increment(userRating),
-          ratingCount: increment(1),
-          averageRating: Number((newTotal / newCount).toFixed(1)),
-          updatedAt: serverTimestamp()
-        }).catch(err => console.warn("Could not sync subject rating:", err));
+        if (subSnap.exists()) {
+          await updateDoc(subjectRef, {
+            totalRatingSum: increment(userRating),
+            ratingCount: increment(1),
+            averageRating: Number((newTotal / newCount).toFixed(1)),
+            updatedAt: serverTimestamp()
+          }).catch(err => console.warn("Could not sync subject rating:", err));
+        } else {
+          // Document doesn't exist yet, create it
+          await setDoc(subjectRef, {
+            ...subject,
+            totalRatingSum: newTotal,
+            ratingCount: newCount,
+            averageRating: Number((newTotal / newCount).toFixed(1)),
+            updatedAt: serverTimestamp()
+          }, { merge: true }).catch(err => console.warn("Could not create subject doc:", err));
+        }
 
         toast.success('Thank you for your feedback!');
       }
@@ -755,24 +778,51 @@ export default function SubjectDetail() {
               <h2 className="text-4xl font-display font-black text-foreground tracking-tight border-b-4 border-ctu-gold pb-4 w-fit">Course Narrative</h2>
               <div className="neumorphic-card p-8">
                 <p className="text-foreground/70 leading-relaxed text-lg font-medium">
-                  {subject.description}
+                  {subject.description || "Detailed narrative for this course is being compiled based on the provided syllabus."}
                 </p>
+                
+                {(subject.objectives && subject.objectives.length > 0) ? (
+                  <div className="mt-8 space-y-4">
+                    <h3 className="font-bold text-foreground flex items-center gap-2">
+                      <div className="w-1.5 h-6 bg-ctu-gold rounded-full" />
+                      Course Objectives:
+                    </h3>
+                    <ul className="space-y-3 ml-4">
+                      {subject.objectives.map((obj, i) => (
+                        <li key={i} className="flex items-start gap-3 text-foreground/60 font-medium">
+                          <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-ctu-gold shrink-0" />
+                          {obj}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
                 <div className="mt-8 space-y-4">
                   <h3 className="font-bold text-foreground flex items-center gap-2">
-                    <div className="w-1.5 h-6 bg-ctu-gold rounded-full" />
+                    <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
                     Learning Outcomes:
                   </h3>
                   <ul className="space-y-3 ml-4">
-                    {[
-                      `Understand the core principles of ${subject.name.toLowerCase()}.`,
-                      'Apply theoretical knowledge to real-world industrial problems.',
-                      'Develop critical thinking and analytical skills relevant to IE.'
-                    ].map((outcome, i) => (
-                      <li key={i} className="flex items-start gap-3 text-foreground/60 font-medium">
-                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-ctu-gold shrink-0" />
-                        {outcome}
-                      </li>
-                    ))}
+                    {(subject.learningOutcomes && subject.learningOutcomes.length > 0) ? (
+                      subject.learningOutcomes.map((outcome, i) => (
+                        <li key={i} className="flex items-start gap-3 text-foreground/60 font-medium">
+                          <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                          {outcome}
+                        </li>
+                      ))
+                    ) : (
+                      [
+                        `Master the core concepts of ${subject.name.toLowerCase()}.`,
+                        'Apply analytical methods to complex industrial systems.',
+                        'Develop professional competency in industrial engineering practices.'
+                      ].map((outcome, i) => (
+                        <li key={i} className="flex items-start gap-3 text-foreground/60 font-medium">
+                          <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                          {outcome}
+                        </li>
+                      ))
+                    )}
                   </ul>
                 </div>
               </div>
