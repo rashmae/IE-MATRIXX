@@ -1195,7 +1195,6 @@ export default function SubjectDetail() {
                                     </p>
                                     <div className="flex flex-wrap gap-1 mt-0.5">
                                       {review.isLive && <Badge className="bg-blue-500/10 text-blue-500 border-none text-[8px] px-1.5 py-0 h-4 font-black uppercase shrink-0">Live</Badge>}
-                                      {review.isImported && <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] px-1.5 py-0 h-4 font-black uppercase shrink-0">Verified Source</Badge>}
                                     </div>
                                     <p className="text-[9px] text-foreground/40 font-bold uppercase tracking-widest mt-0.5">
                                       {(review.createdAt as any)?.toDate ? (review.createdAt as any).toDate().toLocaleDateString() : 'Just now'}
@@ -1209,7 +1208,7 @@ export default function SubjectDetail() {
                                 </div>
                               </div>
                               
-                              {review.feedback && (
+                              {review.feedback && !review.isImported && !review.isSpreadsheetData && (
                                 <p className="text-xs text-foreground/70 font-medium leading-relaxed italic break-words">
                                   "{review.feedback}"
                                 </p>

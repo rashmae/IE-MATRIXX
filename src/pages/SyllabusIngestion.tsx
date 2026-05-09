@@ -17,7 +17,7 @@ import {
 import { useAuth } from '@/src/context/AuthContext';
 import { db } from '@/src/lib/firebase';
 import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { generateContent } from '@/src/lib/gemini';
+import { generateContent, isAIAvailable } from '@/src/lib/gemini';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -117,21 +117,55 @@ export default function SyllabusIngestion() {
   };
 
   const processFile = async (fileId: string) => {
+    if (!isAIAvailable()) {
+      toast.error("AI service is not configured. Please add your Gemini API key in Settings.");
+      updateResult(fileId, { status: 'error', message: 'AI key missing' });
+      return;
+    }
+
     updateResult(fileId, { status: 'processing', message: 'Downloading PDF...' });
     
     try {
-      // 1. Download PDF (via local proxy to bypass CORS)
-      const downloadUrl = `/api/proxy-drive?id=${fileId}`;
-      const res = await fetch(downloadUrl).catch(e => {
-        console.error("Batch Fetch Network Error:", e);
-        throw new Error('Network failure: Browser could not connect to the ingestion server.');
-      });
-      
-      if (!res.ok) {
-        const detail = await res.json().catch(() => ({}));
-        throw new Error(`Proxy error (${res.status}): ${detail.error || res.statusText}`);
+      // 1. Download PDF Waterfall
+      let blob: Blob | null = null;
+      let lastError = '';
+
+      const strategies = [
+        // Strategy A: Local API Proxy (most reliable for CORS)
+        async () => {
+          const res = await fetch(`/api/proxy-drive?id=${fileId}`);
+          if (!res.ok) throw new Error(`Proxy status ${res.status}`);
+          return await res.blob();
+        },
+        // Strategy B: Direct Google Drive export URL
+        async () => {
+          const res = await fetch(`https://drive.google.com/uc?export=download&id=${fileId}`);
+          if (!res.ok) throw new Error(`Direct download status ${res.status}`);
+          return await res.blob();
+        },
+        // Strategy C: Drive Web Content URL
+        async () => {
+          const res = await fetch(`https://drive.google.com/file/d/${fileId}/view`);
+          if (!res.ok) throw new Error(`Web view status ${res.status}`);
+          return await res.blob();
+        }
+      ];
+
+      for (const strategy of strategies) {
+        try {
+          const result = await strategy();
+          if (result && result.size > 1000) { // Valid PDFs are usually > 1KB
+            blob = result;
+            break;
+          }
+        } catch (e: any) {
+          lastError = e?.message || String(e);
+        }
       }
-      const blob = await res.blob();
+
+      if (!blob) {
+        throw new Error(`Failed to fetch PDF after multiple attempts: ${lastError}`);
+      }
       
       // 2. Base64 Encode
       const reader = new FileReader();
@@ -155,7 +189,6 @@ export default function SyllabusIngestion() {
       - semester (e.g., "1st Sem", "2nd Sem", "Summer")
       - courseDescription
       - prerequisites (array of subject codes)
-      - instructor (string)
       - courseOutcomes (array of strings)
       - topics (array of strings)`;
 
@@ -182,8 +215,27 @@ export default function SyllabusIngestion() {
 
       const responseText = aiResponse.text;
       if (!responseText) throw new Error("No response from AI");
-      const cleanJson = responseText.replace(/```json|```/g, '').trim();
-      const info = JSON.parse(cleanJson);
+      
+      // Robust JSON Extraction
+      let cleanJson = responseText.trim();
+      if (cleanJson.includes('```')) {
+        const match = cleanJson.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (match) cleanJson = match[1];
+      }
+      
+      let info;
+      try {
+        info = JSON.parse(cleanJson);
+      } catch (parseErr) {
+        // Last attempt: find anything that looks like a JSON object
+        const objectMatch = cleanJson.match(/\{[\s\S]*\}/);
+        if (objectMatch) {
+          info = JSON.parse(objectMatch[0]);
+        } else {
+          throw parseErr;
+        }
+      }
+
       updateResult(fileId, { subjectCode: info.subjectCode, message: 'Updating Firestore...' });
 
       // 4. Update Firestore

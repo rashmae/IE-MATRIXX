@@ -49,7 +49,7 @@ function SourceSidebarContent({ sources, deleteSource, notebook }: { sources: an
     <>
       <div className="p-4 border-b border-foreground/5">
         <h3 className="text-[10px] font-black text-foreground/40 uppercase tracking-[2px] px-2 mb-4">Sources</h3>
-        <ScrollArea className="h-[calc(100vh-320px)]">
+        <div className="h-[calc(100vh-320px)] overflow-y-auto overscroll-contain custom-scrollbar pr-2">
           <div className="space-y-3 px-2">
             {sources.map(source => (
               <div 
@@ -82,7 +82,7 @@ function SourceSidebarContent({ sources, deleteSource, notebook }: { sources: an
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </div>
       <div className="p-6 mt-auto">
         <Card className="bg-ctu-gold/5 border-none rounded-2xl overflow-hidden">

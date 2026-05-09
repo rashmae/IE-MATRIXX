@@ -12,14 +12,29 @@ let _client: GoogleGenAI | null = null;
 export function getGeminiClient(): GoogleGenAI | null {
   if (_client) return _client;
   
-  // In Vite/browser: ONLY use import.meta.env
-  // In AI Studio: use process.env.GEMINI_API_KEY (injected at runtime)
-  const apiKey = typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY
-    ? import.meta.env.VITE_GEMINI_API_KEY
-    : (typeof process !== 'undefined' ? (process as any)?.env?.GEMINI_API_KEY : null);
+  // Three-tier API key resolution for maximum reliability across AI Studio & Vercel
+  let apiKey: string | null = null;
+
+  try {
+    // 1. Vite build-time (Vercel production)
+    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) {
+      apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    }
+    
+    // 2. Runtime Node/AI Studio fallback
+    if (!apiKey && typeof process !== 'undefined') {
+      apiKey = (process as any)?.env?.GEMINI_API_KEY || (process as any)?.env?.VITE_GEMINI_API_KEY;
+    }
+
+    // 3. Runtime injection fallback for iframe/embedded contexts
+    if (!apiKey && typeof window !== 'undefined') {
+      apiKey = (window as any).__GEMINI_API_KEY__;
+    }
+  } catch (err) {
+    console.error('[Gemini] Key resolution error:', err);
+  }
 
   if (!apiKey || apiKey === 'undefined' || apiKey === 'null' || apiKey === '') {
-    // Silent warning — NEVER throw, NEVER crash
     return null;
   }
 

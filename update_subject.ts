@@ -21,7 +21,6 @@ async function updateSpecificSubject() {
     await updateDoc(doc(db, 'subjects', docId), {
       averageRating: 4.5,
       ratingCount: 112,
-      professor: 'Engr. John Doe',
       units: 2,
       syllabusUrl: 'https://example.com/syllabus/ie-ipc-111.pdf',
       isAvailable: true,
@@ -36,7 +35,6 @@ async function updateSpecificSubject() {
       await updateDoc(doc(db, 'subjects', directId), {
         averageRating: 4.5,
         ratingCount: 112,
-        professor: 'Engr. John Doe',
         units: 2,
         syllabusUrl: 'https://example.com/syllabus/ie-ipc-111.pdf',
         isAvailable: true,
