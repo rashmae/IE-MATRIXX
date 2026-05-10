@@ -26,16 +26,28 @@ const databaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || firebaseConfigJs
 // Initialize Firebase
 let app: any;
 try {
+  if (!firebaseConfig.apiKey) {
+    throw new Error('Missing Firebase API Key. Did you forget to set environment variables?');
+  }
   app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 } catch (error) {
   console.error('[Firebase] Initialization failed. Ensure environment variables are set.', error);
 }
 
-const auth = getAuth(app);
-const db = initializeFirestore(app, {
+// Proxies to delay crashing until the component actually uses the library
+const getSafeService = (serviceFactory: any, ...args: any[]) => {
+  try {
+    return app ? serviceFactory(app, ...args) : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+const auth = getSafeService(getAuth) as ReturnType<typeof getAuth>;
+const db = getSafeService(initializeFirestore, {
   experimentalForceLongPolling: true,
-}, databaseId);
-const storage = getStorage(app);
+}, databaseId) as ReturnType<typeof initializeFirestore>;
+const storage = getSafeService(getStorage) as ReturnType<typeof getStorage>;
 
 export { app, auth, db, storage };
 
@@ -69,12 +81,12 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+      userId: auth?.currentUser?.uid,
+      email: auth?.currentUser?.email,
+      emailVerified: auth?.currentUser?.emailVerified,
+      isAnonymous: auth?.currentUser?.isAnonymous,
+      tenantId: auth?.currentUser?.tenantId,
+      providerInfo: auth?.currentUser?.providerData?.map(provider => ({
         providerId: provider.providerId,
         email: provider.email,
       })) || []
@@ -107,6 +119,7 @@ if (import.meta.env.DEV) {
 }
 
 export const signInWithGoogle = async () => {
+  if (!auth) throw new Error("Firebase Auth is not initialized. Please check Environment Variables.");
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;

@@ -1,6 +1,5 @@
-import { GoogleGenAI, Type } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+import { Type } from "@google/genai";
+import { getGeminiClient } from "../lib/gemini";
 
 export interface SyllabusData {
   description: string;
@@ -10,6 +9,8 @@ export interface SyllabusData {
 }
 
 export async function extractSyllabusFromUrl(url: string): Promise<SyllabusData | null> {
+  const ai = getGeminiClient();
+  if (!ai) return null;
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash",
@@ -54,6 +55,8 @@ export async function extractSyllabusFromUrl(url: string): Promise<SyllabusData 
 }
 
 export async function extractSyllabusFromFile(fileBase64: string, mimeType: string): Promise<SyllabusData | null> {
+  const ai = getGeminiClient();
+  if (!ai) return null;
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash",

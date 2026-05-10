@@ -7,11 +7,11 @@ export default defineConfig(() => {
   return {
     base: '/',
     plugins: [react(), tailwindcss()],
-    define: {
-      'process.env': process.env
-    },
     optimizeDeps: {
       force: true
+    },
+    build: {
+      chunkSizeWarningLimit: 1000
     },
     resolve: {
       alias: {

@@ -22,8 +22,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let unsubscribeProfile: (() => void) | null = null;
+    let unsubscribeAuth: (() => void) | null = null;
 
-    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+    if (!auth) {
+      console.warn('[AuthContext] Firebase auth is not initialized. Environment variables might be missing.');
+      // Wait a bit to simulate loading then set to null
+      setTimeout(() => {
+        setLoading(false);
+      }, 1000);
+      return;
+    }
+
+    try {
+      unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       // Clean up previous profile listener if it exists
       if (unsubscribeProfile) {
         unsubscribeProfile();
@@ -58,9 +69,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       }
     });
+    } catch (err) {
+      console.error('[AuthContext] Error setting up auth listener', err);
+      setLoading(false);
+    }
 
     return () => {
-      unsubscribeAuth();
+      if (unsubscribeAuth) unsubscribeAuth();
       if (unsubscribeProfile) unsubscribeProfile();
     };
   }, []);
