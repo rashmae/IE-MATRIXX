@@ -588,7 +588,7 @@ export default function Catalog() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tight leading-[1.1] py-2 sm:py-4">Catalog</h1>
-            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Explore the IE Industrial Engineering curriculum.</p>
+            <p className="text-foreground/40 mt-2 sm:mt-3 text-sm sm:text-base md:text-xl font-medium tracking-tight">Explore the IE Industrial Engineering curriculum.</p>
           </div>
 
           <div className="flex items-center gap-3">

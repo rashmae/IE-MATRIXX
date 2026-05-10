@@ -296,7 +296,7 @@ export default function SyllabusIngestion() {
               <span className="text-xs font-black text-ctu-gold uppercase tracking-[0.3em]">Knowledge Extraction</span>
             </div>
             <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Data Ingestion</h1>
-            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Batch process PDFs from Google Drive to enrich subject data.</p>
+            <p className="text-foreground/40 mt-2 sm:mt-3 text-sm sm:text-base md:text-xl font-medium tracking-tight">Batch process PDFs from Google Drive to enrich subject data.</p>
           </div>
           
           <div className="flex gap-4">

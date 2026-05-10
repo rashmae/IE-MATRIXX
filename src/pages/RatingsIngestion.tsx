@@ -1034,7 +1034,7 @@ export default function RatingsIngestion() {
               <ShieldCheck className="text-ctu-gold" size={24} />
             </div>
             <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Data Sync</h1>
-            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Cebu's Industrial Engineering Survey Synchronizer.</p>
+            <p className="text-foreground/40 mt-2 sm:mt-3 text-sm sm:text-base md:text-xl font-medium tracking-tight">Cebu's Industrial Engineering Survey Synchronizer.</p>
           </div>
           
           <button 

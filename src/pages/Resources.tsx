@@ -151,7 +151,7 @@ export default function Resources() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
           <div>
             <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Resources</h1>
-            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Access shared notes, videos, and reference materials.</p>
+            <p className="text-foreground/40 mt-2 sm:mt-3 text-sm sm:text-base md:text-xl font-medium tracking-tight">Access shared notes, videos, and reference materials.</p>
           </div>
 
           <button 

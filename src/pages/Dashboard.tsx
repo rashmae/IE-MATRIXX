@@ -234,10 +234,10 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
-      <Sidebar user={profile} hideBranding hideActions />
+      <Sidebar user={profile} />
       
       <main id="main-content" className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-        <MobileHeader hideBranding hideActions />
+        <MobileHeader />
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
@@ -252,7 +252,7 @@ export default function Dashboard() {
               >
                 {getGreeting()}, {profile.fullName.split(' ')[0]} 👋
               </h1>
-              <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Navigate your IE journey. One subject at a time.</p>
+              <p className="text-foreground/40 mt-2 sm:mt-3 text-sm sm:text-base md:text-xl font-medium tracking-tight">Navigate your IE journey. One subject at a time.</p>
             </div>
           </motion.div>
 

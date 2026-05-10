@@ -85,14 +85,14 @@ export default function Bulletin() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
-      <Sidebar user={profile} />
+      <Sidebar user={profile} hideBranding hideActions />
       
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-        <MobileHeader />
+        <MobileHeader hideBranding hideActions />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
           <div>
             <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Board</h1>
-            <p className="text-foreground/40 mt-3 text-xl font-medium tracking-tight">Stay updated with the latest IE department news.</p>
+            <p className="text-foreground/40 mt-2 sm:mt-3 text-sm sm:text-base md:text-xl font-medium tracking-tight">Stay updated with the latest IE department news.</p>
           </div>
 
           <div className="flex gap-3 overflow-x-auto pb-4 md:pb-0 no-scrollbar scroll-smooth">
