@@ -88,7 +88,7 @@ export default function AIAssistant() {
     if (!isAIAvailable()) {
       setMessages([{
         role: 'assistant',
-        content: "👋 Hello! I'm your **IE Matrix AI Advisor**. \n\nI noticed that the Gemini API is not yet configured. To enable project-specific advice, curriculum planning, and interactive chat, please add your `VITE_GEMINI_API_KEY` to the environment variables. \n\nIn the meantime, you can still explore the Study Hub, create flashcards, and join squads!"
+        content: "👋 Hello! I'm your **IE Matrix AI Advisor**. \n\nI noticed that the Gemini API is not yet configured. To enable project-specific advice, curriculum planning, and interactive chat, please add your `an AI API Key` to the environment variables. \n\nIn the meantime, you can still explore the Study Hub, create flashcards, and join squads!"
       }]);
       setIsOpen(true);
       return;
@@ -115,7 +115,7 @@ export default function AIAssistant() {
     if (!isAIAvailable()) {
       setMessages(prev => [...prev, 
         { role: 'user', content: userMessage },
-        { role: 'assistant', content: "Offline mode: AI functionality requires a Gemini API key. Please configure VITE_GEMINI_API_KEY." }
+        { role: 'assistant', content: "Offline mode: AI functionality requires a Gemini API key. Please configure an AI API Key." }
       ]);
       setInput('');
       return;

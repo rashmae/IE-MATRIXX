@@ -360,7 +360,7 @@ export default function StudyTools() {
 
   const handleGenerateRoadmap = async () => {
     if (!aiAvailable) {
-      toast.error("AI is not configured. Add VITE_GEMINI_API_KEY to your environment.");
+      toast.error("AI is not configured. Add an AI API Key to your environment.");
       return;
     }
     setIsGenerating(true);
@@ -387,7 +387,7 @@ export default function StudyTools() {
     if (!advisorInput.trim() || isAdvisorLoading) return;
 
     if (!aiAvailable) {
-      toast.error("AI Advisor requires VITE_GEMINI_API_KEY. Please configure your environment.");
+      toast.error("AI Advisor requires an AI API Key. Please configure your environment.");
       return;
     }
 
@@ -986,7 +986,7 @@ export default function StudyTools() {
             <AlertCircle size={20} className="text-amber-500 shrink-0" />
             <div>
               <p className="text-xs sm:text-sm font-bold text-amber-500">
-                AI features require a Gemini API key (VITE_GEMINI_API_KEY). 
+                AI features require a Gemini API key (an AI API Key). 
               </p>
               <p className="text-[10px] sm:text-xs text-amber-500/70 font-medium">
                 Non-AI features like flashcards and forums are fully available.

@@ -1,13 +1,12 @@
 
 import { NotebookSource } from "../types";
-import { getGeminiClient, DEFAULT_MODEL } from "../lib/gemini";
+import { generateContent, isAIAvailable } from "../lib/gemini";
 
 /**
  * Generates a summary for a notebook based on its sources.
  */
 export async function generateNotebookSummary(name: string, sources: NotebookSource[]): Promise<string> {
-  const ai = getGeminiClient();
-  if (!ai) return "AI summarization is unavailable. Please configure VITE_GEMINI_API_KEY.";
+  if (!isAIAvailable()) return "AI summarization is unavailable. Please configure an AI API Key.";
 
   const sourcesText = sources.map(s => `Source: ${s.title}\nContent: ${s.content}`).join('\n\n---\n\n');
   
@@ -21,8 +20,7 @@ export async function generateNotebookSummary(name: string, sources: NotebookSou
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
+    const response = await generateContent({
       contents: prompt,
       config: {
         systemInstruction: "You are a research assistant summary tool. Be objective, concise, and academic."
@@ -45,8 +43,7 @@ export async function chatWithNotebook(
   history: { role: 'user' | 'model', parts: { text: string }[] }[],
   userMessage: string
 ): Promise<string> {
-  const ai = getGeminiClient();
-  if (!ai) return "The AI notebook assistant requires a Gemini API key to function. Please configure VITE_GEMINI_API_KEY in your environment variables.";
+  if (!isAIAvailable()) return "The AI notebook assistant requires an API key to function. Please configure an AI API Key in your environment variables.";
 
   const sourcesText = sources.map(s => `[ID: ${s.id}] Source: ${s.title}\nContent: ${s.content}`).join('\n\n---\n\n');
   
@@ -72,8 +69,7 @@ export async function chatWithNotebook(
       { role: 'user', parts: [{ text: userMessage }] }
     ];
 
-    const response = await ai.models.generateContent({ 
-      model: DEFAULT_MODEL,
+    const response = await generateContent({ 
       contents,
       config: {
         systemInstruction: systemInstruction
@@ -91,8 +87,7 @@ export async function chatWithNotebook(
  * Searches for external resources based on a topic query. 
  */
 export async function searchExternalResources(query: string): Promise<any[]> {
-  const ai = getGeminiClient();
-  if (!ai) return [];
+  if (!isAIAvailable()) return [];
 
   const prompt = `
     Find high-quality academic and educational resources (articles, papers, study guides) related to: "${query}".
@@ -102,15 +97,18 @@ export async function searchExternalResources(query: string): Promise<any[]> {
   `;
 
   try {
-    const response = await ai.models.generateContent({ 
-      model: DEFAULT_MODEL,
+    const response = await generateContent({ 
       contents: prompt,
       config: {
         responseMimeType: "application/json"
       }
     });
-    const text = response.text;
-    return JSON.parse(text || "[]");
+    
+    let text = response.text || "[]";
+    if (text.startsWith('```json')) {
+      text = text.replace(/```json\n?/, '').replace(/\n?```$/, '').trim();
+    }
+    return JSON.parse(text);
   } catch (e) {
     console.error("Failed to parse search results:", e);
     return [];

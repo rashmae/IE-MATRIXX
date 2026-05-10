@@ -259,7 +259,22 @@ function ResourceCard({ resource }: { resource: Resource }) {
       <Card 
         onClick={() => {
           if (resource.url && resource.url !== '#') {
-            window.open(resource.url, '_blank');
+            if (resource.url.startsWith('data:')) {
+               const link = document.createElement('a');
+               link.href = resource.url;
+               link.download = resource.fileName || 'resource';
+               document.body.appendChild(link);
+               link.click();
+               document.body.removeChild(link);
+            } else {
+               const link = document.createElement('a');
+               link.href = resource.url;
+               link.target = '_blank';
+               link.rel = 'noopener noreferrer';
+               document.body.appendChild(link);
+               link.click();
+               document.body.removeChild(link);
+            }
           } else {
             toast.info('No link available for this resource');
           }

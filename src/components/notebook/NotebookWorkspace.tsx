@@ -134,7 +134,7 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
     if (!chatInput.trim() || isChatLoading || !notebook) return;
 
     if (!aiAvailable) {
-      toast.error('AI is not configured. Please add VITE_GEMINI_API_KEY.');
+      toast.error('AI is not configured. Please add an AI API Key.');
       return;
     }
 
@@ -335,7 +335,7 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
           {!aiAvailable && (
             <div className="shrink-0 mx-4 mt-4 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
               <p className="text-xs font-bold text-amber-500 flex items-center gap-2">
-                <AlertCircle size={14} /> AI chat requires VITE_GEMINI_API_KEY to be configured.
+                <AlertCircle size={14} /> AI chat requires an AI API Key to be configured.
               </p>
             </div>
           )}
@@ -356,7 +356,7 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
                     <p className="text-foreground/40 text-sm max-w-md mx-auto mt-2 leading-relaxed">
                       {aiAvailable 
                         ? "Your personal context-aware research assistant. Summarize, extract facts, or analyze your imported materials."
-                        : "AI features are currently disabled. Please configure VITE_GEMINI_API_KEY to use the research assistant."
+                        : "AI features are currently disabled. Please configure an AI API Key to use the research assistant."
                       }
                     </p>
                   </div>
@@ -465,7 +465,7 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
                 <input
                   value={chatInput}
                   onChange={e => setChatInput(e.target.value)}
-                  placeholder={aiAvailable ? "Ask a question about your sources..." : "AI unavailable — configure VITE_GEMINI_API_KEY"}
+                  placeholder={aiAvailable ? "Ask a question about your sources..." : "AI unavailable — configure an AI API Key"}
                   disabled={!aiAvailable || isChatLoading}
                   className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-foreground/30 font-medium h-10 min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
                 />

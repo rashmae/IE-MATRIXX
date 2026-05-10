@@ -966,11 +966,16 @@ export default function SubjectDetail() {
 
               {subject.isAvailable && subject.syllabusUrl ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                  <motion.div 
-                    whileHover={{ scale: 1.02 }}
-                    className="relative aspect-[3/4] max-w-[320px] mx-auto md:mx-0 neumorphic-card overflow-hidden group cursor-pointer"
-                    onClick={() => window.open(subject.syllabusUrl!, '_blank')}
+                  <a 
+                    href={subject.syllabusUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block relative aspect-[3/4] max-w-[320px] mx-auto md:mx-0 neumorphic-card overflow-hidden group cursor-pointer"
                   >
+                    <motion.div 
+                      whileHover={{ scale: 1.02 }}
+                      className="w-full h-full"
+                    >
                     {/* Stylized Document Preview */}
                     <div className="absolute inset-0 bg-white p-8">
                       <div className="w-full h-full border-2 border-slate-100 rounded-lg p-6 flex flex-col gap-4">
@@ -1012,7 +1017,8 @@ export default function SubjectDetail() {
                     <div className="absolute top-4 right-[-35px] rotate-45 bg-blue-500 text-white px-10 py-1 text-[10px] font-black uppercase tracking-widest shadow-lg">
                       Official
                     </div>
-                  </motion.div>
+                    </motion.div>
+                  </a>
 
                   <div className="space-y-6">
                     <div>
@@ -1024,13 +1030,15 @@ export default function SubjectDetail() {
                     </div>
 
                     <div className="flex flex-col gap-3">
-                      <button 
-                        onClick={() => window.open(subject.syllabusUrl!, '_blank')}
+                      <a 
+                        href={subject.syllabusUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="w-full md:w-fit px-8 py-4 bg-blue-600 text-white rounded-2xl flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95"
                       >
                         <Download size={20} />
                         Download Syllabus (PDF)
-                      </button>
+                      </a>
                       
                       {subject.updatedAt && (
                         <p className="text-[10px] font-bold text-foreground/20 uppercase tracking-widest flex items-center gap-2">
@@ -1099,7 +1107,24 @@ export default function SubjectDetail() {
                     <Card 
                       key={res.id} 
                       onClick={() => {
-                        if (res.url && res.url !== '#') window.open(res.url, '_blank');
+                        if (res.url && res.url !== '#') {
+                          if (res.url.startsWith('data:')) {
+                             const link = document.createElement('a');
+                             link.href = res.url;
+                             link.download = res.fileName || 'resource';
+                             document.body.appendChild(link);
+                             link.click();
+                             document.body.removeChild(link);
+                          } else {
+                             const link = document.createElement('a');
+                             link.href = res.url;
+                             link.target = '_blank';
+                             link.rel = 'noopener noreferrer';
+                             document.body.appendChild(link);
+                             link.click();
+                             document.body.removeChild(link);
+                          }
+                        }
                         else toast.info('No direct link available');
                       }}
                       className="neumorphic-card border-none hover:scale-[1.02] transition-all cursor-pointer group"
