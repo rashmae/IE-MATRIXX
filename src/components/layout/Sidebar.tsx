@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { 
   LayoutDashboard, 
@@ -17,6 +17,8 @@ import { User as UserType } from '@/src/types';
 
 interface SidebarProps {
   user: UserType | null;
+  hideBranding?: boolean;
+  hideActions?: boolean;
 }
 
 const navItems = [
@@ -37,11 +39,8 @@ import { toast } from 'sonner';
 import { auth } from '@/src/lib/firebase';
 import { signOut } from 'firebase/auth';
 
-export default function Sidebar({ user }: SidebarProps) {
+export default function Sidebar({ user, hideBranding = false, hideActions = false }: SidebarProps) {
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const isBoardPage = location.pathname === '/bulletin';
 
   const handleLogout = async () => {
     try {
@@ -60,8 +59,8 @@ export default function Sidebar({ user }: SidebarProps) {
 
   return (
     <aside className="hidden lg:flex flex-col w-72 h-screen bg-background border-r border-foreground/5 sticky top-0 z-10 transition-colors duration-300">
-      {/* Logo and Brand - Hidden on Board Page */}
-      {!isBoardPage && (
+      {/* Logo Area */}
+      {!hideBranding && (
         <div className="p-8 pb-4 flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -94,14 +93,18 @@ export default function Sidebar({ user }: SidebarProps) {
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-               <NotificationCenter />
-            </div>
-            <ThemeToggle className="neumorphic-raised" />
-          </div>
         </div>
       )}
+
+      {/* Global Actions (Theme/Notifs) */}
+      <div className="px-8 flex items-center gap-3 mb-4">
+        {!hideActions && (
+          <div className="flex-1">
+             <NotificationCenter />
+          </div>
+        )}
+        <ThemeToggle className="neumorphic-raised" />
+      </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-6 space-y-4 mt-4">
@@ -143,12 +146,11 @@ export default function Sidebar({ user }: SidebarProps) {
             )}
           </NavLink>
         )}
-
       </nav>
 
       {/* User Info */}
       <div className="p-6 border-t border-foreground/5 space-y-4">
-        {!isBoardPage && (
+        {!hideActions ? (
           <button 
             onClick={() => navigate('/profile')}
             className="flex items-center gap-3 w-full text-left neumorphic-raised hover:neumorphic-pressed p-3 rounded-2xl transition-all group"
@@ -161,6 +163,8 @@ export default function Sidebar({ user }: SidebarProps) {
               <p className="text-[11px] text-foreground/40 truncate font-bold uppercase tracking-wider">{user?.idNumber || '00-00000-000'}</p>
             </div>
           </button>
+        ) : (
+          <div className="p-3 rounded-2xl opacity-0 h-[64px]" /> // Placeholder to keep height consistent
         )}
         <button 
           onClick={handleLogout}

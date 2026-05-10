@@ -234,10 +234,10 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
-      <Sidebar user={profile} />
+      <Sidebar user={profile} hideBranding hideActions />
       
       <main id="main-content" className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-        <MobileHeader />
+        <MobileHeader hideBranding hideActions />
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
@@ -246,29 +246,6 @@ export default function Dashboard() {
             animate={{ x: 0, opacity: 1 }}
             className="flex items-center gap-6"
           >
-            {/* AI Robot Logo in Dashboard */}
-            <div className="relative w-24 h-24 shrink-0 hidden sm:block" aria-hidden="true">
-              <div className="absolute inset-0 bg-ctu-gold/20 rounded-full blur-xl animate-pulse" />
-              <div className="relative w-full h-full neumorphic-raised rounded-full p-1 flex items-center justify-center bg-background overflow-hidden border border-white/10 scale-90">
-                <div className="absolute inset-0 border-2 border-ctu-gold/30 rounded-full animate-[spin_10s_linear_infinite]" />
-                <div className="absolute inset-2 border border-ctu-maroon/20 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
-                
-                <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-ctu-gold via-ctu-maroon to-navy-deep flex items-center justify-center shadow-inner overflow-hidden">
-                  <motion.div 
-                    animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    className="w-8 h-8 rounded-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)] flex items-center justify-center"
-                    role="img"
-                    aria-label="Glowing AI Robot eye representing IE MATRIX intelligence"
-                  >
-                    <div className="w-4 h-4 rounded-full bg-navy-deep flex items-center justify-center">
-                      <div className="w-1.5 h-1.5 rounded-full bg-ctu-gold animate-ping" />
-                    </div>
-                  </motion.div>
-                </div>
-              </div>
-            </div>
-
             <div>
               <h1 
                 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tighter transition-all duration-300 hover:[text-shadow:_0_1px_40px_rgba(146,93,252,0.5)]"
