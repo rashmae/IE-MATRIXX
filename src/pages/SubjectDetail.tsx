@@ -656,11 +656,12 @@ export default function SubjectDetail() {
     setIsSavingSyllabus(true);
     try {
       const subjectRef = doc(db, 'subjects', subject.id);
-      await updateDoc(subjectRef, {
+      await setDoc(subjectRef, {
+        ...subject, // Merge everything to ensure all fields are persisted
         syllabusUrl: syllabusUrlInput,
         isAvailable: true,
         updatedAt: serverTimestamp()
-      });
+      }, { merge: true });
 
       setSubject(prev => prev ? { ...prev, syllabusUrl: syllabusUrlInput, isAvailable: true } : null);
       toast.success("Syllabus updated successfully!");

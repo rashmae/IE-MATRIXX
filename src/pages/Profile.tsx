@@ -17,7 +17,8 @@ import {
   Database,
   Camera,
   Upload,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import Sidebar from '@/src/components/layout/Sidebar';
@@ -55,6 +56,8 @@ import { Button } from '@/components/ui/button';
 
 
 import { useNotifications } from '@/src/hooks/useNotifications';
+
+import { getAvailableProviders, setProviderPreference, AIProvider } from '@/src/lib/gemini';
 
 export default function Profile() {
   const { profile: user, loading: authLoading } = useAuth();
@@ -380,6 +383,26 @@ export default function Profile() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="flex flex-col items-start gap-4 p-5 rounded-2xl neumorphic-pressed group">
+                    <div className="flex items-center gap-4 w-full">
+                      <Sparkles className="text-ctu-gold" size={20} />
+                      <span className="text-sm font-bold text-foreground/80">Preferred AI Model</span>
+                    </div>
+                    <select 
+                      className="w-full bg-background/50 border-none rounded-xl p-3 text-sm font-bold neumorphic-raised appearance-none cursor-pointer"
+                      value={getAvailableProviders().find(p=>p.active)?.id || ''}
+                      onChange={(e) => {
+                        setProviderPreference(e.target.value as any);
+                        toast.success('AI Provider Updated!');
+                        setTimeout(() => window.location.reload(), 500);
+                      }}
+                    >
+                      {getAvailableProviders().length === 0 && <option value="" disabled>No AI Setup</option>}
+                      {getAvailableProviders().map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="flex items-center justify-between p-5 rounded-2xl neumorphic-pressed group">
                     <div className="flex items-center gap-4">
                       <Monitor className="text-ctu-gold" size={20} />

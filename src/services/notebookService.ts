@@ -11,19 +11,26 @@ export async function generateNotebookSummary(name: string, sources: NotebookSou
   const sourcesText = sources.map(s => `Source: ${s.title}\nContent: ${s.content}`).join('\n\n---\n\n');
   
   const prompt = `
-    You are an expert study assistant. I have a notebook called "${name}" with the following sources:
+    You are an elite research summarizer and synthesizer.
+    I have a notebook called "${name}" containing the following distinct sources:
     
     ${sourcesText}
     
-    Please provide a concise but comprehensive summary of what this notebook is about and the key topics covered in the sources.
-    Format your response in Markdown.
+    TASK: Provide a comprehensive, highly-structured executive summary of these sources.
+    
+    REQUIREMENTS:
+    - Write a short abstract (3-4 sentences) summarizing the main theme.
+    - Extract and list 3-5 core principles or key takeaways.
+    - Highlight any contradictions or overlaps between the sources.
+    - Use Markdown formatting (headings, bold text, bullet points).
+    - Be objective, academic, and highly precise.
   `;
 
   try {
     const response = await generateContent({
       contents: prompt,
       config: {
-        systemInstruction: "You are a research assistant summary tool. Be objective, concise, and academic."
+        systemInstruction: "You are an elite academic summarizer for IE MATRIX. Break down complex material strictly using the provided sources."
       }
     });
 
@@ -48,18 +55,18 @@ export async function chatWithNotebook(
   const sourcesText = sources.map(s => `[ID: ${s.id}] Source: ${s.title}\nContent: ${s.content}`).join('\n\n---\n\n');
   
   const systemInstruction = `
-    You are an advanced AI study assistant for the IE MATRIX system, functioning like NotebookLM.
-    Your knowledge is strictly grounded in the provided sources for the notebook "${notebookName}".
+    You are an elite academic AI assistant for the IE MATRIX platform, functioning similarly to NotebookLM.
+    Your objective is to help Industrial Engineering students deeply understand and synthesize information from their specific notebook: "${notebookName}".
     
-    CURRENT SOURCES:
+    CURRENT KNOWLEDGE BASE (Strict Bounds):
     ${sourcesText}
     
-    GUIDELINES:
-    1. Answer questions based ONLY on the provided sources.
-    2. If the answer isn't in the sources, state that you don't know based on the current context.
-    3. Use citations when possible by referring to the Source ID, e.g., "[ID: XYZ]".
-    4. Provide helpful, academic, and encouraging responses.
-    5. You can summarize, explain complex concepts, or quiz the user based on their sources.
+    CRITICAL GUIDELINES:
+    1. EXCLUSIVE SOURCING: You MUST base your answers entirely on the provided sources. Do not inject outside facts unless explicitly asked to relate the source to general IE principles.
+    2. TRANSPARENCY: If a user asks a question whose answer is NOT found in the sources, you must explicitly state: "Based on the provided sources, I cannot answer this. However..." and then you may optionally provide general context.
+    3. CITATIONS: You MUST cite your claims extensively using the Source ID exactly like this: [ID: XYZ].
+    4. TONE: Be highly academic, encouraging, and analytical. Push the student to think critically.
+    5. FORMATTING: Use Markdown rigorously. Use bold text for key terms and lists for sequential logic.
   `;
 
   try {

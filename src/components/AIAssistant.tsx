@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, X, Send, Loader2, Bot, ArrowRight } from 'lucide-react';
-import { getCurriculumAdvice, askQuestion, isAIAvailable } from '@/src/lib/gemini';
+import { getCurriculumAdvice, askQuestion, isAIAvailable, getAvailableProviders } from '@/src/lib/gemini';
 import { IE_SUBJECTS } from '@/src/lib/constants';
 import { useAuth } from '@/src/context/AuthContext';
 import { useProgress } from '@/src/hooks/useProgress';
@@ -88,7 +88,7 @@ export default function AIAssistant() {
     if (!isAIAvailable()) {
       setMessages([{
         role: 'assistant',
-        content: "👋 Hello! I'm your **IE Matrix AI Advisor**. \n\nI noticed that the Gemini API is not yet configured. To enable project-specific advice, curriculum planning, and interactive chat, please add your `an AI API Key` to the environment variables. \n\nIn the meantime, you can still explore the Study Hub, create flashcards, and join squads!"
+        content: "👋 Hello! I'm your **IE Matrix AI Advisor**. \n\nI noticed that no AI provider is configured. To enable project-specific advice, curriculum planning, and interactive chat, please add your `an AI API Key` to the environment variables. \n\nIn the meantime, you can still explore the Study Hub, create flashcards, and join squads!"
       }]);
       setIsOpen(true);
       return;
@@ -180,7 +180,10 @@ export default function AIAssistant() {
                 <RobotMascot size={32} />
                 <div>
                   <h3 className="text-sm font-bold text-foreground">IE Matrix AI Advisor</h3>
-                  <p className="text-[10px] text-foreground/40 uppercase tracking-widest">Powered by Gemini</p>
+                  <p className="text-[10px] text-foreground/40 uppercase tracking-widest flex justify-between">
+                     <span>Powered by {getAvailableProviders().find(p=>p.active)?.name || 'AI'}</span>
+                     <button onClick={() => window.location.href='/profile'} className="hover:text-ctu-gold cursor-pointer ml-2">Change</button>
+                  </p>
                 </div>
               </div>
               <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-foreground/5 rounded-full transition-colors">

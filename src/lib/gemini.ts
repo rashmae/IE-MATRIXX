@@ -45,10 +45,34 @@ export function getGeminiClient(): GoogleGenAI | null {
 export type AIProvider = 'gemini' | 'groq' | 'openrouter' | null;
 
 export function getActiveProvider(): AIProvider {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('ie_matrix_ai_provider') as AIProvider;
+    if (saved === 'gemini' && getEnvKey('VITE_GEMINI_API_KEY')) return 'gemini';
+    if (saved === 'groq' && getEnvKey('VITE_GROQ_API_KEY')) return 'groq';
+    if (saved === 'openrouter' && getEnvKey('VITE_OPENROUTER_API_KEY')) return 'openrouter';
+  }
+
   if (getEnvKey('VITE_GEMINI_API_KEY')) return 'gemini';
   if (getEnvKey('VITE_GROQ_API_KEY')) return 'groq';
   if (getEnvKey('VITE_OPENROUTER_API_KEY')) return 'openrouter';
   return null;
+}
+
+export function setProviderPreference(provider: AIProvider) {
+  if (typeof window !== 'undefined' && provider) {
+    localStorage.setItem('ie_matrix_ai_provider', provider);
+  }
+}
+
+export function getAvailableProviders(): { id: string, name: string, active: boolean }[] {
+  const providers = [];
+  const active = getActiveProvider();
+  
+  if (getEnvKey('VITE_GEMINI_API_KEY')) providers.push({ id: 'gemini', name: 'Gemini 2.0 Flash', active: active === 'gemini' });
+  if (getEnvKey('VITE_GROQ_API_KEY')) providers.push({ id: 'groq', name: 'Groq (Llama 3 8B)', active: active === 'groq' });
+  if (getEnvKey('VITE_OPENROUTER_API_KEY')) providers.push({ id: 'openrouter', name: 'OpenRouter (Mistral 7B)', active: active === 'openrouter' });
+  
+  return providers;
 }
 
 export function isAIAvailable(): boolean {
@@ -184,10 +208,24 @@ async function safeGenerateContent(prompt: string, jsonMode = false, systemInstr
 
 export async function generateStudyPlan(currentProgress: any, subjects: any[]): Promise<any[]> {
   const text = await safeGenerateContent(`
-    You are an expert Industrial Engineering Academic Advisor.
-    Student Progress: ${JSON.stringify(currentProgress)}
-    Curriculum: ${JSON.stringify(subjects.map(s => ({ id: s.id, code: s.code, name: s.name, prerequisites: s.prerequisiteIds })))}
-    Return a JSON array containing the study plan. Each step object must have: { title, description, subjects (array of codes), difficulty ("easy"|"medium"|"hard"), priority ("high"|"medium"|"low"), estimatedTime, breakdown (array of strings) }. Provide ONLY the JSON array.
+    You are an elite academic planner for Industrial Engineering.
+    Student Progress Data: ${JSON.stringify(currentProgress)}
+    Curriculum Data: ${JSON.stringify(subjects.map(s => ({ id: s.id, code: s.code, name: s.name, prerequisites: s.prerequisiteIds })))}
+    
+    TASK: Design an optimized, sequential study roadmap to help this student graduate efficiently while mastering the core engineering competencies.
+    
+    REQUIREMENTS:
+    - Return a JSON array representing the optimal sequence of steps.
+    - Each step object must have: 
+      - title (string): E.g. "Foundation Phase 1", "Core IE Principles"
+      - description (string): A motivating, strategic explanation of this phase.
+      - subjects (array of strings): The subject codes to focus on in this step.
+      - difficulty ("easy"|"medium"|"hard")
+      - priority ("high"|"medium"|"low")
+      - estimatedTime (string): E.g. "4 Weeks", "1 Semester"
+      - breakdown (array of strings): 3 to 5 actionable bullet points on how to approach this specific combination of subjects.
+      
+    - ONLY provide the JSON array in the response, strictly formatted as valid JSON.
   `, true);
   try { 
       const cleanText = text.replace(/```json\n?/, '').replace(/\n?```$/, '').trim();
@@ -197,17 +235,27 @@ export async function generateStudyPlan(currentProgress: any, subjects: any[]): 
 
 export async function askQuestion(question: string, context: string): Promise<string> {
   return await safeGenerateContent(`
-    You are the IE Matrix AI Tutor for Industrial Engineering students at CTU.
-    Context: ${context}
-    Question: ${question}
-    Provide a clear, helpful explanation. Use markdown for formatting.
-  `, false, "You are the IE MATRIX Assistant, a helpful AI advisor for Industrial Engineering students at CTU. Provide accurate, academic, and encouraging responses. Use the provided context to GROUND your answers. Format your output with Markdown.");
+    Context:
+    ${context}
+    
+    Student's question: ${question}
+  `, false, "You are the IE MATRIX assistant—a professional, encouraging, and highly knowledgeable AI tutor for Industrial Engineering (IE) students at Cebu Technological University. Ground your answers deeply in the provided context whenever possible. Provide clear, accurate, structured explanations with real-world IE examples (e.g., Lean Six Sigma, Operations Research, Ergonomics) if relevant. Format your response beautifully using Markdown headings, bullet points, and bold text for key terms.");
 }
 
 export async function generateQuiz(subjectName: string): Promise<any[]> {
   const text = await safeGenerateContent(`
-    Create a 5-question multiple choice quiz for: ${subjectName} (Industrial Engineering).
-    Return ONLY a JSON array of objects with: { question, options (4 strings), answerIndex (0-3), explanation }
+    Create a highly challenging and educational 5-question multiple-choice quiz for the Industrial Engineering subject: "${subjectName}".
+    
+    REQUIREMENTS:
+    - Questions should test deep conceptual understanding, not just rote memorization.
+    - Include scenarios or calculations where appropriate for IE concepts.
+    - Return a valid JSON array of objects, where each object has:
+      - question (string)
+      - options (array of 4 distinct strings)
+      - answerIndex (number 0-3 corresponding to the correct option)
+      - explanation (string explaining WHY the answer is correct and why tricky distractors are wrong)
+      
+    ONLY output the raw JSON array.
   `, true);
   try { 
       const cleanText = text.replace(/```json\n?/, '').replace(/\n?```$/, '').trim();
@@ -217,19 +265,26 @@ export async function generateQuiz(subjectName: string): Promise<any[]> {
 
 export async function getCurriculumAdvice(userProgress: any, subjects: any[]): Promise<string> {
   const result = await safeGenerateContent(`
-    You are an academic advisor for CTU Industrial Engineering students powering IE MATRIX.
     Curriculum: ${JSON.stringify(subjects.map(s => ({ code: s.code, name: s.name, year: s.yearLevel, sem: s.semester })))}
     User Progress: ${JSON.stringify(userProgress)}
-    Provide: 1) Brief encouraging greeting 2) 3 specific pieces of advice 3) Prerequisite bottlenecks.
-    Format in Markdown. Be concise and encouraging.
-  `, false, "You are an expert IE academic advisor for CTU. Be professional, encouraging, and concise. Format the response in Markdown.");
-  return result || "Welcome! Keep up the great work on your IE journey. Check the roadmap for your next steps.";
+    
+    TASK: Analyze the student's progress and the curriculum, then provide strategic academic advice.
+  `, false, "You are an expert Head of Industrial Engineering Academic Advising. Analyze the student's progress to provide strategic, highly personalized advice. Your response must include: 1) A highly encouraging, personalized greeting. 2) 3 specific, data-driven pieces of actionable advice (e.g., focus on a specific prerequisite). 3) Identification of any 'bottleneck' subjects they must prioritize. Format clearly with Markdown utilizing bolding and lists. Keep it energetic, professional, and concise.");
+  return result || "Welcome to IE MATRIX! Keep up the meticulous work on your engineering journey. Check your roadmap for strategic next steps.";
 }
 
 export async function generateFlashcards(topic: string, count = 10): Promise<any[]> {
   const text = await safeGenerateContent(`
-    Generate ${count} flashcards for the IE topic: ${topic}.
-    Return ONLY a JSON array of objects with: { front (question/term), back (answer/definition), hint (optional) }
+    Create ${count} advanced study flashcards for the Industrial Engineering topic: "${topic}".
+    
+    REQUIREMENTS:
+    - Focus on crucial terms, formulas, methodologies, and frameworks.
+    - Return ONLY a valid JSON array of objects with the exact schema:
+      - front (string): The question or term (be concise).
+      - back (string): The thorough, accurate answer or definition.
+      - hint (string): A short contextual clue or mnemonic device to help remember it.
+      
+    ONLY output the raw JSON array.
   `, true);
   try { 
       const cleanText = text.replace(/```json\n?/, '').replace(/\n?```$/, '').trim();
@@ -239,8 +294,13 @@ export async function generateFlashcards(topic: string, count = 10): Promise<any
 
 export async function searchExternalResources(topic: string): Promise<any[]> {
   const text = await safeGenerateContent(`
-    Suggest 4 high-quality learning resources for IE topic: ${topic}.
-    Return ONLY a JSON array of objects with: { title, description, url, type ("video"|"pdf"|"article"|"course") }
+    Recommend 4 exceptionally high-quality, practical learning resources (like textbooks, seminal papers, top YouTube channels, or platforms) for mastering the IE topic: "${topic}".
+    
+    REQUIREMENTS:
+    - Output MUST be a valid JSON array of objects.
+    - Schema: { title (string), description (string - why it's useful to an IE), url (string - provide a realistic search or direct link), type ("video"|"pdf"|"article"|"course") }
+    
+    ONLY output the raw JSON array.
   `, true);
   try { 
       const cleanText = text.replace(/```json\n?/, '').replace(/\n?```$/, '').trim();

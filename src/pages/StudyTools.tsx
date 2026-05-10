@@ -1392,10 +1392,6 @@ export default function StudyTools() {
 
                 <GlowCard className="w-full h-auto p-4 sm:p-14 flex flex-col gap-12 sm:gap-20 relative overflow-hidden" glowColor="blue" customSize>
                   <div className="relative z-20 text-center sm:text-left px-4">
-                    <h2 className="text-3xl sm:text-5xl md:text-7xl font-display font-black mb-4 tracking-tighter uppercase leading-[0.9]">Curriculum Flow</h2>
-                    <p className="text-xs sm:text-lg text-foreground/40 max-w-lg font-medium mx-auto sm:mx-0 leading-relaxed italic">
-                      Visualizing your academic trajectory. Filter and explore subject dependencies across four years of IE training.
-                    </p>
                   </div>
 
                   <div className="w-full flex flex-col items-center gap-12 sm:gap-24 relative z-10 px-1 sm:px-4">

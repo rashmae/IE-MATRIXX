@@ -44,11 +44,7 @@ export default function NotebookList({ onSelect }: NotebookListProps) {
   return (
     <div className="space-y-10 sm:space-y-16">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 sm:gap-10">
-        <div className="hidden md:block">
-          <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-foreground tracking-tighter uppercase leading-[0.85]">Collection Hub</h2>
-          <p className="text-foreground/40 mt-3 text-sm sm:text-lg font-bold tracking-[0.2em] uppercase italic">Your AI-powered research repositories.</p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto ml-auto">
           <div className="relative group w-full sm:w-80">
             <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-foreground/20 group-focus-within:text-ctu-gold transition-colors" />
             <Input 

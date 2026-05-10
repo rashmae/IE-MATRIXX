@@ -1,5 +1,5 @@
 import { Type } from "@google/genai";
-import { getGeminiClient } from "../lib/gemini";
+import { getGeminiClient, generateContent } from "../lib/gemini";
 
 export interface SyllabusData {
   description: string;
@@ -9,44 +9,28 @@ export interface SyllabusData {
 }
 
 export async function extractSyllabusFromUrl(url: string): Promise<SyllabusData | null> {
-  const ai = getGeminiClient();
-  if (!ai) return null;
   try {
-    const response = await ai.models.generateContent({
+    const prompt = `Extract course information from this syllabus URL: ${url}. 
+      Return a summary of the course description, the main modules/topics covered, the course objectives, and learning outcomes.\n\nPlease return a valid JSON object with the following exactly four keys: "description" (string), "topics" (array of strings), "objectives" (array of strings), "learningOutcomes" (array of strings). Do NOT include any markdown code blocks, just pure raw JSON.`;
+
+    const response = await generateContent({
       model: "gemini-2.0-flash",
-      contents: `Extract course information from this syllabus URL: ${url}. 
-      Return a summary of the course description, the main modules/topics covered, the course objectives, and learning outcomes.`,
+      contents: prompt,
       config: {
-        tools: [{ urlContext: {} }],
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            description: { type: Type.STRING, description: "Brief course description" },
-            topics: { 
-              type: Type.ARRAY, 
-              items: { type: Type.STRING },
-              description: "List of main topics or modules"
-            },
-            objectives: { 
-              type: Type.ARRAY, 
-              items: { type: Type.STRING },
-              description: "List of course objectives"
-            },
-            learningOutcomes: { 
-              type: Type.ARRAY, 
-              items: { type: Type.STRING },
-              description: "List of student learning outcomes"
-            }
-          },
-          required: ["description", "topics", "objectives", "learningOutcomes"]
-        }
+        responseMimeType: "application/json"
       }
     });
 
     if (!response.text) return null;
     
-    const data = JSON.parse(response.text.trim());
+    let cleanText = response.text.trim();
+    if(cleanText.startsWith("```json")) {
+        cleanText = cleanText.replace(/```json\n?/, '').replace(/\n?```$/, '').trim();
+    } else if (cleanText.startsWith("```")) {
+        cleanText = cleanText.replace(/```\n?/, '').replace(/\n?```$/, '').trim();
+    }
+
+    const data = JSON.parse(cleanText);
     return data as SyllabusData;
   } catch (error) {
     console.error("Error extracting syllabus data from URL:", error);
@@ -55,10 +39,8 @@ export async function extractSyllabusFromUrl(url: string): Promise<SyllabusData 
 }
 
 export async function extractSyllabusFromFile(fileBase64: string, mimeType: string): Promise<SyllabusData | null> {
-  const ai = getGeminiClient();
-  if (!ai) return null;
   try {
-    const response = await ai.models.generateContent({
+    const response = await generateContent({
       model: "gemini-2.0-flash",
       contents: [
         {
@@ -71,41 +53,26 @@ export async function extractSyllabusFromFile(fileBase64: string, mimeType: stri
               }
             },
             {
-              text: "Extract course information from this syllabus document. Return a summary of the course description, the main modules/topics covered, the course objectives, and learning outcomes."
+              text: `Extract course information from this syllabus document. Return a summary of the course description, the main modules/topics covered, the course objectives, and learning outcomes.\n\nPlease return a valid JSON object with the following exactly four keys: "description" (string), "topics" (array of strings), "objectives" (array of strings), "learningOutcomes" (array of strings). Do NOT include any markdown code blocks, just pure raw JSON.`
             }
           ]
         }
       ],
       config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            description: { type: Type.STRING, description: "Brief course description" },
-            topics: { 
-              type: Type.ARRAY, 
-              items: { type: Type.STRING },
-              description: "List of main topics or modules"
-            },
-            objectives: { 
-              type: Type.ARRAY, 
-              items: { type: Type.STRING },
-              description: "List of course objectives"
-            },
-            learningOutcomes: { 
-              type: Type.ARRAY, 
-              items: { type: Type.STRING },
-              description: "List of student learning outcomes"
-            }
-          },
-          required: ["description", "topics", "objectives", "learningOutcomes"]
-        }
+        responseMimeType: "application/json"
       }
     });
 
     if (!response.text) return null;
     
-    const data = JSON.parse(response.text.trim());
+    let cleanText = response.text.trim();
+    if(cleanText.startsWith("```json")) {
+        cleanText = cleanText.replace(/```json\n?/, '').replace(/\n?```$/, '').trim();
+    } else if (cleanText.startsWith("```")) {
+        cleanText = cleanText.replace(/```\n?/, '').replace(/\n?```$/, '').trim();
+    }
+    
+    const data = JSON.parse(cleanText);
     return data as SyllabusData;
   } catch (error) {
     console.error("Error extracting syllabus data from file:", error);
