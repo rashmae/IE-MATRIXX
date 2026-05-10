@@ -1002,7 +1002,7 @@ export default function StudyTools() {
               transition={{ duration: 0.5 }}
             >
               <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2 flex items-center flex-wrap gap-2 sm:gap-4">
-                Study Hub <Sparkles className="text-ctu-gold shrink-0 sm:size-20" size={24} />
+                Study Hub
               </h1>
               <p className="text-foreground/40 mt-2 sm:mt-3 text-sm sm:text-base md:text-xl font-medium tracking-tight">
                 Elevate your learning with AI guidance and community support.
