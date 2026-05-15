@@ -237,51 +237,85 @@ export default function Catalog() {
     }
 
     setSubjectsLoading(true);
-    const path = 'subjects';
-    const q = query(collection(db, path));
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const firestoreSubjects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+    // We listen to both collections to ensure real-time accuracy and fallback robustness
+    const subjectsQ = query(collection(db, 'subjects'));
+    const ratingsQ = query(collection(db, 'ratings'));
+
+    let firestoreSubjects: any[] = [];
+    let allRatings: any[] = [];
+    let isSubjectsLoaded = false;
+    let isRatingsLoaded = false;
+
+    const mergeAndSet = () => {
+      // 1. Group ratings by normalized subject identifiers
+      const ratingMap: Record<string, { sum: number, count: number }> = {};
       
-      // Merge Firestore data into our official 71 subjects
+      allRatings.forEach(r => {
+        const sid = r.subjectId;
+        if (!sid) return;
+        
+        // Use normalization consistent with SubjectDetail to group ratings correctly
+        const normalizedSid = sid.toUpperCase().replace(/[-\s]/g, "");
+        const matchingOfficial = IE_SUBJECTS.find(s => 
+          s.id.toUpperCase().replace(/[-\s]/g, "") === normalizedSid ||
+          s.code.toUpperCase().replace(/[-\s]/g, "") === normalizedSid
+        );
+
+        const key = matchingOfficial ? matchingOfficial.id : sid;
+
+        if (!ratingMap[key]) ratingMap[key] = { sum: 0, count: 0 };
+        ratingMap[key].sum += (r.rating || 0);
+        ratingMap[key].count += 1;
+      });
+
+      // 2. Merge data into official subjects
       const finalSubjects = IE_SUBJECTS.map(officialSub => {
         const matchingFirestoreSub = firestoreSubjects.find(fs => 
           fs.id === officialSub.id || 
           (fs.code && fs.code.replace(/\s/g, '').toLowerCase() === officialSub.code.replace(/\s/g, '').toLowerCase())
         );
         
-        if (matchingFirestoreSub) {
+        // Priority for ratings:
+        // 1. Live ratings computed from the ratings collection (most accurate/fresh)
+        // 2. Aggregate counts from the subjects collection
+        // 3. Static defaults from constants.ts
+        
+        const liveRating = ratingMap[officialSub.id];
+        let avgRating = officialSub.rating ?? null;
+        let totalCount = officialSub.reviewCount ?? 0;
+
+        if (liveRating && liveRating.count > 0) {
+          avgRating = Number((liveRating.sum / liveRating.count).toFixed(1));
+          totalCount = liveRating.count;
+        } else if (matchingFirestoreSub) {
           const fsRatingCount = matchingFirestoreSub.ratingCount ?? 0;
           const fsTotalSum = matchingFirestoreSub.totalRatingSum ?? 0;
           const fsAvgDirect = matchingFirestoreSub.averageRating;
 
-          // Prefer stored averageRating; compute from sum/count if missing; fallback to static
-          const computedAvg = fsAvgDirect != null
+          avgRating = fsAvgDirect != null
             ? Number(fsAvgDirect)
             : fsRatingCount > 0
               ? Number((fsTotalSum / fsRatingCount).toFixed(1))
               : (officialSub.rating ?? null);
-
-          return {
-            ...officialSub,
-            ...matchingFirestoreSub,
-            id: officialSub.id, 
-            yearLevel: officialSub.yearLevel,
-            semester: officialSub.semester,
-            units: officialSub.units,
-            code: officialSub.code,
-            averageRating: computedAvg, // null means "no real ratings yet"
-            ratingCount: fsRatingCount || (officialSub.reviewCount ?? 0),
-          };
+          totalCount = fsRatingCount || (officialSub.reviewCount ?? 0);
         }
+
         return {
           ...officialSub,
-          averageRating: officialSub.rating ?? null,
-          ratingCount: officialSub.reviewCount ?? 0
+          ...matchingFirestoreSub,
+          // Ensure critical fields are locked to official definitions
+          id: officialSub.id, 
+          yearLevel: officialSub.yearLevel,
+          semester: officialSub.semester,
+          units: officialSub.units,
+          code: officialSub.code,
+          averageRating: avgRating,
+          ratingCount: totalCount,
         };
       });
 
-      // Sort in memory
+      // 3. Sort in memory
       const yearOrder = { '1st': 1, '2nd': 2, '3rd': 3, '4th': 4 };
       const semOrder = { '1st': 1, '2nd': 2, 'Summer': 3 };
 
@@ -292,14 +326,35 @@ export default function Catalog() {
       });
       
       setSubjects(finalSubjects);
-      setSubjectsLoading(false);
+      if (isSubjectsLoaded && isRatingsLoaded) {
+        setSubjectsLoading(false);
+      }
+    };
+
+    const unsubSubjects = onSnapshot(subjectsQ, (snapshot) => {
+      firestoreSubjects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      isSubjectsLoaded = true;
+      mergeAndSet();
     }, (error) => {
-      console.error("Error syncing subjects:", error);
-      setSubjects(IE_SUBJECTS);
-      setSubjectsLoading(false);
+      console.error("Subjects sync error:", error);
+      isSubjectsLoaded = true;
+      mergeAndSet();
     });
 
-    return () => unsubscribe();
+    const unsubRatings = onSnapshot(ratingsQ, (snapshot) => {
+      allRatings = snapshot.docs.map(doc => doc.data());
+      isRatingsLoaded = true;
+      mergeAndSet();
+    }, (error) => {
+      console.warn("Ratings sync error:", error);
+      isRatingsLoaded = true;
+      mergeAndSet();
+    });
+
+    return () => {
+      unsubSubjects();
+      unsubRatings();
+    };
   }, [profile]);
 
   useEffect(() => {
@@ -596,7 +651,7 @@ export default function Catalog() {
       
       <main id="main-content" className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
                 {/* Header & Search */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
           <div>
             <div className="flex items-end gap-4 flex-wrap">
               <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tight leading-[1.1] py-2 sm:py-4">Catalog</h1>
@@ -993,13 +1048,13 @@ export default function Catalog() {
             </div>
 
             {/* Results Grid - Grouped by Year and Semester */}
-            <div className="space-y-16">
+            <div className="space-y-12">
               {['1st', '2nd', '3rd', '4th'].map((year) => {
                 const yearSubjects = filteredSubjects.filter(s => s.yearLevel === year);
                 if (yearSubjects.length === 0) return null;
 
                 return (
-                  <div key={year} className="space-y-8">
+                  <div key={year} className="space-y-6">
                     <div className="flex items-center gap-4 flex-wrap">
                       <div className="flex items-center justify-center w-10 h-10 rounded-2xl neumorphic-pressed shadow-inner border border-foreground/5 bg-background">
                         <span className={cn("text-base font-black", 
@@ -1029,7 +1084,7 @@ export default function Catalog() {
                       if (semSubjects.length === 0) return null;
 
                       return (
-                        <div key={`${year}-${sem}`} className="space-y-6 ml-6">
+                        <div key={`${year}-${sem}`} className="space-y-4 ml-6">
                           <div className="flex items-center gap-4">
                             <div className="flex flex-col">
                               <span className="text-[8px] font-black uppercase tracking-[0.3em] text-foreground/20">Term</span>
@@ -1046,7 +1101,7 @@ export default function Catalog() {
                           <motion.div 
                             layout
                             className={cn(
-                              "grid gap-8",
+                              "grid gap-6",
                               viewMode === 'grid' ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 items-stretch" : "grid-cols-1"
                             )}
                           >
@@ -1067,7 +1122,7 @@ export default function Catalog() {
                                     customSize
                                     className={cn(
                                       "w-full h-full border-none transition-all cursor-pointer group relative overflow-hidden !flex",
-                                      viewMode === 'grid' ? "flex-col justify-between hover:scale-[1.02] min-h-[380px]" : "flex-row items-center p-3 sm:p-5"
+                                      viewMode === 'grid' ? "flex-col justify-between hover:scale-[1.02] min-h-[290px]" : "flex-row items-center p-2 sm:p-4"
                                     )}
                                   >
                                     <div className={cn(
@@ -1078,26 +1133,26 @@ export default function Catalog() {
                                     {viewMode === 'grid' ? (
                                       <div className="p-2 flex flex-1 flex-col relative z-10 w-full group/card">
                                         {/* Card Top: Code & Rating */}
-                                        <div className="flex justify-between items-start mb-4">
-                                          <div className="flex flex-col gap-1">
-                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-ctu-gold/60">
-                                              {subject.yearLevel} Year • {subject.semester}
+                                        <div className="flex justify-between items-start mb-2">
+                                          <div className="flex flex-col gap-0.5">
+                                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-ctu-gold/60">
+                                              {subject.yearLevel} • {subject.semester}
                                             </span>
-                                            <div className="bg-ctu-maroon/10 text-ctu-maroon border border-ctu-maroon/20 px-3 py-1 rounded-lg text-xs font-black tracking-widest inline-flex items-center w-fit shadow-sm">
+                                            <div className="bg-ctu-maroon/10 text-ctu-maroon border border-ctu-maroon/20 px-2 py-0.5 rounded-md text-[9px] font-black tracking-widest inline-flex items-center w-fit shadow-sm">
                                               <HighlightedText text={subject.code} term={debouncedSearch} />
                                             </div>
                                           </div>
                                           
-                                          <div className="flex items-center gap-1.5 bg-background/50 backdrop-blur-md px-2 py-1 rounded-xl border border-white/10 neumorphic-raised">
-                                            {subject.averageRating === null ? (
-                                              <div className="flex items-center gap-1.5 px-1 opacity-60 grayscale">
-                                                <Star size={10} className="text-foreground/30" />
-                                                <span className="text-[9px] font-bold text-foreground/40 uppercase tracking-widest hidden sm:inline">No Ratings</span>
+                                          <div className="flex items-center gap-1.5 bg-background/50 backdrop-blur-md px-1.5 py-1 rounded-xl border border-white/5 neumorphic-raised min-h-[22px]">
+                                            {!subject.averageRating ? (
+                                              <div className="flex items-center gap-1 px-1 opacity-40">
+                                                <Star size={9} className="text-foreground/40" />
+                                                <span className="text-[8px] font-black text-foreground/50 uppercase tracking-widest">N/A</span>
                                               </div>
                                             ) : (
                                               <>
                                                 <Star size={10} className="text-ctu-gold fill-ctu-gold" />
-                                                <span className="text-[10px] font-black text-foreground">{Number(subject.averageRating).toFixed(1)}</span>
+                                                <span className="text-xs font-black text-foreground">{Number(subject.averageRating).toFixed(1)}</span>
                                                 {subject.ratingCount > 0 && <span className="text-[8px] font-bold text-foreground/40">({subject.ratingCount})</span>}
                                               </>
                                             )}
@@ -1105,15 +1160,15 @@ export default function Catalog() {
                                         </div>
 
                                         {/* Card Middle: Icon & Title */}
-                                        <div className="flex-1 flex flex-col items-center justify-start py-4 text-center">
-                                          <div className="w-20 h-20 rounded-[2rem] neumorphic-raised bg-background/40 flex items-center justify-center text-ctu-gold mb-6 group-hover/card:scale-110 transition-transform duration-500 relative shrink-0">
+                                        <div className="flex-1 flex flex-col items-center justify-center py-1 text-center">
+                                          <div className="w-16 h-16 rounded-[2rem] neumorphic-raised bg-background/40 flex items-center justify-center text-ctu-gold mb-3 group-hover/card:scale-110 transition-transform duration-500 relative shrink-0">
                                             <div className="absolute inset-0 bg-ctu-gold/5 rounded-inherit animate-pulse" />
-                                            <SubjectIcon iconName={subject.icon} className="w-10 h-10 relative z-10 drop-shadow-[0_0_15px_rgba(234,179,8,0.3)]" />
+                                            <SubjectIcon iconName={subject.icon} className="w-8 h-8 relative z-10 drop-shadow-[0_0_15px_rgba(234,179,8,0.3)]" />
                                           </div>
 
-                                          {/* Standardized title container to keep text top-aligned */}
-                                          <div className="flex flex-col items-center justify-start w-full px-2 mb-3">
-                                            <h3 className="text-xl font-black text-foreground group-hover/card:text-ctu-gold transition-colors leading-[1.15] text-center uppercase tracking-tighter italic line-clamp-3">
+                                          {/* Standardized title container to keep text centered */}
+                                          <div className="flex flex-col items-center justify-center w-full px-1 mb-2 min-h-[4rem]">
+                                            <h3 className="text-lg font-black text-foreground group-hover/card:text-ctu-gold transition-colors leading-[1.1] text-center uppercase tracking-tighter italic line-clamp-3">
                                               <HighlightedText text={subject.name} term={debouncedSearch} />
                                             </h3>
                                           </div>
@@ -1133,7 +1188,7 @@ export default function Catalog() {
                                         </div>
 
                                         {/* Card Bottom: Admin & Progress */}
-                                        <div className="mt-6 pt-5 border-t border-foreground/5 space-y-4">
+                                        <div className="mt-4 pt-4 border-t border-foreground/5 space-y-4">
                                           {isAdmin && (
                                             <Button
                                               size="sm"

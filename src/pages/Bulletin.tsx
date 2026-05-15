@@ -89,7 +89,7 @@ export default function Bulletin() {
       
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
         <MobileHeader />
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-8">
           <div>
             <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Board</h1>
             <p className="text-foreground/40 mt-2 sm:mt-3 text-sm sm:text-base md:text-xl font-medium tracking-tight">Stay updated with the latest IE department news.</p>
@@ -113,7 +113,7 @@ export default function Bulletin() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <AnimatePresence mode="popLayout">
             {filteredAnnouncements.map((ann) => (
               <motion.div
@@ -131,8 +131,8 @@ export default function Bulletin() {
                     ann.isPinned && "border-l-4 border-ctu-gold"
                   )}
                 >
-                  <CardContent className="p-8 flex flex-col h-full">
-                    <div className="flex justify-between items-start mb-6">
+                  <CardContent className="p-6 flex flex-col h-full">
+                    <div className="flex justify-between items-start mb-4">
                       <Badge variant="outline" className={cn("font-bold uppercase text-[10px] px-3 py-1 rounded-full border-none neumorphic-pressed", getCategoryColor(ann.category))}>
                         {ann.category}
                       </Badge>
@@ -143,15 +143,15 @@ export default function Bulletin() {
                       )}
                     </div>
 
-                    <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-ctu-gold transition-colors line-clamp-2 leading-tight">
+                    <h3 className="text-xl font-bold text-foreground mb-3 group-hover:text-ctu-gold transition-colors line-clamp-2 leading-tight">
                       {ann.title}
                     </h3>
                     
-                    <p className="text-sm text-foreground/60 line-clamp-3 mb-8 flex-1 font-medium leading-relaxed">
+                    <p className="text-sm text-foreground/60 line-clamp-3 mb-6 flex-1 font-medium leading-relaxed">
                       {ann.content}
                     </p>
 
-                    <div className="flex items-center justify-between pt-6 border-t border-foreground/5 text-[10px] font-bold uppercase text-foreground/40 tracking-widest">
+                    <div className="flex items-center justify-between pt-4 border-t border-foreground/5 text-[10px] font-bold uppercase text-foreground/40 tracking-widest">
                       <div className="flex items-center gap-2">
                         <Calendar size={14} />
                         {new Date(ann.createdAt).toLocaleDateString()}
@@ -171,15 +171,15 @@ export default function Bulletin() {
         <Dialog open={!!selectedAnnouncement} onOpenChange={(open) => !open && setSelectedAnnouncement(null)}>
           <DialogContent className="max-w-[95vw] w-full h-[85dvh] overflow-y-auto overscroll-contain neumorphic-card border-none text-foreground p-0">
             {selectedAnnouncement && (
-              <div className="p-10">
-                <DialogHeader className="mb-8">
+              <div className="p-6 sm:p-8">
+                <DialogHeader className="mb-6">
                   <div className="flex items-center gap-4 mb-4">
                     <Badge variant="outline" className={cn("font-bold uppercase text-[10px] px-4 py-1.5 rounded-full border-none neumorphic-pressed", getCategoryColor(selectedAnnouncement.category))}>
                       {selectedAnnouncement.category}
                     </Badge>
                     {selectedAnnouncement.isPinned && <Badge className="bg-ctu-gold text-navy-deep font-bold text-[10px] px-4 py-1.5 rounded-full">PINNED</Badge>}
                   </div>
-                  <DialogTitle className="text-4xl font-display font-bold leading-tight text-foreground">
+                  <DialogTitle className="text-3xl font-display font-bold leading-tight text-foreground">
                     {selectedAnnouncement.title}
                   </DialogTitle>
                   <div className="flex items-center gap-6 text-xs text-foreground/40 pt-4 font-bold uppercase tracking-widest">
@@ -187,10 +187,10 @@ export default function Bulletin() {
                     <span className="flex items-center gap-2"><Clock size={16} className="text-ctu-gold" /> 10:30 AM</span>
                   </div>
                 </DialogHeader>
-                <div className="py-8 text-foreground/70 leading-relaxed whitespace-pre-wrap font-medium text-lg border-t border-foreground/5">
+                <div className="py-6 text-foreground/70 leading-relaxed whitespace-pre-wrap font-medium text-lg border-t border-foreground/5">
                   {selectedAnnouncement.content}
                 </div>
-                <div className="pt-8 border-t border-foreground/5 flex justify-end">
+                <div className="pt-6 border-t border-foreground/5 flex justify-end">
                   <button 
                     onClick={() => setSelectedAnnouncement(null)}
                     className="px-8 py-3 neumorphic-raised hover:neumorphic-pressed rounded-2xl font-bold transition-all text-foreground"
