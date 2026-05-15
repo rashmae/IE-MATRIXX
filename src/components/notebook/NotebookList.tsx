@@ -133,7 +133,7 @@ export default function NotebookList({ onSelect }: NotebookListProps) {
       )}
 
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="max-w-[95vw] w-full bg-background rounded-[2.5rem] sm:rounded-[4rem] border-none shadow-3xl p-8 sm:p-16 overflow-hidden">
+        <DialogContent className="max-w-[95vw] w-full bg-background rounded-[2.5rem] sm:rounded-[4rem] border-none shadow-3xl p-8 sm:p-16 h-[85dvh] overflow-y-auto overscroll-contain">
           <div className="relative z-10">
             <DialogHeader className="mb-10 sm:mb-16">
               <DialogTitle className="text-3xl sm:text-5xl font-black uppercase tracking-tighter leading-none mb-4">Initialize Vault</DialogTitle>

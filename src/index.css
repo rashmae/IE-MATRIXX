@@ -356,3 +356,8 @@
 .rotate-y-180 {
   transform: rotateY(180deg);
 }
+
+/* Ensure Radix Dialog/Sheet portals render above BottomNav */
+[data-radix-portal] {
+  z-index: 200 !important;
+}

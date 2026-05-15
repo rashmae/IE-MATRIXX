@@ -10,7 +10,8 @@ import {
   CalendarDays,
   LogOut,
   User,
-  ShieldCheck
+  ShieldCheck,
+  BrainCircuit
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { User as UserType } from '@/src/types';
@@ -31,7 +32,6 @@ const navItems = [
   { name: 'School Calendar', icon: CalendarDays, path: '/calendar' },
 ];
 
-import { BrainCircuit } from 'lucide-react';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import NotificationCenter from './NotificationCenter';
 import { toast } from 'sonner';
@@ -97,13 +97,13 @@ export default function Sidebar({ user, hideBranding = false, hideActions = fals
       )}
 
       {/* Global Actions (Theme/Notifs) */}
-      <div className="px-8 flex items-center gap-3 mb-4">
+      <div className="px-6 flex items-center gap-2 mb-4">
         {!hideActions && (
-          <div className="flex-1">
-             <NotificationCenter />
-          </div>
+          <>
+            <NotificationCenter />
+          </>
         )}
-        <ThemeToggle className="neumorphic-raised" />
+        <ThemeToggle className="neumorphic-raised shrink-0" />
       </div>
 
       {/* Navigation */}

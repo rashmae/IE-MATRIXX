@@ -273,7 +273,7 @@ export default function ProgressPage() {
                 </button>
               }
             />
-            <DialogContent className="max-w-md p-0 overflow-hidden border-none bg-transparent shadow-none">
+            <DialogContent className="max-w-md h-[85dvh] overflow-y-auto overscroll-contain p-0 border-none bg-transparent shadow-none">
               <GradeConverter />
             </DialogContent>
           </Dialog>

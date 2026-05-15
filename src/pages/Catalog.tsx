@@ -1212,7 +1212,7 @@ export default function Catalog() {
 
       {/* Admin Upload Dialog */}
       <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-background border border-foreground/5 rounded-[32px] overflow-hidden">
+        <DialogContent className="sm:max-w-md bg-background border border-foreground/5 rounded-[32px] h-[85dvh] overflow-y-auto overscroll-contain">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold flex items-center gap-2">
               <div className="p-2 bg-ctu-gold/10 rounded-xl">

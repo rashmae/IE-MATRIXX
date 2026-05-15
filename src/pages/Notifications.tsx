@@ -42,7 +42,7 @@ export default function Notifications() {
     return (
       <div className="min-h-screen bg-background flex">
         <Sidebar user={null} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36">
+        <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
           <div className="h-20 neumorphic-pressed rounded-3xl animate-pulse mb-8" />
           <div className="space-y-4">
             {[1, 2, 3, 4].map(i => (

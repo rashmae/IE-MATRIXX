@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
+import MobileHeader from '@/src/components/layout/MobileHeader';
 import { User, Announcement, AnnouncementCategory } from '@/src/types/index';
 import { ANNOUNCEMENTS } from '@/src/lib/constants';
 import { Badge } from '@/components/ui/badge';
@@ -87,6 +88,7 @@ export default function Bulletin() {
       <Sidebar user={profile} />
       
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
+        <MobileHeader />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
           <div>
             <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Board</h1>
@@ -167,7 +169,7 @@ export default function Bulletin() {
         </div>
 
         <Dialog open={!!selectedAnnouncement} onOpenChange={(open) => !open && setSelectedAnnouncement(null)}>
-          <DialogContent className="max-w-[95vw] w-full h-[85dvh] overflow-y-auto overscroll-contain neumorphic-card border-none text-foreground p-0 overflow-hidden">
+          <DialogContent className="max-w-[95vw] w-full h-[85dvh] overflow-y-auto overscroll-contain neumorphic-card border-none text-foreground p-0">
             {selectedAnnouncement && (
               <div className="p-10">
                 <DialogHeader className="mb-8">

@@ -272,7 +272,7 @@ export default function CalendarPage() {
         )}
 
         <Dialog open={!!selectedDayEvents} onOpenChange={(open) => !open && setSelectedDayEvents(null)}>
-          <DialogContent className="sm:max-w-[425px] neumorphic-card border-none p-8">
+          <DialogContent className="sm:max-w-[425px] h-[85dvh] overflow-y-auto overscroll-contain neumorphic-card border-none p-8">
             <DialogHeader>
               <DialogTitle className="text-2xl font-black tracking-tight">{selectedDayLabel}</DialogTitle>
               <DialogDescription className="text-xs font-bold uppercase tracking-widest text-ctu-gold">

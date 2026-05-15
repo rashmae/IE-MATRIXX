@@ -249,7 +249,7 @@ export default function Profile() {
                         </Button>
                       }
                     />
-                    <DialogContent className="neumorphic-card border-none rounded-[32px] max-w-md p-0 overflow-hidden">
+                    <DialogContent className="neumorphic-card border-none rounded-[32px] h-[85dvh] overflow-y-auto overscroll-contain max-w-md p-0">
                       <div className="p-8 border-b border-foreground/5">
                         <DialogTitle className="text-2xl font-bold">Personal Information</DialogTitle>
                         <p className="text-xs text-foreground/40 font-bold uppercase tracking-widest mt-1">Update your matrix credentials</p>

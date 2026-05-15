@@ -1338,7 +1338,7 @@ export default function SubjectDetail() {
                   </div>
 
                   <Dialog open={isRatingModalOpen} onOpenChange={setIsRatingModalOpen}>
-                    <DialogContent className="neumorphic-card border-none text-foreground max-w-md p-0 overflow-hidden">
+                    <DialogContent className="neumorphic-card border-none text-foreground max-w-md p-0 h-[85dvh] overflow-y-auto overscroll-contain">
                       <div className="p-10 space-y-8">
                         <DialogHeader>
                           <ModalTitle className="text-3xl font-bold text-foreground">Rate {subject.name}</ModalTitle>
@@ -1422,7 +1422,7 @@ export default function SubjectDetail() {
 
       {/* Admin Upload Dialog */}
       <Dialog open={isSyllabusDialogOpen} onOpenChange={setIsSyllabusDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-background border border-foreground/5 rounded-[32px] overflow-hidden">
+        <DialogContent className="sm:max-w-md bg-background border border-foreground/5 rounded-[32px] h-[85dvh] overflow-y-auto overscroll-contain">
           <DialogHeader>
             <ModalTitle className="text-2xl font-bold flex items-center gap-2">
               <div className="p-2 bg-ctu-gold/10 rounded-xl">

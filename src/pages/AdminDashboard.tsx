@@ -168,7 +168,7 @@ export default function AdminDashboard() {
     return (
       <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
         <Sidebar user={null} />
-        <main className="flex-1 p-6 lg:p-10 pb-32 lg:pb-10 overflow-x-hidden">
+        <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
           <HeaderSkeleton />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
             <StatSkeleton />

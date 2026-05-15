@@ -486,7 +486,7 @@ export default function NotebookWorkspace({ notebookId, onBack }: NotebookWorksp
       </div>
 
       <Dialog open={isAddSourceOpen} onOpenChange={setIsAddSourceOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[90dvh] rounded-[30px] sm:rounded-[40px] border-none neumorphic-card p-0 overflow-hidden flex flex-col">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl h-[85dvh] overflow-y-auto overscroll-contain rounded-[30px] sm:rounded-[40px] border-none neumorphic-card p-0 flex flex-col">
           <div className="p-6 sm:p-8 border-b border-foreground/5 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <DialogTitle className="text-2xl sm:text-3xl font-black text-center sm:text-left">Add Source</DialogTitle>

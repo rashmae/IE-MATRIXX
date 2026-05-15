@@ -21,7 +21,7 @@ export default function MobileHeader({ hideBranding = false, hideActions = false
   if (hideBranding && hideActions) return null;
 
   return (
-    <div className="md:hidden flex items-center justify-between mb-8 px-2">
+    <div className="md:hidden flex items-center justify-between mb-4 px-2">
       {!hideBranding && (
         <motion.div 
           initial={{ opacity: 0, x: -10 }}
