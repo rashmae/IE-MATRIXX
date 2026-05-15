@@ -1047,7 +1047,7 @@ export default function Catalog() {
                             layout
                             className={cn(
                               "grid gap-8",
-                              viewMode === 'grid' ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
+                              viewMode === 'grid' ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 items-stretch" : "grid-cols-1"
                             )}
                           >
                             <AnimatePresence mode="popLayout">
@@ -1059,13 +1059,14 @@ export default function Catalog() {
                                   animate={{ opacity: 1, y: 0 }}
                                   exit={{ opacity: 0, scale: 0.95 }}
                                   transition={{ duration: 0.3 }}
+                                  className="h-full"
                                 >
                                   <GlowCard 
                                     onClick={() => navigate(`/catalog/${subject.id}`)}
                                     glowColor={idx % 2 === 0 ? 'blue' : 'orange'}
                                     customSize
                                     className={cn(
-                                      "w-full h-full border-none transition-all cursor-pointer group relative overflow-hidden flex",
+                                      "w-full h-full border-none transition-all cursor-pointer group relative overflow-hidden !flex",
                                       viewMode === 'grid' ? "flex-col justify-between hover:scale-[1.02] min-h-[380px]" : "flex-row items-center p-3 sm:p-5"
                                     )}
                                   >
@@ -1075,7 +1076,7 @@ export default function Catalog() {
                                     )} />
                                     
                                     {viewMode === 'grid' ? (
-                                      <div className="p-6 flex flex-col h-full relative z-10 w-full group/card">
+                                      <div className="p-2 flex flex-1 flex-col relative z-10 w-full group/card">
                                         {/* Card Top: Code & Rating */}
                                         <div className="flex justify-between items-start mb-4">
                                           <div className="flex flex-col gap-1">
@@ -1104,14 +1105,15 @@ export default function Catalog() {
                                         </div>
 
                                         {/* Card Middle: Icon & Title */}
-                                        <div className="flex-1 flex flex-col items-center justify-center py-4 text-center">
-                                          <div className="w-20 h-20 rounded-[2rem] neumorphic-raised bg-background/40 flex items-center justify-center text-ctu-gold mb-6 group-hover/card:scale-110 transition-transform duration-500 relative">
+                                        <div className="flex-1 flex flex-col items-center justify-start py-4 text-center">
+                                          <div className="w-20 h-20 rounded-[2rem] neumorphic-raised bg-background/40 flex items-center justify-center text-ctu-gold mb-6 group-hover/card:scale-110 transition-transform duration-500 relative shrink-0">
                                             <div className="absolute inset-0 bg-ctu-gold/5 rounded-inherit animate-pulse" />
                                             <SubjectIcon iconName={subject.icon} className="w-10 h-10 relative z-10 drop-shadow-[0_0_15px_rgba(234,179,8,0.3)]" />
                                           </div>
-                                          
-                                          <div className="h-16 flex items-center justify-center mb-4">
-                                            <h3 className="text-2xl font-black text-foreground group-hover/card:text-ctu-gold transition-colors leading-[1.1] text-center uppercase tracking-tighter italic line-clamp-3">
+
+                                          {/* Standardized title container to keep text top-aligned */}
+                                          <div className="flex flex-col items-center justify-start w-full px-2 mb-3">
+                                            <h3 className="text-xl font-black text-foreground group-hover/card:text-ctu-gold transition-colors leading-[1.15] text-center uppercase tracking-tighter italic line-clamp-3">
                                               <HighlightedText text={subject.name} term={debouncedSearch} />
                                             </h3>
                                           </div>
@@ -1144,7 +1146,7 @@ export default function Catalog() {
                                             </Button>
                                           )}
 
-                                          <div className="flex items-center justify-between">
+                                          <div className="flex items-center justify-between h-10">
                                             {progressMap[subject.id]?.status === 'done' ? (
                                               <div className="flex items-center gap-2 w-full">
                                                 <div className="flex-1 flex items-center gap-2 bg-emerald-500/10 text-emerald-500 px-3 py-2 rounded-xl border border-emerald-500/20">
@@ -1178,7 +1180,7 @@ export default function Catalog() {
                                         </div>
                                       </div>
                                     ) : (
-                                      <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-8 relative z-10 w-full px-5 py-4 group/card">
+                                      <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-8 relative z-10 w-full px-1 py-0 group/card">
                                         {/* Left Side: Code & Icon */}
                                         <div className="flex items-center gap-5 flex-1 min-w-0">
                                           <div className="shrink-0 w-16 h-16 rounded-2xl neumorphic-raised bg-background/50 border border-foreground/5 flex flex-col items-center justify-center relative overflow-hidden">
