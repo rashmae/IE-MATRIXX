@@ -1364,7 +1364,7 @@ export default function StudyTools() {
             >
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10 sm:mb-16">
                   <div className="flex-1">
-                    <h2 className="text-3xl sm:text-5xl md:text-6xl frosted-header font-black tracking-tighter leading-[0.85] py-2 flex items-center flex-wrap gap-4 sm:gap-8">
+                    <h2 className="text-2xl sm:text-4xl md:text-5xl frosted-header font-black tracking-tighter leading-[0.85] py-2 flex items-center flex-wrap gap-4 sm:gap-8">
                        Matrix <Layers size={28} className="text-ctu-gold sm:size-24 shrink-0" />
                     </h2>
                     <p className="text-xs sm:text-sm md:text-xl text-foreground/40 font-bold mt-4 tracking-[0.2em] uppercase">Interactive curriculum flow analysis.</p>
@@ -1490,7 +1490,7 @@ export default function StudyTools() {
             >
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 sm:gap-10">
                   <div>
-                    <h2 className="text-3xl sm:text-5xl md:text-6xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
+                    <h2 className="text-2xl sm:text-4xl md:text-5xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
                        Active Squads <Users size={24} className="text-ctu-gold sm:size-20 shrink-0" />
                     </h2>
                     <p className="text-sm sm:text-base md:text-xl text-foreground/40 font-medium mt-1 sm:mt-2 tracking-tight">Peer-to-peer intelligence networks and collaborative study groups.</p>
@@ -1642,7 +1642,7 @@ export default function StudyTools() {
             >
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 sm:gap-10">
                   <div>
-                    <h2 className="text-3xl sm:text-5xl md:text-6xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
+                    <h2 className="text-2xl sm:text-4xl md:text-5xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
                        Forum Hub <MessageSquare size={24} className="text-ctu-gold shrink-0 sm:size-20" />
                     </h2>
                     <p className="text-sm sm:text-base md:text-xl text-foreground/40 font-medium mt-1 sm:mt-2 tracking-tight">Collective intelligence pool for query resolution.</p>
@@ -1806,7 +1806,7 @@ export default function StudyTools() {
                     <div className="space-y-6 md:space-y-12">
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 md:gap-8">
                         <div>
-                          <h2 className="text-3xl sm:text-5xl md:text-6xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
+                          <h2 className="text-2xl sm:text-4xl md:text-5xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
                              Flash Decks <BookOpen size={24} className="text-ctu-gold sm:size-20 shrink-0" />
                           </h2>
                           <p className="text-sm sm:text-base md:text-xl text-foreground/40 font-medium mt-2 sm:mt-3 tracking-tight">Accelerate mastery through strategic retention cycles.</p>
@@ -2124,7 +2124,7 @@ export default function StudyTools() {
                 >
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 mb-2 sm:mb-0">
                   <div>
-                    <h2 className="text-3xl sm:text-5xl md:text-6xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
+                    <h2 className="text-2xl sm:text-4xl md:text-5xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
                        Quizzes <Award size={24} className="text-ctu-gold sm:size-20 shrink-0" />
                     </h2>
                     <p className="text-[10px] sm:text-base md:text-xl text-foreground/40 font-medium mt-1 sm:mt-2 tracking-tight">Challenge yourself with dynamically generated assessments.</p>
@@ -2308,7 +2308,7 @@ export default function StudyTools() {
               >
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 sm:gap-10">
                   <div>
-                    <h2 className="text-3xl sm:text-5xl md:text-6xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
+                    <h2 className="text-2xl sm:text-4xl md:text-5xl frosted-header font-black tracking-tighter leading-[0.9] py-1 sm:py-2 flex items-center flex-wrap gap-3 sm:gap-6">
                        Notebooks <BookOpen size={24} className="text-ctu-gold shrink-0 sm:size-20" />
                     </h2>
                     <p className="text-sm sm:text-base md:text-xl text-foreground/40 font-medium mt-1 sm:mt-2 tracking-tight">Structured knowledge repositories and smart study logs.</p>

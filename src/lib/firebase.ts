@@ -1,6 +1,6 @@
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { initializeFirestore, doc, query, collection, limit, getDocs, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc, query, collection, limit, getDocs, getDocFromServer } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 // Safely attempt to load the local config file if it exists. 
@@ -44,9 +44,7 @@ const getSafeService = (serviceFactory: any, ...args: any[]) => {
 };
 
 const auth = getSafeService(getAuth) as ReturnType<typeof getAuth>;
-const db = getSafeService(initializeFirestore, {
-  experimentalForceLongPolling: true,
-}, databaseId) as ReturnType<typeof initializeFirestore>;
+const db = getSafeService(getFirestore, databaseId) as ReturnType<typeof getFirestore>;
 const storage = getSafeService(getStorage) as ReturnType<typeof getStorage>;
 
 export { app, auth, db, storage };

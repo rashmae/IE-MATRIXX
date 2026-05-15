@@ -331,14 +331,14 @@ export default function SubjectDetail() {
   }, [subject]);
 
   const averageRating = useMemo(() => {
-    if (ratings.length === 0) return 0;
+    if (ratings.length === 0) return null;
     return Number((ratings.reduce((acc, curr) => acc + curr.rating, 0) / ratings.length).toFixed(1));
   }, [ratings]);
 
   const displayRating = useMemo(() => {
-    if (ratings.length === 0) return "0.0";
+    if (averageRating === null) return "No Ratings";
     return averageRating.toFixed(1);
-  }, [averageRating, ratings.length]);
+  }, [averageRating]);
 
   // Auto-sync subject aggregates if they diverge from actual ratings
   useEffect(() => {
@@ -352,8 +352,8 @@ export default function SubjectDetail() {
       // Check if sync is needed
       const needsSync = 
         subject.ratingCount !== actualCount || 
-        Math.abs((subject.averageRating || 0) - actualAvg) > 0.05 ||
-        subject.totalRatingSum !== actualSum;
+        (subject.averageRating == null ? actualAvg !== 0 : Math.abs(subject.averageRating - actualAvg) > 0.05) ||
+        (subject.totalRatingSum || 0) !== actualSum;
 
       if (needsSync) {
         console.log(`[Sync] Correcting aggregates for ${subject.code}...`);
@@ -362,7 +362,7 @@ export default function SubjectDetail() {
           await updateDoc(subjectRef, {
             ratingCount: actualCount,
             totalRatingSum: actualSum,
-            averageRating: actualAvg,
+            averageRating: actualCount === 0 ? null : actualAvg,
             updatedAt: serverTimestamp()
           });
           
@@ -604,7 +604,7 @@ export default function SubjectDetail() {
             await updateDoc(subjectRef, {
               totalRatingSum: 0,
               ratingCount: 0,
-              averageRating: 0,
+              averageRating: null,
               updatedAt: serverTimestamp()
             }).catch(err => console.warn("Could not sync subject rating delete:", err));
           }
@@ -720,11 +720,18 @@ export default function SubjectDetail() {
               <p className="text-ctu-gold font-black text-3xl mb-10 tracking-[0.2em]">{subject.code}</p>
 
               <div className="flex flex-wrap items-center gap-8 p-6 neumorphic-card w-fit">
-                <div className="flex items-center gap-3">
-                  <Star size={28} className="text-ctu-gold fill-ctu-gold" />
-                  <span className="text-3xl font-bold text-foreground">{displayRating}</span>
-                  <span className="text-foreground/40 text-xs font-bold uppercase tracking-widest">({ratings.length} ratings)</span>
-                </div>
+                {averageRating === null ? (
+                  <div className="flex items-center gap-3 opacity-60 grayscale">
+                    <Star size={28} className="text-foreground/30" />
+                    <span className="text-2xl font-bold text-foreground/40 uppercase tracking-widest">{displayRating}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <Star size={28} className="text-ctu-gold fill-ctu-gold" />
+                    <span className="text-3xl font-bold text-foreground">{displayRating}</span>
+                    <span className="text-foreground/40 text-[10px] font-bold uppercase tracking-widest">({ratings.length} rating{ratings.length !== 1 && 's'})</span>
+                  </div>
+                )}
                 <div className="hidden md:block w-px h-10 bg-foreground/5" />
                 <div className="flex gap-3">
                   {[
@@ -1185,10 +1192,10 @@ export default function SubjectDetail() {
                   {ratings.length > 0 ? (
                     <>
                       <div className="flex items-center gap-6 mb-8 shrink-0 min-w-0">
-                        <div className="text-5xl font-bold text-foreground shrink-0">{averageRating}</div>
+                        <div className="text-5xl font-bold text-foreground shrink-0">{averageRating === null ? "0.0" : averageRating.toFixed(1)}</div>
                         <div className="flex flex-col min-w-0">
                           <div className="flex text-ctu-gold shrink-0">
-                            {[1, 2, 3, 4, 5].map(i => <Star key={i} size={18} fill={i <= Math.round(Number(averageRating)) ? "currentColor" : "none"} className="shrink-0" />)}
+                            {[1, 2, 3, 4, 5].map(i => <Star key={i} size={18} fill={averageRating !== null && i <= Math.round(averageRating) ? "currentColor" : "none"} className="shrink-0" />)}
                           </div>
                           <span className="text-[10px] text-foreground/40 font-bold uppercase tracking-widest mt-1 truncate">Based on {ratings.length} reviews</span>
                         </div>

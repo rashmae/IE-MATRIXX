@@ -251,21 +251,32 @@ export default function Catalog() {
         );
         
         if (matchingFirestoreSub) {
+          const fsRatingCount = matchingFirestoreSub.ratingCount ?? 0;
+          const fsTotalSum = matchingFirestoreSub.totalRatingSum ?? 0;
+          const fsAvgDirect = matchingFirestoreSub.averageRating;
+
+          // Prefer stored averageRating; compute from sum/count if missing; fallback to static
+          const computedAvg = fsAvgDirect != null
+            ? Number(fsAvgDirect)
+            : fsRatingCount > 0
+              ? Number((fsTotalSum / fsRatingCount).toFixed(1))
+              : (officialSub.rating ?? null);
+
           return {
             ...officialSub,
             ...matchingFirestoreSub,
-            averageRating: matchingFirestoreSub.averageRating ?? officialSub.rating ?? 0,
-            ratingCount: matchingFirestoreSub.ratingCount ?? officialSub.reviewCount ?? 0,
             id: officialSub.id, 
             yearLevel: officialSub.yearLevel,
             semester: officialSub.semester,
             units: officialSub.units,
-            code: officialSub.code
+            code: officialSub.code,
+            averageRating: computedAvg, // null means "no real ratings yet"
+            ratingCount: fsRatingCount || (officialSub.reviewCount ?? 0),
           };
         }
         return {
           ...officialSub,
-          averageRating: officialSub.rating ?? 0,
+          averageRating: officialSub.rating ?? null,
           ratingCount: officialSub.reviewCount ?? 0
         };
       });
@@ -346,7 +357,7 @@ export default function Catalog() {
     }
 
     return result;
-  }, [subjects, searchQuery, selectedYears, selectedSems, unitRange, sortBy]);
+  }, [subjects, debouncedSearch, selectedYears, selectedSems, unitRange, sortBy]);
 
   const clearAllFilters = () => {
     setSearchQuery('');
@@ -587,8 +598,17 @@ export default function Catalog() {
                 {/* Header & Search */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
-            <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tight leading-[1.1] py-2 sm:py-4">Catalog</h1>
-            <p className="text-foreground/40 mt-2 sm:mt-3 text-sm sm:text-base md:text-xl font-medium tracking-tight">Explore the IE Industrial Engineering curriculum.</p>
+            <div className="flex items-end gap-4 flex-wrap">
+              <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tight leading-[1.1] py-2 sm:py-4">Catalog</h1>
+              {!subjectsLoading && (
+                <span className="mb-3 sm:mb-5 text-[10px] font-black uppercase tracking-[0.25em] text-ctu-maroon bg-ctu-maroon/10 px-3 py-1.5 rounded-xl border border-ctu-maroon/20">
+                  {subjects.length} Subjects
+                </span>
+              )}
+            </div>
+            <p className="text-foreground/40 mt-1 sm:mt-2 text-sm sm:text-base md:text-lg font-medium tracking-tight max-w-xl">
+              Full BSIE curriculum — browse, track, and rate every subject.
+            </p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -605,21 +625,27 @@ export default function Catalog() {
                 </motion.button>
               )}
             </AnimatePresence>
-            <div className="flex bg-background p-1.5 rounded-2xl neumorphic-raised">
-              <button 
-                onClick={() => setViewMode('grid')}
-                aria-label="Grid View"
-                className={cn("p-2.5 rounded-xl transition-all tap-target", viewMode === 'grid' ? "neumorphic-pressed text-ctu-gold" : "text-foreground/40")}
-              >
-                <Grid size={20} />
-              </button>
-              <button 
-                onClick={() => setViewMode('list')}
-                aria-label="List View"
-                className={cn("p-2.5 rounded-xl transition-all tap-target", viewMode === 'list' ? "neumorphic-pressed text-ctu-gold" : "text-foreground/40")}
-              >
-                <ListIcon size={20} />
-              </button>
+            <div className="flex bg-background p-1.5 rounded-2xl neumorphic-raised" role="group" aria-label="View mode toggle">
+              {[
+                { mode: 'grid' as const, Icon: Grid, label: 'Grid View' },
+                { mode: 'list' as const, Icon: ListIcon, label: 'List View' },
+              ].map(({ mode, Icon, label }) => (
+                <button
+                  key={mode}
+                  title={label}
+                  onClick={() => setViewMode(mode)}
+                  aria-label={label}
+                  aria-pressed={viewMode === mode}
+                  className={cn(
+                    "p-2.5 rounded-xl transition-all tap-target relative",
+                    viewMode === mode
+                      ? "neumorphic-pressed text-ctu-gold"
+                      : "text-foreground/40 hover:text-foreground/60"
+                  )}
+                >
+                  <Icon size={20} />
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -676,6 +702,10 @@ export default function Catalog() {
                       <ScrollArea className="h-full pr-4 pb-24">
                         <FilterPanelContent />
                       </ScrollArea>
+                      <div className="pt-4 mt-4 border-t border-foreground/5 flex justify-between items-center text-xs font-bold uppercase tracking-widest text-foreground/40">
+                        <span>Active: {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''}</span>
+                        <span>{filteredSubjects.length} results</span>
+                      </div>
                     </SheetContent>
                   </Sheet>
 
@@ -857,6 +887,10 @@ export default function Catalog() {
                       <ScrollArea className="h-[calc(100vh-180px)] pr-4 -mr-4">
                         <FilterPanelContent />
                       </ScrollArea>
+                      <div className="pt-4 mt-4 border-t border-foreground/5 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-foreground/40">
+                        <span>Active: {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''}</span>
+                        <span>{filteredSubjects.length} results</span>
+                      </div>
                     </SheetContent>
                   </Sheet>
 
@@ -919,10 +953,10 @@ export default function Catalog() {
                         else setSelectedYears([chip.year as YearLevel]);
                       }}
                       className={cn(
-                        "flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap border border-transparent",
+                        "flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap",
                         isActive 
-                          ? "neumorphic-pressed text-ctu-gold border-ctu-gold/20" 
-                          : "neumorphic-raised text-foreground/40 hover:text-foreground/60"
+                          ? "bg-gradient-to-r from-ctu-gold/10 to-ctu-maroon/10 neumorphic-pressed text-ctu-gold border border-ctu-gold/20" 
+                          : "neumorphic-raised text-foreground/40 hover:text-foreground/60 border border-transparent"
                       )}
                     >
                       {chip.label}
@@ -939,8 +973,14 @@ export default function Catalog() {
             </div>
 
             <div className="flex items-center justify-between">
-              <p className="text-xs text-foreground/40 font-bold uppercase tracking-[2px]">
-                Showing {filteredSubjects.length} of {subjects.length} subjects
+              <p className={cn(
+                "text-xs font-bold uppercase tracking-[2px] transition-colors",
+                activeFilterCount > 0 || debouncedSearch ? "text-ctu-gold/70" : "text-foreground/40"
+              )}>
+                {filteredSubjects.length === subjects.length
+                  ? `All ${subjects.length} subjects`
+                  : `${filteredSubjects.length} of ${subjects.length} subjects`
+                }
               </p>
               {activeFilterCount > 0 && (
                 <button 
@@ -960,9 +1000,28 @@ export default function Catalog() {
 
                 return (
                   <div key={year} className="space-y-8">
-                    <div className="flex items-center gap-4">
-                      <div className={cn("h-10 w-2 rounded-full", getYearBadgeColor(year as YearLevel))} />
-                      <h2 className="text-4xl font-display font-black tracking-tight text-foreground">{year} Year Curriculum</h2>
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-2xl neumorphic-pressed shadow-inner border border-foreground/5 bg-background">
+                        <span className={cn("text-base font-black", 
+                          year === '1st' ? 'text-ctu-maroon' :
+                          year === '2nd' ? 'text-ctu-gold' :
+                          year === '3rd' ? 'text-cyan-400' : 'text-emerald-400'
+                        )}>
+                          {year.replace('st','').replace('nd','').replace('rd','').replace('th','')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="text-[9px] font-black uppercase tracking-[0.3em] text-foreground/20 mb-0.5">Year Level</div>
+                          <h2 className="text-3xl sm:text-4xl font-display font-black tracking-tight text-foreground">
+                            {year} Year
+                          </h2>
+                        </div>
+                        <div className={cn("h-1 w-16 rounded-full ml-2 hidden sm:block", getYearBadgeColor(year as YearLevel))} />
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/20 bg-foreground/5 px-2 py-1 rounded-md hidden sm:block ml-2">
+                          {filteredSubjects.filter(s => s.yearLevel === year).length} subjects
+                        </span>
+                      </div>
                     </div>
 
                     {['1st', '2nd', 'Summer'].map((sem) => {
@@ -971,10 +1030,18 @@ export default function Catalog() {
 
                       return (
                         <div key={`${year}-${sem}`} className="space-y-6 ml-6">
-                          <h3 className="text-xl font-bold text-foreground/40 uppercase tracking-[0.3em] flex items-center gap-4">
-                            {sem} Semester
-                            <div className="flex-1 h-px bg-foreground/10" />
-                          </h3>
+                          <div className="flex items-center gap-4">
+                            <div className="flex flex-col">
+                              <span className="text-[8px] font-black uppercase tracking-[0.3em] text-foreground/20">Term</span>
+                              <h3 className="text-lg font-black text-foreground/50 uppercase tracking-[0.2em] leading-none mb-1">
+                                {sem === '1st' ? '1st Sem' : sem === '2nd' ? '2nd Sem' : 'Summer'}
+                              </h3>
+                            </div>
+                            <div className="flex-1 h-px bg-foreground/8" />
+                            <span className="text-[8px] font-black uppercase tracking-widest text-foreground/20 shrink-0">
+                              {semSubjects.length} {semSubjects.length === 1 ? 'subject' : 'subjects'}
+                            </span>
+                          </div>
 
                           <motion.div 
                             layout
@@ -999,7 +1066,7 @@ export default function Catalog() {
                                     customSize
                                     className={cn(
                                       "w-full h-full border-none transition-all cursor-pointer group relative overflow-hidden flex",
-                                      viewMode === 'grid' ? "flex-col justify-between hover:scale-[1.02]" : "flex-row items-center p-3 sm:p-5"
+                                      viewMode === 'grid' ? "flex-col justify-between hover:scale-[1.02] min-h-[380px]" : "flex-row items-center p-3 sm:p-5"
                                     )}
                                   >
                                     <div className={cn(
@@ -1021,9 +1088,18 @@ export default function Catalog() {
                                           </div>
                                           
                                           <div className="flex items-center gap-1.5 bg-background/50 backdrop-blur-md px-2 py-1 rounded-xl border border-white/10 neumorphic-raised">
-                                            <Star size={10} className="text-ctu-gold fill-ctu-gold" />
-                                            <span className="text-[10px] font-black text-foreground">{Number(subject.averageRating || 0).toFixed(1)}</span>
-                                            {subject.ratingCount > 0 && <span className="text-[8px] font-bold text-foreground/40">({subject.ratingCount})</span>}
+                                            {subject.averageRating === null ? (
+                                              <div className="flex items-center gap-1.5 px-1 opacity-60 grayscale">
+                                                <Star size={10} className="text-foreground/30" />
+                                                <span className="text-[9px] font-bold text-foreground/40 uppercase tracking-widest hidden sm:inline">No Ratings</span>
+                                              </div>
+                                            ) : (
+                                              <>
+                                                <Star size={10} className="text-ctu-gold fill-ctu-gold" />
+                                                <span className="text-[10px] font-black text-foreground">{Number(subject.averageRating).toFixed(1)}</span>
+                                                {subject.ratingCount > 0 && <span className="text-[8px] font-bold text-foreground/40">({subject.ratingCount})</span>}
+                                              </>
+                                            )}
                                           </div>
                                         </div>
 
@@ -1034,11 +1110,13 @@ export default function Catalog() {
                                             <SubjectIcon iconName={subject.icon} className="w-10 h-10 relative z-10 drop-shadow-[0_0_15px_rgba(234,179,8,0.3)]" />
                                           </div>
                                           
-                                          <h3 className="text-2xl font-black text-foreground mb-3 group-hover/card:text-ctu-gold transition-colors leading-[1.1] text-center uppercase tracking-tighter italic">
-                                            <HighlightedText text={subject.name} term={debouncedSearch} />
-                                          </h3>
+                                          <div className="h-16 flex items-center justify-center mb-4">
+                                            <h3 className="text-2xl font-black text-foreground group-hover/card:text-ctu-gold transition-colors leading-[1.1] text-center uppercase tracking-tighter italic line-clamp-3">
+                                              <HighlightedText text={subject.name} term={debouncedSearch} />
+                                            </h3>
+                                          </div>
 
-                                          <div className="flex items-center gap-4 text-[10px] text-foreground/40 font-black uppercase tracking-[0.15em]">
+                                          <div className="flex items-center gap-4 text-[10px] text-foreground/40 font-black uppercase tracking-[0.15em] mt-auto">
                                             <span className="flex items-center gap-1.5 bg-foreground/5 px-2 py-1 rounded-md">
                                               <Circle size={6} className="fill-blue-500 text-blue-500" /> 
                                               {subject.units} Units
@@ -1127,10 +1205,16 @@ export default function Catalog() {
                                               <span className="text-[10px] text-foreground/40 font-black uppercase tracking-widest flex items-center gap-1.5">
                                                 <Circle size={8} className="fill-blue-500 text-blue-500" /> {subject.units} Units
                                               </span>
-                                              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-foreground/5 border border-foreground/5">
-                                                <Star size={10} className="text-ctu-gold fill-ctu-gold" />
-                                                <span className="text-[10px] font-black text-foreground/60">{Number(subject.averageRating || 0).toFixed(1)}</span>
-                                              </div>
+                                              {subject.averageRating === null ? (
+                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-foreground/5 border border-foreground/5 opacity-60 grayscale">
+                                                  <Star size={10} className="text-foreground/30" />
+                                                </div>
+                                              ) : (
+                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-ctu-gold/10 border border-ctu-gold/20 shadow-[inset_0_0_8px_rgba(255,215,0,0.05)]">
+                                                  <Star size={10} className="text-ctu-gold fill-ctu-gold" />
+                                                  <span className="text-[10px] font-black text-ctu-gold">{Number(subject.averageRating).toFixed(1)}</span>
+                                                </div>
+                                              )}
                                             </div>
                                           </div>
                                         </div>
@@ -1189,21 +1273,25 @@ export default function Catalog() {
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-32 neumorphic-pressed rounded-[40px]"
+                className="py-24 px-6 text-center mt-12 neumorphic-pressed rounded-[2rem] border border-foreground/5 flex flex-col items-center justify-center min-h-[400px]"
               >
-                <div className="w-24 h-24 bg-foreground/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Search size={32} className="text-foreground/20" />
+                <div className="w-24 h-24 rounded-full neumorphic-raised flex items-center justify-center mb-6 bg-background">
+                  <Search className="w-10 h-10 text-foreground/20" />
                 </div>
-                <h3 className="text-3xl font-display font-bold text-foreground mb-2">No subjects found</h3>
-                <p className="text-foreground/40 font-medium max-w-md mx-auto mb-8">
-                  We couldn't find any subjects matching your current filters. Try adjusting your search query or reset all filters.
+                <h3 className="text-2xl sm:text-3xl font-display font-black text-foreground tracking-tight mb-2">No subjects found</h3>
+                <p className="text-foreground/40 text-sm sm:text-base font-medium tracking-tight max-w-md mx-auto">
+                  We couldn't find any subjects matching your current filters. Try broadening your search criteria.
                 </p>
-                <Button 
-                  onClick={clearAllFilters}
-                  className="bg-ctu-gold text-white font-bold px-8 py-4 rounded-2xl hover:opacity-90 transition-opacity"
-                >
-                  Clear All Filters
-                </Button>
+                
+                {(debouncedSearch || selectedYears.length > 0 || selectedSems.length > 0 || unitRange[0] < 5) && (
+                  <Button 
+                    variant="ghost" 
+                    onClick={clearAllFilters}
+                    className="mt-8 rounded-2xl font-bold tracking-widest uppercase text-[10px] sm:text-xs text-ctu-maroon hover:text-ctu-maroon hover:bg-ctu-maroon/10 h-12 px-6"
+                  >
+                    Clear all filters
+                  </Button>
+                )}
               </motion.div>
             )}
           </div>
@@ -1240,55 +1328,54 @@ export default function Catalog() {
                 Tip: Link should end in /preview for best embedding
               </p>
             </div>
-          </div>
-            <div className="space-y-4 pt-2">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-foreground/5" />
-                </div>
-                <div className="relative flex justify-center text-[10px] uppercase font-black tracking-widest">
-                  <span className="bg-background px-2 text-foreground/20">OR</span>
-                </div>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-foreground/5" />
               </div>
-
-              <div className="space-y-2">
-                <label htmlFor="syllabus-file" className="text-xs font-bold uppercase tracking-widest text-foreground/40 ml-1">
-                  Upload PDF Syllabus (Recommended)
-                </label>
-                <div className="relative group">
-                  <Input
-                    id="syllabus-file"
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  <label 
-                    htmlFor="syllabus-file" 
-                    className={cn(
-                      "flex flex-col items-center justify-center w-full h-32 rounded-2xl border-2 border-dashed transition-all cursor-pointer",
-                      syllabusFile 
-                        ? "border-emerald-500/50 bg-emerald-500/5" 
-                        : "border-foreground/10 hover:border-ctu-gold/50 hover:bg-ctu-gold/5"
-                    )}
-                  >
-                    {syllabusFile ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <CheckCircle2 className="text-emerald-500" size={32} />
-                        <span className="text-xs font-black text-emerald-500 line-clamp-1 px-4">{syllabusFile.name}</span>
-                        <span className="text-[10px] font-bold text-emerald-500/60 uppercase">File Ready for Extraction</span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-2">
-                        <Upload className="text-foreground/20 group-hover:text-ctu-gold transition-colors" size={32} />
-                        <span className="text-xs font-black text-foreground/40 uppercase tracking-widest pt-2">Click or Drag PDF</span>
-                        <span className="text-[9px] font-bold text-foreground/20 uppercase tracking-widest">Supports files up to 20MB</span>
-                      </div>
-                    )}
-                  </label>
-                </div>
+              <div className="relative flex justify-center text-[10px] uppercase font-black tracking-widest">
+                <span className="bg-background px-2 text-foreground/20">OR</span>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <label htmlFor="syllabus-file" className="text-xs font-bold uppercase tracking-widest text-foreground/40 ml-1">
+                Upload PDF Syllabus (Recommended)
+              </label>
+              <div className="relative group">
+                <Input
+                  id="syllabus-file"
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <label 
+                  htmlFor="syllabus-file" 
+                  className={cn(
+                    "flex flex-col items-center justify-center w-full h-32 rounded-2xl border-2 border-dashed transition-all cursor-pointer",
+                    syllabusFile 
+                      ? "border-emerald-500/50 bg-emerald-500/5" 
+                      : "border-foreground/10 hover:border-ctu-gold/50 hover:bg-ctu-gold/5"
+                  )}
+                >
+                  {syllabusFile ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <CheckCircle2 className="text-emerald-500" size={32} />
+                      <span className="text-xs font-black text-emerald-500 line-clamp-1 px-4">{syllabusFile.name}</span>
+                      <span className="text-[10px] font-bold text-emerald-500/60 uppercase">File Ready for Extraction</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="text-foreground/20 group-hover:text-ctu-gold transition-colors" size={32} />
+                      <span className="text-xs font-black text-foreground/40 uppercase tracking-widest pt-2">Click or Drag PDF</span>
+                      <span className="text-[9px] font-bold text-foreground/20 uppercase tracking-widest">Supports files up to 20MB</span>
+                    </div>
+                  )}
+                </label>
+              </div>
+            </div>
+          </div>
           <DialogFooter className="sm:justify-end gap-3 px-6 pb-6">
             <Button
               type="button"
