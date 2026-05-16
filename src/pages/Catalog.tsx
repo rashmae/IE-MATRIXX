@@ -160,7 +160,7 @@ export default function Catalog() {
   // Advanced Filter State
   const [selectedYears, setSelectedYears] = useState<YearLevel[]>([]);
   const [selectedSems, setSelectedSems] = useState<Semester[]>([]);
-  const [unitRange, setUnitRange] = useState<[number]>([5]);
+  const [selectedUnits, setSelectedUnits] = useState<number[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
   const [hasReviews, setHasReviews] = useState(false);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
@@ -221,9 +221,10 @@ export default function Catalog() {
     let count = 0;
     if (selectedYears.length > 0) count++;
     if (selectedSems.length > 0) count++;
-    if (unitRange[0] < 5) count++;
+    if (selectedUnits.length > 0) count++;
+    if (hasReviews) count++;
     return count;
-  }, [selectedYears, selectedSems, unitRange]);
+  }, [selectedYears, selectedSems, selectedUnits, hasReviews]);
 
   useEffect(() => {
     // Scroll to top on load
@@ -391,9 +392,10 @@ export default function Catalog() {
         
       const matchesYear = selectedYears.length === 0 || selectedYears.includes(s.yearLevel);
       const matchesSem = selectedSems.length === 0 || selectedSems.includes(s.semester);
-      const matchesUnits = s.units <= unitRange[0];
+      const matchesUnits = selectedUnits.length === 0 || selectedUnits.includes(s.units);
+      const matchesAvailability = !hasReviews || s.isAvailable;
       
-      return matchesSearch && matchesYear && matchesSem && matchesUnits;
+      return matchesSearch && matchesYear && matchesSem && matchesUnits && matchesAvailability;
     });
 
     // Apply Sorting
@@ -413,13 +415,13 @@ export default function Catalog() {
     }
 
     return result;
-  }, [subjects, debouncedSearch, selectedYears, selectedSems, unitRange, sortBy]);
+  }, [subjects, debouncedSearch, selectedYears, selectedSems, selectedUnits, sortBy, hasReviews]);
 
   const clearAllFilters = () => {
     setSearchQuery('');
     setSelectedYears([]);
     setSelectedSems([]);
-    setUnitRange([5]);
+    setSelectedUnits([]);
     setHasReviews(false);
     setSortBy('relevance');
   };
@@ -565,90 +567,155 @@ export default function Catalog() {
     }
   };
 
-  const FilterPanelContent = () => (
-    <div className="space-y-8 py-4">
-      <div className="space-y-4" role="group" aria-labelledby="filter-year-level">
-        <h4 id="filter-year-level" className="text-sm font-bold uppercase tracking-widest text-foreground/40 px-1">Year Level</h4>
-        <div className="grid grid-cols-2 gap-3">
-          {(['1st', '2nd', '3rd', '4th'] as YearLevel[]).map(year => (
-            <div key={year} className="flex items-center space-x-2">
-              <Checkbox 
-                id={`year-${year}`} 
-                checked={selectedYears.includes(year)}
-                onCheckedChange={(checked) => {
-                  if (checked) setSelectedYears(prev => [...prev, year]);
-                  else setSelectedYears(prev => prev.filter(y => y !== year));
-                }}
-              />
-              <Label htmlFor={`year-${year}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
-                {year} Year
-              </Label>
+  const FilterPanelContent = () => {
+    const hasYearFilter = selectedYears.length > 0;
+    const hasSemFilter = selectedSems.length > 0;
+    const hasUnitFilter = selectedUnits.length > 0;
+
+    return (
+      <div className="space-y-10 py-6">
+        {/* Year Level - Enhanced with better tap targets and selection states */}
+        <div className="space-y-4" role="group" aria-labelledby="filter-year-level">
+          <div className="flex justify-between items-center px-1">
+            <h4 id="filter-year-level" className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/30">Year Level</h4>
+            {hasYearFilter && (
+              <button onClick={() => setSelectedYears([])} className="text-[10px] font-bold text-ctu-maroon hover:underline">Clear</button>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {(['1st', '2nd', '3rd', '4th'] as YearLevel[]).map(year => {
+              const isActive = selectedYears.includes(year);
+              return (
+                <button
+                  key={year}
+                  aria-pressed={isActive}
+                  onClick={() => {
+                    if (isActive) setSelectedYears(prev => prev.filter(y => y !== year));
+                    else setSelectedYears(prev => [...prev, year]);
+                  }}
+                  className={cn(
+                    "flex flex-col items-start gap-1 p-4 rounded-2xl transition-all border text-left group tap-target relative overflow-hidden",
+                    isActive 
+                      ? "neumorphic-pressed border-ctu-gold/30 bg-ctu-gold/5" 
+                      : "neumorphic-raised border-transparent hover:border-foreground/5"
+                  )}
+                >
+                  <div className={cn(
+                    "w-2 h-2 rounded-full mb-1 transition-all",
+                    isActive ? "bg-ctu-gold scale-125 shadow-[0_0_8px_rgba(234,179,8,0.5)]" : "bg-foreground/10 group-hover:bg-foreground/20"
+                  )} />
+                  <span className={cn(
+                    "text-xs font-black uppercase tracking-wider",
+                    isActive ? "text-foreground" : "text-foreground/40"
+                  )}>{year} Year</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Semester Filter - Balanced with new design language */}
+        <div className="space-y-4" role="group" aria-labelledby="filter-semester">
+          <div className="flex justify-between items-center px-1">
+            <h4 id="filter-semester" className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/30">Semester</h4>
+            {hasSemFilter && (
+              <button onClick={() => setSelectedSems([])} className="text-[10px] font-bold text-ctu-maroon hover:underline">Clear</button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {(['1st', '2nd', 'Summer'] as Semester[]).map(sem => {
+              const isActive = selectedSems.includes(sem);
+              return (
+                <button
+                  key={sem}
+                  aria-pressed={isActive}
+                  onClick={() => {
+                    if (isActive) setSelectedSems(prev => prev.filter(s => s !== sem));
+                    else setSelectedSems(prev => [...prev, sem]);
+                  }}
+                  className={cn(
+                    "px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all tap-target border",
+                    isActive 
+                      ? "neumorphic-pressed text-ctu-maroon border-ctu-maroon/20 bg-ctu-maroon/5 shadow-inner" 
+                      : "neumorphic-raised text-foreground/40 border-transparent hover:text-foreground/60"
+                  )}
+                >
+                  {sem} Sem
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Units Filter - Precise Selection for MATRIX Subjects */}
+        <div className="space-y-4" role="group" aria-labelledby="filter-units">
+          <div className="flex justify-between items-center px-1">
+            <h4 id="filter-units" className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/30">Academic Units</h4>
+            {selectedUnits.length > 0 && (
+              <button onClick={() => setSelectedUnits([])} className="text-[10px] font-bold text-ctu-maroon hover:underline">Clear</button>
+            )}
+          </div>
+          
+          <div className="flex flex-wrap gap-2 sm:gap-3">
+            {[1, 2, 3, 4, 5].map(unit => {
+              const isActive = selectedUnits.includes(unit);
+              return (
+                <button
+                  key={unit}
+                  aria-pressed={isActive}
+                  onClick={() => {
+                    if (isActive) setSelectedUnits(prev => prev.filter(u => u !== unit));
+                    else setSelectedUnits(prev => [...prev, unit]);
+                  }}
+                  className={cn(
+                    "min-w-14 sm:min-w-16 h-14 sm:h-16 flex flex-col items-center justify-center rounded-2xl transition-all border tap-target",
+                    isActive 
+                      ? "neumorphic-pressed border-ctu-gold/30 bg-ctu-gold/5 text-ctu-gold" 
+                      : "neumorphic-raised border-transparent text-foreground/40 hover:text-foreground/60"
+                  )}
+                >
+                  <span className="text-lg font-black italic leading-none">{unit}</span>
+                  <span className="text-[8px] font-bold uppercase tracking-tighter mt-1">Units</span>
+                </button>
+              );
+            })}
+          </div>
+          
+          <div className="p-4 rounded-2xl bg-foreground/[0.02] border border-foreground/5 flex items-center justify-between group cursor-pointer hover:bg-foreground/[0.04] transition-all"
+               onClick={() => setHasReviews(!hasReviews)}>
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "p-2 rounded-xl transition-all",
+                hasReviews ? "bg-emerald-500/10 text-emerald-500" : "bg-foreground/5 text-foreground/20"
+              )}>
+                <Check size={16} />
+              </div>
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-tight text-foreground">Syllabus Available</p>
+                <p className="text-[9px] font-medium text-foreground/30">Show only verified resources</p>
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-4" role="group" aria-labelledby="filter-semester">
-        <h4 id="filter-semester" className="text-sm font-bold uppercase tracking-widest text-foreground/40 px-1">Semester</h4>
-        <div className="flex flex-wrap gap-2">
-          {(['1st', '2nd', 'Summer'] as Semester[]).map(sem => (
-            <button
-              key={sem}
-              aria-pressed={selectedSems.includes(sem)}
-              onClick={() => {
-                if (selectedSems.includes(sem)) setSelectedSems(prev => prev.filter(s => s !== sem));
-                else setSelectedSems(prev => [...prev, sem]);
-              }}
-              className={cn(
-                "px-4 py-2 rounded-xl text-xs font-bold transition-all",
-                selectedSems.includes(sem) 
-                  ? "neumorphic-pressed text-ctu-gold" 
-                  : "neumorphic-raised text-foreground/40 hover:text-foreground"
-              )}
-            >
-              {sem} Sem
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-6 px-1" role="group" aria-labelledby="filter-units">
-        <div className="flex justify-between items-center mb-2">
-          <h4 id="filter-units" className="text-sm font-bold uppercase tracking-widest text-foreground/40">Max Units</h4>
-          <div className="bg-primary/10 text-primary px-3 py-1.5 rounded-xl text-sm font-black border border-primary/20 shadow-sm transition-all duration-300">
-            {unitRange[0] || 5} Units
+            <Switch 
+              checked={hasReviews} 
+              onCheckedChange={setHasReviews}
+              className="data-[state=checked]:bg-emerald-500"
+            />
           </div>
         </div>
-        <div className="space-y-3 px-2">
-          <Slider
-            value={unitRange}
-            min={1}
-            max={5}
-            step={1}
-            onValueChange={setUnitRange as any}
-            className="py-4"
-            aria-label="Maximum units"
-          />
-          <div className="flex justify-between px-1 text-[11px] font-black text-foreground/40">
-            <span>1</span>
-            <span>2</span>
-            <span>3</span>
-            <span>4</span>
-            <span className="text-primary font-black">5 (Max)</span>
-          </div>
-        </div>
-        <div className="h-0.5 w-full bg-foreground/10 rounded-full my-4" />
-      </div>
 
-      <Button 
-        variant="outline" 
-        onClick={clearAllFilters}
-        className="w-full rounded-xl h-12 border-foreground/10 hover:bg-foreground/5 font-bold"
-      >
-        Reset All Filters
-      </Button>
-    </div>
-  );
+        <div className="pt-2">
+          <Button 
+            variant="ghost" 
+            onClick={clearAllFilters}
+            className="w-full rounded-2xl h-14 border border-foreground/5 hover:bg-ctu-maroon/5 hover:text-ctu-maroon hover:border-ctu-maroon/10 text-[10px] font-black uppercase tracking-[0.25em] transition-all group"
+          >
+            <X size={14} className="mr-2 group-hover:rotate-90 transition-transform" />
+            Reset All Matrix Filters
+          </Button>
+        </div>
+      </div>
+    );
+  };
 
   if (authLoading || !profile) {
     return (
@@ -1371,7 +1438,7 @@ export default function Catalog() {
                   We couldn't find any subjects matching your current filters. Try broadening your search criteria.
                 </p>
                 
-                {(debouncedSearch || selectedYears.length > 0 || selectedSems.length > 0 || unitRange[0] < 5) && (
+                {(debouncedSearch || selectedYears.length > 0 || selectedSems.length > 0 || selectedUnits.length > 0 || hasReviews) && (
                   <Button 
                     variant="ghost" 
                     onClick={clearAllFilters}

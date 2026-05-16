@@ -31,7 +31,6 @@ import { cn } from '@/src/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Trash2, Plus } from 'lucide-react';
 import { LiquidButton } from '@/components/ui/liquid-glass';
 import { Progress, ProgressIndicator, ProgressTrack } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -166,7 +165,7 @@ export default function SyllabusIngestion() {
 
   return (
     <div className="min-h-screen bg-background flex transition-colors duration-300">
-      <Sidebar />
+      <Sidebar user={profile} />
       <main className="flex-1 p-4 sm:p-8 lg:p-12 pb-36 lg:pb-12 max-w-7xl mx-auto w-full overflow-x-hidden">
         <div className="mb-12">
           <motion.div 
