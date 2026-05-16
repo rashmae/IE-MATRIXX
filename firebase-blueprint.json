@@ -196,9 +196,25 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "subjectName", "score", "total", "createdAt"]
+    },
+    "SyllabusLink": {
+      "title": "Syllabus Link",
+      "description": "A link to a syllabus stored in Google Drive for ingestion.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Display name for the link" },
+        "driveId": { "type": "string", "description": "Google Drive File ID" },
+        "url": { "type": "string", "description": "Full Drive URL" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "driveId", "createdAt"]
     }
   },
   "firestore": {
+    "/syllabusLinks/{linkId}": {
+      "schema": "SyllabusLink",
+      "description": "Queue of syllabus links for admin ingestion."
+    },
     "/notifications/{notificationId}": {
       "schema": "Notification",
       "description": "Real-time user notifications."

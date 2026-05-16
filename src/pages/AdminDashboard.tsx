@@ -211,13 +211,6 @@ export default function AdminDashboard() {
               Ratings Ingest
             </button>
             <button 
-              onClick={seedSubjects}
-              disabled={isSeeding}
-              className="neumorphic-raised hover:neumorphic-pressed px-6 py-3 rounded-2xl text-ctu-gold font-bold text-xs transition-all disabled:opacity-50"
-            >
-              {isSeeding ? 'Seeding...' : 'Seed Subjects'}
-            </button>
-            <button 
               onClick={simulateNotification}
               className="neumorphic-raised hover:neumorphic-pressed px-6 py-3 rounded-2xl text-ctu-maroon font-bold text-xs transition-all"
             >

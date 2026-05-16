@@ -139,12 +139,26 @@ service cloud.firestore {
              data.createdAt == request.time;
     }
 
+    function isValidSyllabusLink(data) {
+      return data.keys().hasAll(['name', 'driveId', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.driveId is string && data.driveId.size() > 0 && data.driveId.size() <= 128 &&
+             (data.get('url', '') is string) &&
+             (request.method == 'create' ? data.createdAt == request.time : true);
+    }
+
     // ===============================================================
     // COLLECTION RULES
     // ===============================================================
 
     match /test/connection {
       allow read: if true;
+    }
+
+    match /syllabusLinks/{linkId} {
+      allow read, write: if isAdmin();
+      allow create: if isAdmin() && isValidSyllabusLink(incoming());
+      allow update: if isAdmin() && isValidSyllabusLink(incoming());
     }
 
     match /notifications/{notificationId} {

@@ -20,6 +20,7 @@ import {
   Upload,
   FileText,
   Star,
+  Check,
   Calculator,
   FlaskConical,
   Monitor,
@@ -131,7 +132,7 @@ import { useAuth } from '@/src/context/AuthContext';
 import { useProgress } from '@/src/hooks/useProgress';
 import { getGWAColor } from '@/src/lib/gradeUtils';
 import { db } from '@/src/lib/firebase';
-import { collection, onSnapshot, query, orderBy, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, updateDoc, doc, serverTimestamp, where, getDocs, addDoc } from 'firebase/firestore';
 import { extractSyllabusFromUrl, extractSyllabusFromFile } from '@/src/services/aiService';
 
 type SortOption = 'relevance' | 'alpha-asc' | 'alpha-desc' | 'newest';
@@ -503,12 +504,37 @@ export default function Catalog() {
       }
 
       const subjectRef = doc(db, 'subjects', activeSubject.id);
-      await updateDoc(subjectRef, {
+      const updateData = {
         syllabusUrl: syllabusUrlInput,
         isAvailable: true,
         ...aiMetadata,
         updatedAt: serverTimestamp()
-      });
+      };
+      await updateDoc(subjectRef, updateData);
+
+      // Also persist to syllabusLinks for the ingestion queue
+      try {
+        const match = syllabusUrlInput.match(/\/d\/([^\/]+)/);
+        const driveId = match ? match[1] : (syllabusUrlInput.includes('id=') ? syllabusUrlInput.split('id=')[1].split('&')[0] : null);
+        
+        if (driveId) {
+          const linksRef = collection(db, 'syllabusLinks');
+          const q = query(linksRef, where('driveId', '==', driveId));
+          const existing = await getDocs(q);
+          
+          if (existing.empty) {
+            await addDoc(linksRef, {
+              name: `${activeSubject.code}: ${activeSubject.name}`,
+              driveId,
+              url: syllabusUrlInput,
+              createdAt: serverTimestamp()
+            });
+          }
+        }
+      } catch (linkErr) {
+        console.warn("Failed to save to ingestion queue:", linkErr);
+        // Don't fail the whole operation if this secondary save fails
+      }
 
       // Update local state for immediate feedback
       setSubjects(prev => prev.map(s => 
@@ -1138,8 +1164,13 @@ export default function Catalog() {
                                             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-ctu-gold/60">
                                               {subject.yearLevel} • {subject.semester}
                                             </span>
-                                            <div className="bg-ctu-maroon/10 text-ctu-maroon border border-ctu-maroon/20 px-2 py-0.5 rounded-md text-[9px] font-black tracking-widest inline-flex items-center w-fit shadow-sm">
+                                            <div className="bg-ctu-maroon/10 text-ctu-maroon border border-ctu-maroon/20 px-2 py-0.5 rounded-md text-[9px] font-black tracking-widest inline-flex items-center w-fit shadow-sm gap-1.5">
                                               <HighlightedText text={subject.code} term={debouncedSearch} />
+                                              {subject.isAvailable && (
+                                                <div className="flex items-center justify-center w-3 h-3 rounded-full bg-emerald-500 text-white shadow-sm scale-110">
+                                                  <Check className="w-2 h-2" strokeWidth={4} />
+                                                </div>
+                                              )}
                                             </div>
                                           </div>
                                           

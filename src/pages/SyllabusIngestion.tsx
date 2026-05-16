@@ -3,460 +3,294 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { 
-  FileText, 
   Loader2, 
   CheckCircle2, 
-  AlertCircle, 
-  ArrowLeft,
-  RefreshCw,
-  Search,
-  ExternalLink,
-  ChevronRight,
-  ShieldCheck
+  ExternalLink, 
+  FileUp, 
+  FileCheck,
+  Save,
+  Trash2,
+  Plus
 } from 'lucide-react';
 import { useAuth } from '@/src/context/AuthContext';
 import { db } from '@/src/lib/firebase';
-import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { generateContent, isAIAvailable } from '@/src/lib/gemini';
+import { 
+  collection, 
+  query, 
+  getDocs, 
+  doc, 
+  updateDoc, 
+  serverTimestamp, 
+  addDoc,
+  deleteDoc,
+  onSnapshot,
+  orderBy
+} from 'firebase/firestore';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/src/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Trash2, Plus } from 'lucide-react';
 import { LiquidButton } from '@/components/ui/liquid-glass';
+import { Progress, ProgressIndicator, ProgressTrack } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
 
-const DEFAULT_FILES = [
-  { id: '1v4kEQcZ33Oi_6bE4cvNpaXlAD5k3nt_o', name: 'BES-CFP: Computer Fundamentals and Programming' },
-  { id: '1mPUieL99B92iZ76DDx5mwayYVxeT-Zec', name: 'IE-AC 111: Principles of Economics' },
-  { id: '1NCi8MtAMVkh-6j2MvSTPTtuFWSubCmTU', name: 'IE-IPC 111: Introduction to Engineering' },
-  { id: '1YZKpxqrqnEISOpFbB_l9_W1eZpwDmj3E', name: 'IE-TECH 111: Pneumatics and PLC' },
-  { id: '1iGCJEYbMfTAIscy93Ltqnm4extEVqc1q', name: 'EPHYS: Physics for Engineers (Lec)' },
-  { id: '1PudL-f85oQ4xo0lGofYyowBykt3M7Keh', name: 'EPHYSL: Physics for Engineers (Lab)' },
-  { id: '1_kkGmS599dIlNzNSeu1olykO0iyx-RT4', name: 'IE-PC 212: Industrial Materials and Processes' },
-  { id: '1FpEBciGCxeLixdjkWdPb_oSOTBsnJuhp', name: 'IE-PC 212L: Industrial Materials (Lab)' }
-];
-
-interface IngestionResult {
-  id: string;
+interface SyllabusLinkEntry {
+  id: string; // driveId
   name: string;
-  status: 'pending' | 'processing' | 'success' | 'error' | 'skipped';
-  message?: string;
-  subjectCode?: string;
-  data?: any;
+  url: string;
+  firestoreId: string;
+  createdAt: any;
 }
 
 export default function SyllabusIngestion() {
   const { profile, loading: authLoading } = useAuth();
-  const [results, setResults] = useState<IngestionResult[]>(
-    DEFAULT_FILES.map(f => ({ id: f.id, name: f.name, status: 'pending' }))
-  );
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isLoadingFiles, setIsLoadingFiles] = useState(true);
+  const [links, setLinks] = useState<SyllabusLinkEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [newLinkName, setNewLinkName] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchSyllabusFiles = async () => {
-      setIsLoadingFiles(true);
-      try {
-        const subjectsRef = collection(db, 'subjects');
-        const snapshot = await getDocs(subjectsRef);
-        
-        const filesFromFirestore = snapshot.docs
-          .map(doc => {
-            const data = doc.data();
-            const url = data.syllabusUrl || data.syllabusURL || '';
-            if (!url) return null;
-
-            // Extract ID from https://drive.google.com/file/d/FILE_ID/preview
-            const match = url.match(/\/d\/([^\/]+)/);
-            const fileId = match ? match[1] : (url.includes('id=') ? url.split('id=')[1].split('&')[0] : null);
-            
-            if (!fileId) return null;
-
-            return {
-              id: fileId,
-              name: `${data.code}: ${data.name}`,
-              status: (data.topics && data.topics.length > 0) ? 'success' : 'pending',
-              subjectCode: data.code
-            } as IngestionResult;
-          })
-          .filter((f): f is IngestionResult => f !== null);
-
-        // Dedup by ID
-        const uniqueFiles = Array.from(new Map(
-          [
-            ...DEFAULT_FILES.map(f => ({ id: f.id, name: f.name, status: 'pending' as const })), 
-            ...filesFromFirestore
-          ].map(item => [item.id, item as IngestionResult])
-        ).values());
-
-        if (uniqueFiles.length > 0) {
-          setResults(uniqueFiles);
-        }
-      } catch (err) {
-        console.error("Error fetching syllabus files:", err);
-        toast.error("Failed to load syllabus links from database");
-      } finally {
-        setIsLoadingFiles(false);
-      }
-    };
-
-    if (!authLoading) {
-      if (!profile || profile.role !== 'admin') {
-        toast.error('Admin access required');
-        navigate('/dashboard');
-      } else {
-        fetchSyllabusFiles();
-      }
-    }
-  }, [profile, authLoading, navigate]);
-
-  const updateResult = (id: string, updates: Partial<IngestionResult>) => {
-    setResults(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
-  };
-
-  const processFile = async (fileId: string) => {
-    if (!isAIAvailable()) {
-      toast.error("AI service is not configured. Please add your Gemini API key in Settings.");
-      updateResult(fileId, { status: 'error', message: 'AI key missing' });
+    if (authLoading || !profile || profile.role !== 'admin') {
+      if (!authLoading && (!profile || profile.role !== 'admin')) navigate('/dashboard');
       return;
     }
 
-    updateResult(fileId, { status: 'processing', message: 'Downloading PDF...' });
+    // Real-time sync with syllabusLinks collection
+    const linksRef = collection(db, 'syllabusLinks');
+    const q = query(linksRef, orderBy('createdAt', 'desc'));
     
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedLinks = snapshot.docs.map(doc => ({
+        id: doc.data().driveId,
+        name: doc.data().name,
+        url: doc.data().url,
+        firestoreId: doc.id,
+        createdAt: doc.data().createdAt
+      })) as SyllabusLinkEntry[];
+      
+      setLinks(fetchedLinks);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Link sync error:", error);
+      toast.error("Database connection issue. Please check your permissions.");
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [profile, authLoading, navigate]);
+
+  const saveSyllabusLink = async () => {
+    if (!newLinkName.trim() || !newLinkUrl.trim()) {
+      toast.error("Please enter both the subject name/code and the URL.");
+      return;
+    }
+
+    const match = newLinkUrl.match(/\/d\/([^\/]+)/);
+    const driveId = match ? match[1] : (newLinkUrl.includes('id=') ? newLinkUrl.split('id=')[1].split('&')[0] : null);
+
+    if (!driveId && newLinkUrl.includes('drive.google.com')) {
+      toast.error("Could not parse Drive ID. Please use a standard Drive link.");
+      return;
+    }
+
+    setIsAdding(true);
     try {
-      // 1. Download PDF Waterfall
-      let blob: Blob | null = null;
-      let lastError = '';
-
-      const strategies = [
-        // Strategy A: Local API Proxy (most reliable for CORS)
-        async () => {
-          const res = await fetch(`/api/proxy-drive?id=${fileId}`);
-          if (!res.ok) throw new Error(`Proxy status ${res.status}`);
-          return await res.blob();
-        },
-        // Strategy B: Direct Google Drive export URL
-        async () => {
-          const res = await fetch(`https://drive.google.com/uc?export=download&id=${fileId}`);
-          if (!res.ok) throw new Error(`Direct download status ${res.status}`);
-          return await res.blob();
-        },
-        // Strategy C: Drive Web Content URL
-        async () => {
-          const res = await fetch(`https://drive.google.com/file/d/${fileId}/view`);
-          if (!res.ok) throw new Error(`Web view status ${res.status}`);
-          return await res.blob();
-        }
-      ];
-
-      for (const strategy of strategies) {
-        try {
-          const result = await strategy();
-          if (result && result.size > 1000) { // Valid PDFs are usually > 1KB
-            blob = result;
-            break;
-          }
-        } catch (e: any) {
-          lastError = e?.message || String(e);
-        }
-      }
-
-      if (!blob) {
-        throw new Error(`Failed to fetch PDF after multiple attempts: ${lastError}`);
-      }
-      
-      // 2. Base64 Encode
-      const reader = new FileReader();
-      const base64Promise = new Promise<string>((resolve) => {
-        reader.onloadend = () => {
-          const base64String = (reader.result as string).split(',')[1];
-          resolve(base64String);
-        };
-      });
-      reader.readAsDataURL(blob);
-      const base64Data = await base64Promise;
-
-      updateResult(fileId, { message: 'Extracting data with AI...' });
-      
-      const prompt = `Extract academic information from this syllabus PDF. Return JSON.
-      Fields:
-      - subjectCode (The catalog code, e.g. "IE-PC 212")
-      - subjectName
-      - units (number)
-      - yearLevel (e.g., "1st Year", "2nd Year")
-      - semester (e.g., "1st Sem", "2nd Sem", "Summer")
-      - courseDescription
-      - prerequisites (array of subject codes)
-      - courseOutcomes (array of strings)
-      - topics (array of strings)`;
-
-      const aiResponse = await generateContent({
-        model: "gemini-2.0-flash",
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType: "application/pdf",
-                  data: base64Data
-                }
-              }
-            ]
-          }
-        ],
-        config: {
-          responseMimeType: "application/json"
-        }
+      // 1. Add to the persistent registry
+      await addDoc(collection(db, 'syllabusLinks'), {
+        name: newLinkName,
+        driveId: driveId || Date.now().toString(),
+        url: newLinkUrl,
+        createdAt: serverTimestamp()
       });
 
-      const responseText = aiResponse.text;
-      if (!responseText) throw new Error("No response from AI");
-      
-      // Robust JSON Extraction
-      let cleanJson = responseText.trim();
-      if (cleanJson.includes('```')) {
-        const match = cleanJson.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        if (match) cleanJson = match[1];
-      }
-      
-      let info;
-      try {
-        info = JSON.parse(cleanJson);
-      } catch (parseErr) {
-        // Last attempt: find anything that looks like a JSON object
-        const objectMatch = cleanJson.match(/\{[\s\S]*\}/);
-        if (objectMatch) {
-          info = JSON.parse(objectMatch[0]);
-        } else {
-          throw parseErr;
-        }
-      }
-
-      updateResult(fileId, { subjectCode: info.subjectCode, message: 'Updating Firestore...' });
-
-      // 4. Update Firestore
-      const syllabusUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+      // 2. Synchronize with the Catalog
       const subjectsRef = collection(db, 'subjects');
+      const snapshot = await getDocs(subjectsRef);
       
-      // Fetch all subjects for local matching to handle code variations
-      const querySnapshot = await getDocs(subjectsRef);
+      const normalize = (val: string) => (val || '').replace(/[-\s]/g, '').toLowerCase();
+      const inputRef = normalize(newLinkName);
 
-      const normalize = (s: string) => (s || '').replace(/\s/g, '').toLowerCase();
-      const targetCode = normalize(info.subjectCode);
-
-      const matchingDoc = querySnapshot.docs.find(doc => {
+      // Look for a subject whose code OR name matches the input
+      const matchDoc = snapshot.docs.find(doc => {
         const data = doc.data();
-        return normalize(data.code) === targetCode || doc.id === info.subjectCode || normalize(doc.id) === targetCode;
+        return normalize(data.code) === inputRef || 
+               normalize(data.name) === inputRef || 
+               inputRef.includes(normalize(data.code));
       });
 
-      if (matchingDoc) {
-        const docRef = doc(db, 'subjects', matchingDoc.id);
-        await updateDoc(docRef, {
-          ...info,
-          syllabusUrl,
+      if (matchDoc) {
+        await updateDoc(doc(db, 'subjects', matchDoc.id), {
+          syllabusUrl: newLinkUrl,
           isAvailable: true,
           updatedAt: serverTimestamp()
         });
-        updateResult(fileId, { status: 'success', message: 'Subject updated successfully', data: info });
+        toast.success(`Registered! "${matchDoc.data().code}" is now marked as Available.`);
       } else {
-        updateResult(fileId, { status: 'skipped', message: `No subject found with code: ${info.subjectCode}` });
+        toast.success("Link stored in Registry. (No matching subject code found in catalog)");
       }
 
-    } catch (err: any) {
-      console.error(err);
-      updateResult(fileId, { status: 'error', message: err.message || 'Unknown error' });
+      setNewLinkName('');
+      setNewLinkUrl('');
+    } catch (err) {
+      console.error("Save error:", err);
+      toast.error("Failed to persist data to Firebase.");
+    } finally {
+      setIsAdding(false);
     }
   };
 
-  const startIngestion = async () => {
-    setIsProcessing(true);
-    for (const file of results) {
-      if (file.status === 'success') continue;
-      await processFile(file.id);
+  const removeLink = async (id: string, name: string) => {
+    if (!confirm(`Permanently remove "${name}" from the syllabus registry?`)) return;
+    try {
+      await deleteDoc(doc(db, 'syllabusLinks', id));
+      toast.success("Link removed.");
+    } catch (err) {
+      toast.error("Delete failed.");
     }
-    setIsProcessing(false);
-    toast.success('Syllabus ingestion process complete!');
   };
 
-  if (authLoading || !profile) return null;
+  if (authLoading || isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-10">
+        <Loader2 className="w-12 h-12 text-ctu-gold animate-spin mb-4" />
+        <p className="text-foreground/40 font-black uppercase tracking-widest text-xs">Syncing Syllabus Database...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
-      <Sidebar user={profile} />
-      
-      <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <ShieldCheck className="text-ctu-gold" size={24} />
-              <span className="text-xs font-black text-ctu-gold uppercase tracking-[0.3em]">Knowledge Extraction</span>
+    <div className="min-h-screen bg-background flex transition-colors duration-300">
+      <Sidebar />
+      <main className="flex-1 p-4 sm:p-8 lg:p-12 pb-36 lg:pb-12 max-w-7xl mx-auto w-full overflow-x-hidden">
+        <div className="mb-12">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-4 mb-4"
+          >
+            <div className="p-3 bg-ctu-gold/10 rounded-2xl text-ctu-gold">
+              <FileUp size={32} />
             </div>
-            <h1 className="text-7xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Data Ingestion</h1>
-            <p className="text-foreground/40 mt-2 sm:mt-3 text-sm sm:text-base md:text-xl font-medium tracking-tight">Batch process PDFs from Google Drive to enrich subject data.</p>
-          </div>
-          
-          <div className="flex gap-4">
-            <button 
-              onClick={() => navigate('/admin')}
-              className="neumorphic-raised hover:neumorphic-pressed p-4 rounded-2xl text-foreground/60 transition-all"
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <LiquidButton 
-              onClick={startIngestion}
-              disabled={isProcessing}
-              className="px-8 flex items-center gap-3"
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="animate-spin" size={20} />
-                  <span>Processing...</span>
-                </>
-              ) : (
-                <>
-                  <RefreshCw size={20} />
-                  <span>Start Batch Ingestion</span>
-                </>
-              )}
-            </LiquidButton>
-          </div>
+            <div>
+              <h1 className="text-4xl md:text-5xl font-black text-foreground tracking-tighter uppercase italic py-2">
+                Syllabus <span className="text-ctu-gold">Registry</span>
+              </h1>
+              <p className="text-foreground/40 font-medium max-w-2xl">
+                Store syllabus links permanently. Data added here remains stored in Firebase and automatically updates the student catalog.
+              </p>
+            </div>
+          </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Status Overview */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="neumorphic-card border-none overflow-hidden">
-              <CardHeader className="border-b border-foreground/5 bg-foreground/[0.02] p-8">
-                <CardTitle className="text-2xl font-bold flex items-center justify-between">
-                  Processing Queue
-                  <Badge className="neumorphic-pressed border-none text-foreground/40 px-3 py-1">
-                    {isLoadingFiles ? 'Scanning...' : `${results.length} Files Found`}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-foreground/5">
-                  {results.map((result) => (
-                    <div key={result.id} className="p-6 hover:bg-foreground/[0.01] transition-colors flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className={cn(
-                          "w-12 h-12 rounded-2xl flex items-center justify-center transition-all",
-                          result.status === 'success' ? "bg-green-500/10 text-green-500" :
-                          result.status === 'error' ? "bg-red-500/10 text-red-500" :
-                          result.status === 'processing' ? "bg-ctu-gold/10 text-ctu-gold animate-pulse" :
-                          "neumorphic-pressed text-foreground/30"
-                        )}>
-                          {result.status === 'processing' ? <Loader2 className="animate-spin" /> : <FileText size={24} />}
-                        </div>
-                        <div>
-                          <p className="font-bold text-foreground">{result.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            {result.subjectCode && (
-                              <Badge variant="outline" className="text-[10px] font-mono border-foreground/10 text-ctu-gold">
-                                {result.subjectCode}
-                              </Badge>
-                            )}
-                            <p className="text-xs text-foreground/40 font-medium italic">{result.message || 'Waiting to start...'}</p>
-                          </div>
+        <div className="grid grid-cols-1 gap-8">
+          {/* Input Card */}
+          <Card className="neumorphic-card border-none bg-ctu-gold/5">
+            <CardHeader className="p-8 pb-4">
+              <CardTitle className="text-2xl font-bold flex items-center gap-3">
+                Store New Syllabus Link
+              </CardTitle>
+              <CardDescription>
+                Once stored, subjects will show a green checkmark in the catalog.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 pt-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 ml-1">Subject Code / Name</label>
+                  <Input 
+                    placeholder="e.g. IE-PC 212"
+                    value={newLinkName}
+                    onChange={(e) => setNewLinkName(e.target.value)}
+                    className="bg-background/50 border-none h-14 rounded-2xl focus:ring-ctu-gold"
+                  />
+                </div>
+                <div className="flex-[2] space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 ml-1">Google Drive / Preview Link</label>
+                  <Input 
+                    placeholder="https://drive.google.com/..."
+                    value={newLinkUrl}
+                    onChange={(e) => setNewLinkUrl(e.target.value)}
+                    className="bg-background/50 border-none h-14 rounded-2xl focus:ring-ctu-gold"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <LiquidButton 
+                    onClick={saveSyllabusLink}
+                    disabled={isAdding || !newLinkName || !newLinkUrl}
+                    className="h-14 px-8 rounded-2xl flex items-center gap-2"
+                  >
+                    {isAdding ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                    <span className="font-bold">Save Link</span>
+                  </LiquidButton>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Registry List */}
+          <Card className="neumorphic-card border-none overflow-hidden">
+            <CardHeader className="p-8 border-b border-foreground/5 mb-0">
+              <CardTitle className="text-2xl font-bold flex items-center justify-between">
+                Stored Links
+                <Badge className="neumorphic-pressed border-none text-foreground/40 px-3 py-1">
+                  {links.length} Entries Stored
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-foreground/5">
+                {links.length === 0 && (
+                  <div className="p-20 text-center text-foreground/20 italic font-medium">
+                    The registry is empty. Add links above to populate.
+                  </div>
+                )}
+                {links.map((link) => (
+                  <div key={link.firestoreId} className="p-6 hover:bg-foreground/[0.01] transition-colors flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-green-500/10 text-green-500 flex items-center justify-center">
+                        <FileCheck size={24} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-foreground text-lg">{link.name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <CheckCircle2 size={12} className="text-green-500" />
+                          <p className="text-xs text-foreground/40 font-medium">Status: Active & Synchronized</p>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center gap-4">
-                        {result.status === 'success' && <CheckCircle2 className="text-green-500" size={24} />}
-                        {result.status === 'error' && <AlertCircle className="text-red-500" size={24} />}
-                        {result.status === 'skipped' && <AlertCircle className="text-ctu-gold/40" size={24} />}
-                        
-                        <a 
-                          href={`https://drive.google.com/file/d/${result.id}/view`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="p-3 neumorphic-raised hover:neumorphic-pressed rounded-xl transition-all text-foreground/40 hover:text-foreground"
-                        >
-                          <ExternalLink size={18} />
-                        </a>
-                      </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    
+                    <div className="flex items-center gap-4">
+                      <a 
+                        href={link.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="p-3 neumorphic-raised hover:neumorphic-pressed rounded-xl transition-all text-foreground/40 hover:text-foreground"
+                        title="View Document"
+                      >
+                        <ExternalLink size={18} />
+                      </a>
 
-          {/* Extracted Data Preview (Simulated Sidebar) */}
-          <div className="space-y-6">
-            <Card className="neumorphic-card border-none">
-              <CardHeader className="p-8">
-                <CardTitle className="text-xl font-bold">Extraction Guide</CardTitle>
-              </CardHeader>
-              <CardContent className="px-8 pb-8 space-y-6">
-                <div className="space-y-4">
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-lg neumorphic-pressed flex items-center justify-center shrink-0 text-ctu-gold font-bold text-xs">1</div>
-                    <p className="text-sm text-foreground/60 leading-relaxed">
-                      PDFs are fetched from Google Drive using the provided file IDs.
-                    </p>
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-lg neumorphic-pressed flex items-center justify-center shrink-0 text-ctu-gold font-bold text-xs">2</div>
-                    <p className="text-sm text-foreground/60 leading-relaxed">
-                      Gemini 3 Flash analyzes the content to extract precise academic metadata.
-                    </p>
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-lg neumorphic-pressed flex items-center justify-center shrink-0 text-ctu-gold font-bold text-xs">3</div>
-                    <p className="text-sm text-foreground/60 leading-relaxed">
-                      Firestore documents are updated based on the <strong>Subject Code</strong> match.
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="pt-6 border-t border-foreground/5">
-                  <h4 className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-4">Required Fields</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {['Code', 'Name', 'Units', 'Semester', 'Outcomes', 'Topics'].map(f => (
-                      <Badge key={f} variant="outline" className="bg-background/50 border-foreground/5 text-foreground/60">
-                        {f}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Results Summary Card */}
-            <Card className="neumorphic-card border-none bg-ctu-maroon/5">
-              <CardContent className="p-8">
-                <h3 className="text-lg font-bold text-ctu-maroon mb-4">Batch Summary</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-foreground/40 font-medium">Processed</span>
-                    <span className="text-sm font-bold">{results.filter(r => r.status === 'success').length} / {results.length}</span>
-                  </div>
-                  <div className="w-full bg-foreground/5 h-1.5 rounded-full overflow-hidden">
-                    <div 
-                      className="bg-ctu-maroon h-full transition-all duration-500" 
-                      style={{ width: `${(results.filter(r => r.status === 'success').length / results.length) * 100}%` }}
-                    />
-                  </div>
-                  {results.some(r => r.status === 'error') && (
-                    <div className="p-4 bg-red-500/10 rounded-xl flex items-start gap-3">
-                      <AlertCircle className="text-red-500 shrink-0" size={16} />
-                      <p className="text-[10px] text-red-500/80 leading-tight">
-                        Some files encountered errors. Ensure they are public and contain valid syllabus text.
-                      </p>
+                      <button 
+                        onClick={() => removeLink(link.firestoreId, link.name)}
+                        className="p-3 neumorphic-raised hover:bg-red-500/10 hover:text-red-500 rounded-xl transition-all text-foreground/20"
+                        title="Delete Permanently"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </main>
-
       <BottomNav />
     </div>
   );
