@@ -2,5 +2,7 @@
   "name": "IE MATRIX",
   "description": "Industrial Engineering Portal and Matrix System for IE students. Features study roadmaps, GWA tracking, and collaborative community tools.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

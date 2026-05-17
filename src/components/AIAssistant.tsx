@@ -70,11 +70,23 @@ const RobotMascot = ({ className, size = 24, glow = true }: { className?: string
 export default function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ie_matrix_ai_messages');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
   const [input, setInput] = useState('');
   const { profile } = useAuth();
   const { progressMap } = useProgress();
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && messages.length > 0) {
+      localStorage.setItem('ie_matrix_ai_messages', JSON.stringify(messages));
+    }
+  }, [messages]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -82,13 +94,42 @@ export default function AIAssistant() {
     }
   }, [messages, loading]);
 
+  const [lastRequestTime, setLastRequestTime] = useState(0);
+  const [retryCountdown, setRetryCountdown] = useState(0);
+  const COOLDOWN_MS = 15000; // 15 seconds cooldown
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (retryCountdown > 0) {
+      timer = setInterval(() => {
+        setRetryCountdown(prev => {
+          const next = Math.max(0, prev - 1);
+          if (next === 0) setLastRequestTime(0); // Clear cooldown when timer hits 0
+          return next;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [retryCountdown]);
+
   const handleGetInitialAdvice = async () => {
     if (!profile) return;
 
     if (!isAIAvailable()) {
       setMessages([{
         role: 'assistant',
-        content: "👋 Hello! I'm your **IE Matrix AI Advisor**. \n\nI noticed that no AI provider is configured. To enable project-specific advice, curriculum planning, and interactive chat, please add your `an AI API Key` to the environment variables. \n\nIn the meantime, you can still explore the Study Hub, create flashcards, and join squads!"
+        content: "👋 Hello! I'm your **IE Matrix AI Advisor**. \n\nI noticed that no AI provider is configured. Please add an AI API Key to enable this feature."
+      }]);
+      setIsOpen(true);
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastRequestTime < COOLDOWN_MS || retryCountdown > 0) {
+      const waitTime = retryCountdown > 0 ? retryCountdown : Math.ceil((COOLDOWN_MS - (now - lastRequestTime)) / 1000);
+      setMessages([{ 
+        role: 'assistant', 
+        content: `🐢 **Throttling**: To preserve free AI quota, please wait ${waitTime}s before requesting a new analysis.` 
       }]);
       setIsOpen(true);
       return;
@@ -100,8 +141,26 @@ export default function AIAssistant() {
     try {
       const result = await getCurriculumAdvice(progressMap, IE_SUBJECTS);
       setMessages([{ role: 'assistant', content: result }]);
-    } catch (error) {
-      setMessages([{ role: 'assistant', content: "I'm sorry, I couldn't generate advice right now. Please try again later." }]);
+      setLastRequestTime(Date.now());
+    } catch (error: any) {
+      const isQuota = error.status === 429 || error.message?.includes('429');
+      if (isQuota) {
+        let wait = error.retryAfter || 30;
+        setRetryCountdown(wait);
+        setMessages([{ 
+          role: 'assistant', 
+          content: `🚨 **AI Quota Exhausted**: The Gemini Free Tier is currently overloaded with global traffic. 
+
+**Next availability**: ~${wait} seconds.
+
+I have automatically switched to our **Offline Advisor Mode** for you:
+
+${isQuota ? "*(Static Fallback Active)*" : ""}
+` 
+        }]);
+      } else {
+        setMessages([{ role: 'assistant', content: "I'm sorry, I couldn't generate advice right now. Please try again later." }]);
+      }
     } finally {
       setLoading(false);
     }
@@ -112,10 +171,18 @@ export default function AIAssistant() {
     const userMessage = customMessage || input.trim();
     if (!userMessage || loading) return;
 
+    const now = Date.now();
+    if (!customMessage && (now - lastRequestTime < 2000 || retryCountdown > 0)) {
+      if (retryCountdown > 0) {
+        setMessages(prev => [...prev, { role: 'assistant', content: `⏳ **AI Cooldown**: Please wait ${retryCountdown}s more before your next question.` }]);
+      }
+      return;
+    }
+
     if (!isAIAvailable()) {
       setMessages(prev => [...prev, 
         { role: 'user', content: userMessage },
-        { role: 'assistant', content: "Offline mode: AI functionality requires a Gemini API key. Please configure an AI API Key." }
+        { role: 'assistant', content: "Offline mode: AI functionality requires a Gemini API key." }
       ]);
       setInput('');
       return;
@@ -124,13 +191,25 @@ export default function AIAssistant() {
     setInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setLoading(true);
+    setLastRequestTime(now);
 
+    const chatHistory = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
     try {
-      const chatHistory = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
       const response = await askQuestion(userMessage, chatHistory);
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: "I encountered an error. Could you try asking that again?" }]);
+      setLastRequestTime(Date.now());
+    } catch (error: any) {
+      const isQuota = error.status === 429 || error.message?.includes('429');
+      if (isQuota) {
+        const wait = error.retryAfter || 30;
+        setRetryCountdown(wait);
+      }
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: isQuota 
+          ? `⚠️ **Free Tier Busy**: Gemini is currently overloaded. Please wait **${error.retryAfter || 30}s** before sending another message.`
+          : "I encountered an error. Could you try asking that again?" 
+      }]);
     } finally {
       setLoading(false);
     }
@@ -153,7 +232,14 @@ export default function AIAssistant() {
         onClick={() => {
           if (!isOpen) {
             setIsOpen(true);
-            if (messages.length === 0) handleGetInitialAdvice();
+            if (messages.length === 0) {
+              setMessages([{
+                role: 'assistant',
+                content: `👋 Mabuhay, **${profile?.fullName.split(' ')[0] || 'Future Engineer'}**! I am your **IE Matrix Advisor**. 
+                
+I can analyze your CTU curriculum progress and provide strategic advice. Would you like me to generate a personalized roadmap analysis for you?`
+              }]);
+            }
           }
           else setIsOpen(false);
         }}
@@ -227,7 +313,19 @@ export default function AIAssistant() {
                 </div>
               )}
               
-              {messages.length === 1 && !loading && (
+              {messages.length >= 1 && !loading && messages[0].content.includes('generate a personalized roadmap') && (
+                <div className="px-4 pb-4">
+                  <button 
+                    onClick={handleGetInitialAdvice}
+                    className="w-full py-3 rounded-2xl bg-ctu-maroon text-white text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-ctu-maroon/90 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <Sparkles size={16} />
+                    Generate My Analysis
+                  </button>
+                </div>
+              )}
+
+              {messages.length > 1 && !loading && (
                 <div className="flex flex-wrap gap-2 px-4 pb-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
                   {QUICK_PROMPTS.map(prompt => (
                     <button
@@ -249,19 +347,38 @@ export default function AIAssistant() {
               )}
             </div>
 
-            <form onSubmit={handleSendMessage} className="p-4 bg-background/80 border-t border-foreground/5">
+            <form onSubmit={handleSendMessage} className="p-4 bg-background/80 border-t border-foreground/5 relative">
+              <AnimatePresence>
+                {retryCountdown > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-x-4 top-4 bottom-[calc(1rem+24px)] z-10 rounded-xl bg-background/60 backdrop-blur-[2px] flex items-center justify-center border border-ctu-maroon/20"
+                  >
+                    <div className="flex items-center gap-2 text-ctu-maroon font-bold text-[10px] uppercase tracking-widest animate-pulse">
+                      <Loader2 size={12} className="animate-spin" />
+                      Cooling Down: {retryCountdown}s
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="relative">
                 <input 
                   type="text"
-                  placeholder="Ask about your curriculum..."
+                  placeholder={retryCountdown > 0 ? "AI is cooling down..." : "Ask about your curriculum..."}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  disabled={loading}
-                  className="w-full bg-foreground/[0.02] border-none neumorphic-pressed h-11 rounded-xl pl-4 pr-12 text-xs focus:ring-1 focus:ring-ctu-gold/50 outline-none transition-all"
+                  disabled={loading || retryCountdown > 0}
+                  className={cn(
+                    "w-full bg-foreground/[0.02] border-none neumorphic-pressed h-11 rounded-xl pl-4 pr-12 text-xs focus:ring-1 focus:ring-ctu-gold/50 outline-none transition-all",
+                    retryCountdown > 0 && "opacity-50 grayscale cursor-not-allowed"
+                  )}
                 />
                 <button 
                   type="submit"
-                  disabled={loading || !input.trim()}
+                  disabled={loading || !input.trim() || retryCountdown > 0}
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-ctu-gold hover:bg-ctu-gold/80 disabled:opacity-50 disabled:grayscale transition-all"
                 >
                   <ArrowRight size={14} className="text-white" />
@@ -269,11 +386,14 @@ export default function AIAssistant() {
               </div>
               <button 
                 type="button"
-                onClick={handleGetInitialAdvice}
-                className="mt-2 text-[9px] font-black uppercase tracking-widest text-ctu-gold hover:text-ctu-gold/80 w-full text-center transition-colors"
+                onClick={() => {
+                  setMessages([]);
+                  localStorage.removeItem('ie_matrix_ai_messages');
+                }}
+                className="mt-2 text-[9px] font-black uppercase tracking-widest text-foreground/30 hover:text-ctu-maroon w-full text-center transition-colors"
                 disabled={loading}
               >
-                Reset Analysis
+                Clear Chat History
               </button>
             </form>
           </motion.div>

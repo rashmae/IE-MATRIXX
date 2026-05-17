@@ -61,49 +61,58 @@ export default function Sidebar({ user, hideBranding = false, hideActions = fals
     <aside className="hidden lg:flex flex-col w-72 h-screen bg-background border-r border-foreground/5 sticky top-0 z-10 transition-colors duration-300">
       {/* Logo Area */}
       {!hideBranding && (
-        <div className="p-8 pb-4 flex flex-col gap-6">
+        <div className="p-8 pb-3 flex flex-col gap-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {/* AI Robot Logo in Sidebar */}
-              <div className="relative w-10 h-10 shrink-0" aria-hidden="true">
-                <div className="absolute inset-0 bg-ctu-gold/20 rounded-full blur-lg animate-pulse" />
-                <div className="relative w-full h-full neumorphic-raised rounded-full p-0.5 flex items-center justify-center bg-background overflow-hidden border border-white/5">
-                  <div className="absolute inset-0 border border-ctu-gold/20 rounded-full animate-[spin_10s_linear_infinite]" />
+            <div className="flex items-center gap-4">
+              {/* AI Robot Logo in Sidebar - Enhanced with technical rotation */}
+              <div className="relative w-12 h-12 shrink-0 group cursor-pointer" aria-hidden="true" onClick={() => navigate('/dashboard')}>
+                <div className="absolute inset-0 bg-ctu-gold/40 rounded-2xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                <div className="relative w-full h-full neumorphic-raised rounded-2xl p-1 flex items-center justify-center bg-background overflow-hidden border border-white/10 group-active:neumorphic-pressed transition-all">
+                  <div className="absolute inset-x-0 top-1/2 h-[1px] bg-ctu-gold/20 -translate-y-1/2 rotate-[15deg] group-hover:rotate-[195deg] transition-transform duration-1000" />
+                  <div className="absolute inset-y-0 left-1/2 w-[1px] bg-ctu-gold/20 -translate-x-1/2 -rotate-[15deg] group-hover:rotate-[-195deg] transition-transform duration-1000" />
                   
-                  <div className="relative w-7 h-7 rounded-full bg-gradient-to-br from-ctu-gold via-ctu-maroon to-navy-deep flex items-center justify-center shadow-inner overflow-hidden">
+                  <div className="relative w-8 h-8 rounded-xl bg-gradient-to-br from-ctu-gold via-ctu-maroon to-navy-deep flex items-center justify-center shadow-inner overflow-hidden border border-white/20">
                     <motion.div 
-                      animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                      className="w-4 h-4 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)] flex items-center justify-center"
-                      role="img"
-                      aria-label="IE Matrix AI Logo"
+                      animate={{ 
+                        scale: [1, 1.15, 1], 
+                        rotate: [0, 5, -5, 0],
+                        filter: ['brightness(1)', 'brightness(1.2)', 'brightness(1)']
+                      }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      className="w-5 h-5 rounded-lg bg-white/90 shadow-[0_0_15px_rgba(255,255,255,0.6)] flex items-center justify-center"
                     >
-                      <div className="w-2 h-2 rounded-full bg-navy-deep flex items-center justify-center">
+                      <div className="w-2.5 h-2.5 rounded-sm bg-navy-deep flex items-center justify-center">
                         <div className="w-1 h-1 rounded-full bg-ctu-gold animate-ping" />
                       </div>
                     </motion.div>
                   </div>
                 </div>
               </div>
-              <span 
-                className="text-2xl font-black tracking-tighter flex items-center frosted-header"
-                style={{ height: '36px', width: 'auto' }}
-              >
-                IE MATRIX
-              </span>
+
+              <div className="flex flex-col">
+                <span className="text-2xl font-black tracking-tighter frosted-header leading-none select-none relative">
+                  IE MATRIX
+                  <span className="absolute -right-6 -top-1 px-1 py-0.5 bg-ctu-maroon/10 text-[7px] text-ctu-maroon rounded border border-ctu-maroon/20 font-black">v2.0</span>
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-foreground/40 mt-1.5 flex items-center gap-1.5 leading-none">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+                  System Secure
+                </span>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Global Actions (Theme/Notifs) */}
-      <div className="px-6 flex items-center gap-2 mb-4">
+      {/* Global Actions (Theme/Notifs) - Grouped Control Strip */}
+      <div className="px-6 flex items-center gap-3 mb-6 mt-2">
         {!hideActions && (
-          <>
+          <div className="flex-1 flex items-center gap-1 p-1 neumorphic-pressed rounded-2xl bg-foreground/[0.03]">
             <NotificationCenter />
-          </>
+            <div className="w-px h-6 bg-foreground/10 mx-1 shrink-0" />
+            <ThemeToggle className="neumorphic-raised shrink-0 border-none !shadow-none hover:bg-foreground/[0.05] flex-1 rounded-xl h-11" />
+          </div>
         )}
-        <ThemeToggle className="neumorphic-raised shrink-0" />
       </div>
 
       {/* Navigation */}

@@ -200,7 +200,7 @@ export default function AdminDashboard() {
           <div className="flex gap-3">
             <button 
               onClick={() => navigate('/admin/ingest')}
-              className="neumorphic-raised hover:neumorphic-pressed px-6 py-3 rounded-2xl text-foreground font-bold text-xs transition-all"
+              className="neumorphic-raised hover:neumorphic-pressed px-6 py-3 rounded-2xl text-ctu-gold font-bold text-xs transition-all"
             >
               Syllabus Ingestion
             </button>
@@ -209,12 +209,6 @@ export default function AdminDashboard() {
               className="neumorphic-raised hover:neumorphic-pressed px-6 py-3 rounded-2xl text-blue-500 font-bold text-xs transition-all"
             >
               Ratings Ingest
-            </button>
-            <button 
-              onClick={simulateNotification}
-              className="neumorphic-raised hover:neumorphic-pressed px-6 py-3 rounded-2xl text-ctu-maroon font-bold text-xs transition-all"
-            >
-              Simulate Notify
             </button>
             <button 
               onClick={fetchUsers}

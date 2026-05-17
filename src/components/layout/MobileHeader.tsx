@@ -1,8 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/src/context/AuthContext';
-import { User } from 'lucide-react';
+import ThemeToggle from '../ThemeToggle';
 import NotificationCenter from './NotificationCenter';
 
 interface MobileHeaderProps {
@@ -11,12 +10,7 @@ interface MobileHeaderProps {
 }
 
 export default function MobileHeader({ hideBranding = false, hideActions = false }: MobileHeaderProps) {
-  const { profile } = useAuth();
   const navigate = useNavigate();
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
 
   if (hideBranding && hideActions) return null;
 
@@ -26,7 +20,7 @@ export default function MobileHeader({ hideBranding = false, hideActions = false
         <motion.div 
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-4 py-2"
+          className="flex items-center gap-4 py-2 cursor-pointer"
           onClick={() => navigate('/dashboard')}
         >
           {/* Enhanced Logo Implementation for Mobile */}
@@ -67,14 +61,8 @@ export default function MobileHeader({ hideBranding = false, hideActions = false
         <div className="flex items-center gap-4 ml-auto">
           <NotificationCenter />
 
-          {/* User Button */}
-          <motion.button 
-            whileTap={{ scale: 0.9 }}
-            onClick={() => navigate('/profile')}
-            className="w-12 h-12 rounded-full bg-ctu-gold flex items-center justify-center text-navy-deep font-bold text-sm shadow-xl active:scale-90 transition-all border-4 border-background"
-          >
-            {profile ? getInitials(profile.fullName) : <User size={20} />}
-          </motion.button>
+          {/* Theme Toggle Shortcut */}
+          <ThemeToggle className="w-12 h-12 rounded-full flex items-center justify-center shadow-xl active:scale-90 transition-all border-4 border-background p-0" />
         </div>
       )}
     </div>

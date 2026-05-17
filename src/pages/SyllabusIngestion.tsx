@@ -259,8 +259,11 @@ export default function SyllabusIngestion() {
                         <p className="font-bold text-foreground text-lg">{link.name}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <CheckCircle2 size={12} className="text-green-500" />
-                          <p className="text-xs text-foreground/40 font-medium">Status: Active & Synchronized</p>
+                          <p className="text-xs text-foreground/40 font-medium">Status: Verified & Checkmarked in Catalog</p>
                         </div>
+                        <p className="text-[9px] text-foreground/20 font-bold uppercase tracking-wider mt-1 ml-5">
+                          Autosaved in Firebase Registry
+                        </p>
                       </div>
                     </div>
                     

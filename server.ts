@@ -18,7 +18,14 @@ const initGemini = () => {
     return null;
   }
   
-  geminiClient = new GoogleGenAI({ apiKey });
+  geminiClient = new GoogleGenAI({ 
+    apiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
   return geminiClient;
 };
 
@@ -56,36 +63,130 @@ async function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // AI Proxy Routes
+// AI Proxy Routes with basic caching and retry logic
+  const aiCache = new Map<string, { text: string; expiry: number }>();
+  const CACHE_TTL = 1000 * 60 * 60; // 1 hour for AI responses (most curriculum advice is stable)
+
+  // Track if we are globally blocked by a 429
+  let globalBlockedUntil = 0;
+
   app.post("/api/ai/generate", async (req, res) => {
     const { prompt, systemInstruction, responseMimeType, model = "gemini-2.0-flash", contents, config } = req.body;
     
+    // Check global block first
+    const now = Date.now();
+    if (globalBlockedUntil > now) {
+      const wait = Math.ceil((globalBlockedUntil - now) / 1000);
+      return res.status(429).json({ 
+        error: "Gemini API Quota Exceeded. The free tier is overloaded.",
+        retryAfter: wait,
+        isGlobalBlock: true
+      });
+    }
+
+    // Cache lookup
+    const cacheKey = JSON.stringify({ prompt, systemInstruction, model, contents });
+    const cached = aiCache.get(cacheKey);
+    if (cached && cached.expiry > now) {
+      return res.json({ text: cached.text });
+    }
+
     const ai = initGemini();
     if (!ai) {
       return res.status(503).json({ error: "AI Service Not Configured" });
     }
 
-    try {
-      // Direct pass-through if contents is provided (advanced usage)
-      // Otherwise fallback to simple prompt construction
-      const generationConfig = config || {
-        systemInstruction,
-        responseMimeType
-      };
+    const maxRetries = 2; // Reduced retries to avoid compounding the quota issue
+    let attempt = 0;
+    let lastError: any = null;
 
-      const finalContents = contents || [{ role: 'user', parts: [{ text: prompt }] }];
+    while (attempt < maxRetries) {
+      try {
+        const generationConfig = config || {
+          systemInstruction,
+          responseMimeType
+        };
 
-      const response = await ai.models.generateContent({
-        model,
-        contents: finalContents,
-        config: generationConfig
-      });
-      
-      res.json({ text: response.text });
-    } catch (error: any) {
-      console.error("Gemini API Proxy Error:", error);
-      res.status(500).json({ error: error.message || "Failed to generate content" });
+        const finalContents = contents || [{ role: 'user', parts: [{ text: prompt }] }];
+
+        const response = await ai.models.generateContent({
+          model,
+          contents: finalContents,
+          config: generationConfig
+        });
+        
+        const textResponse = response.text;
+        
+        // Update cache
+        aiCache.set(cacheKey, { text: textResponse, expiry: Date.now() + CACHE_TTL });
+        
+        return res.json({ text: textResponse });
+      } catch (error: any) {
+        lastError = error;
+        const status = error.status || error.code || 500;
+        
+        // If 429, retry with backoff or specific delay
+        if (status === 429 || error.message?.includes('429')) {
+          let retryDelaySeconds = 20;
+
+          // Attempt to extract the specific retry delay from the error details if available
+          try {
+            const errorBody = typeof error.message === 'string' && error.message.includes('{') 
+              ? JSON.parse(error.message.substring(error.message.indexOf('{'))) 
+              : error;
+              
+            const retryInfo = errorBody?.error?.details?.find((d: any) => d['@type']?.includes('RetryInfo'));
+            if (retryInfo?.retryDelay) {
+              retryDelaySeconds = parseInt(retryInfo.retryDelay.replace('s', '')) || 20;
+            } else {
+              // Try regex as backup
+              const match = error.message?.match(/retry in (\d+\.?\d*)s/i) || 
+                            error.message?.match(/wait (\d+)s/i);
+              if (match) retryDelaySeconds = parseFloat(match[1]);
+            }
+          } catch (e) {}
+
+          const waitTimeMs = (retryDelaySeconds + 1) * 1000;
+
+          if (waitTimeMs > 10000) { // If wait is long, don't hold the request, block globally and return
+            globalBlockedUntil = Date.now() + waitTimeMs;
+            break;
+          }
+
+          attempt++;
+          if (attempt < maxRetries) {
+            console.log(`Gemini 429: Retrying in ${waitTimeMs.toFixed(0)}ms...`);
+            await new Promise(resolve => setTimeout(resolve, waitTimeMs));
+            continue;
+          }
+        }
+        
+        // If not 429 or max retries reached, break and handle error
+        break;
+      }
     }
+
+    console.error("Gemini API Proxy Error after retries:", lastError);
+    if (lastError.message?.includes('429') || lastError.status === 429) {
+      let finalRetryDelay = 45; // Default longer delay for global block
+      try {
+        // Extract "retry in 36.317501497s" or similar
+        const match = lastError.message?.match(/retry in (\d+\.?\d*)s/i) || 
+                      lastError.message?.match(/retry after (\d+)s/i);
+        if (match) finalRetryDelay = Math.ceil(parseFloat(match[1])) + 5;
+      } catch (e) {}
+
+      // Block globally for the remainder of the retry window plus a safety buffer
+      globalBlockedUntil = Math.max(globalBlockedUntil, Date.now() + finalRetryDelay * 1000);
+
+      return res.status(429).json({ 
+        error: "Gemini API Quota Exceeded. The free tier is currently overloaded.",
+        details: lastError.message,
+        retryAfter: finalRetryDelay
+      });
+    }
+    
+    res.status(500).json({ error: lastError.message || "Failed to generate content after retries" });
   });
 
   // API Routes

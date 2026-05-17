@@ -239,43 +239,75 @@ export default function Dashboard() {
       <main id="main-content" className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
         <MobileHeader />
 
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        {/* Enhanced Header Section */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-10 mb-12 p-8 sm:p-10 rounded-[2.5rem] bg-foreground/[0.02] border border-white/5 neumorphic-raised relative overflow-hidden group/header transition-all duration-500">
+          {/* Decorative Polish */}
+          <div className="absolute -right-24 -top-24 w-80 h-80 bg-ctu-gold/5 rounded-full blur-[100px] opacity-0 group-hover/header:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+          <div className="absolute -left-24 -bottom-24 w-80 h-80 bg-ctu-maroon/5 rounded-full blur-[100px] opacity-0 group-hover/header:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+          
           <motion.div
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            className="flex items-center gap-6"
+            className="relative z-10 flex flex-col gap-4"
           >
-            <div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-ctu-gold/60 leading-none">MATRIX ONLINE</span>
+              </div>
               <h1 
-                className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tighter transition-all duration-300 hover:[text-shadow:_0_1px_40px_rgba(146,93,252,0.5)]"
+                className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl frosted-header font-black tracking-tighter transition-all duration-500 hover:[text-shadow:_0_1px_40px_rgba(212,175,55,0.3)] leading-none"
               >
-                {getGreeting()}, {profile.fullName.split(' ')[0]} 👋
+                {getGreeting()}, <span className="text-ctu-gold">{profile.fullName.split(' ')[0]}</span> 👋
               </h1>
-              <p className="text-foreground/40 mt-2 sm:mt-3 text-sm sm:text-base md:text-xl font-medium tracking-tight">Navigate your IE journey. One subject at a time.</p>
+              <p className="text-foreground/40 mt-3 text-xs sm:text-base md:text-xl font-medium tracking-tight max-w-lg leading-relaxed">
+                Welcome back to your Industrial Engineering portal. Here's your current curriculum overview.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 mt-2">
+               <button 
+                  onClick={() => navigate('/progress')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-ctu-maroon/10 border border-ctu-maroon/20 text-ctu-maroon text-[10px] font-bold uppercase tracking-wider hover:bg-ctu-maroon hover:text-white transition-all active:scale-95"
+                >
+                  <TrendingUp size={14} />
+                  View Analytics
+                </button>
+                <div className="h-4 w-px bg-foreground/10" />
+                <div className="flex -space-x-2">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="w-6 h-6 rounded-full border-2 border-background bg-foreground/5 flex items-center justify-center">
+                      <UserIcon size={10} className="text-foreground/40" />
+                    </div>
+                  ))}
+                  <div className="w-6 h-6 rounded-full border-2 border-background bg-ctu-gold flex items-center justify-center text-[8px] font-bold text-white">
+                    +42
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-foreground/30 ml-1">IE Students Active</span>
             </div>
           </motion.div>
 
-          <div className="flex flex-col items-end gap-3 translate-y-2">
-            <div className="flex items-center gap-4">
-              <div className="relative hidden md:block w-72">
+          <div className="relative z-10 flex flex-col gap-6 w-full xl:w-auto">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              <div className="relative flex-1 md:w-80 lg:w-96">
                 <Label htmlFor="dashboard-search" className="sr-only">Search subjects</Label>
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" size={16} aria-hidden="true" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40" size={18} aria-hidden="true" />
                 <input 
                   id="dashboard-search"
                   type="text" 
-                  placeholder="Search subjects..." 
+                  placeholder="Find a subject..." 
                   aria-label="Search subjects"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-background border-none neumorphic-pressed rounded-xl py-3 pl-10 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-ctu-gold/50 transition-all text-foreground placeholder:text-foreground/30"
+                  className="w-full bg-background/50 border border-white/5 neumorphic-pressed rounded-2xl py-4 pl-12 pr-12 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ctu-gold/30 transition-all text-foreground placeholder:text-foreground/30 backdrop-blur-sm"
                 />
                 {searchQuery && (
                   <button 
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center rounded-full hover:bg-foreground/5 text-foreground/40 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full hover:bg-ctu-maroon/10 text-ctu-maroon transition-colors"
                   >
-                    <X size={14} />
+                    <X size={16} />
                   </button>
                 )}
               </div>
@@ -284,40 +316,25 @@ export default function Dashboard() {
                   const url = `/catalog?q=${encodeURIComponent(searchQuery)}${selectedYear !== 'All' ? `&year=${selectedYear}` : ''}`;
                   navigate(url);
                 }}
-                className="neumorphic-raised hover:neumorphic-pressed px-8 py-3 rounded-full text-foreground font-bold text-sm transition-all whitespace-nowrap"
+                className="bg-ctu-gold text-white px-10 h-14 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-ctu-gold/20 hover:scale-[1.02] active:scale-95 transition-all whitespace-nowrap"
               >
                 Search Hub
               </button>
             </div>
 
-            {/* Quick Filters */}
-            <div className="hidden md:flex flex-col items-end gap-3 mt-2">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowOnlyRemaining(!showOnlyRemaining)}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border",
-                    showOnlyRemaining 
-                      ? "bg-ctu-maroon border-ctu-maroon text-white shadow-[0_0_10px_rgba(141,18,34,0.3)]" 
-                      : "border-foreground/10 text-foreground/40 hover:text-foreground/60"
-                  )}
-                >
-                  <TrendingUp size={12} />
-                  Remaining Only
-                </button>
-                <div className="w-px h-4 bg-foreground/10 mx-1" />
-                <Filter size={12} className="text-ctu-gold" />
+            {/* Polished Controls Bar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-2 neumorphic-pressed rounded-[1.5rem] bg-foreground/[0.01]">
+              <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto no-scrollbar pb-1 sm:pb-0">
                 {(['All', '1st', '2nd', '3rd', '4th'] as const).map((year) => {
                   const yearSubjects = year === 'All' ? IE_SUBJECTS : subjectsByYear[year];
                   const completed = yearSubjects.filter(s => progressMap[s.id]?.status === 'done').length;
-                  const progress = Math.round((completed / yearSubjects.length) * 100);
                   
                   const icons = {
-                    'All': <LayoutDashboard size={12} />,
-                    '1st': <BookOpen size={12} />,
-                    '2nd': <BrainCircuit size={12} />,
-                    '3rd': <FolderOpen size={12} />,
-                    '4th': <Trophy size={12} />
+                    'All': <LayoutDashboard size={14} />,
+                    '1st': <BookOpen size={14} />,
+                    '2nd': <BrainCircuit size={14} />,
+                    '3rd': <FolderOpen size={14} />,
+                    '4th': <Trophy size={14} />
                   };
 
                   return (
@@ -325,26 +342,35 @@ export default function Dashboard() {
                       key={year}
                       onClick={() => setSelectedYear(year)}
                       className={cn(
-                        "group relative flex items-center gap-2 px-3 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all",
+                        "group relative flex items-center gap-2.5 px-4 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
                         selectedYear === year 
-                          ? "neumorphic-pressed text-ctu-gold" 
-                          : "text-foreground/30 hover:text-foreground/60"
+                          ? "bg-ctu-gold text-white shadow-lg shadow-ctu-gold/20" 
+                          : "text-foreground/40 hover:bg-foreground/5 hover:text-foreground"
                       )}
                     >
                       {icons[year as keyof typeof icons]}
-                      <span>{year === 'All' ? 'All' : `${year}`}</span>
-                      <span className={cn(
-                        "text-[8px] opacity-40 ml-1 font-black",
-                        selectedYear === year && "opacity-100"
-                      )}>
-                        ({yearSubjects.length})
-                      </span>
-                      {selectedYear !== year && completed > 0 && (
-                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-emerald-500/50" />
+                      <span>{year === 'All' ? 'Library' : `${year} Yr`}</span>
+                      {completed > 0 && selectedYear !== year && (
+                         <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-background shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                       )}
                     </button>
                   );
                 })}
+              </div>
+
+              <div className="flex items-center gap-3 pl-2 border-l border-foreground/10 shrink-0">
+                <button
+                  onClick={() => setShowOnlyRemaining(!showOnlyRemaining)}
+                  className={cn(
+                    "flex items-center gap-2 h-11 px-5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
+                    showOnlyRemaining 
+                      ? "bg-ctu-maroon text-white shadow-lg shadow-ctu-maroon/20" 
+                      : "text-foreground/40 hover:text-ctu-maroon"
+                  )}
+                >
+                  <TrendingUp size={14} />
+                  Remaining
+                </button>
               </div>
             </div>
           </div>

@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
-import MobileHeader from '@/src/components/layout/MobileHeader';
 import { User, Announcement, AnnouncementCategory } from '@/src/types/index';
 import { ANNOUNCEMENTS } from '@/src/lib/constants';
 import { Badge } from '@/components/ui/badge';
@@ -88,11 +87,10 @@ export default function Bulletin() {
       <Sidebar user={profile} />
       
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-        <MobileHeader />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-8">
           <div>
-            <h1 className="text-4xl sm:text-6xl md:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Board</h1>
-            <p className="text-foreground/40 mt-2 sm:mt-3 text-sm sm:text-base md:text-xl font-medium tracking-tight">Stay updated with the latest IE department news.</p>
+            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2">Board</h1>
+            <p className="text-foreground/40 mt-1 sm:mt-2 text-xs sm:text-base md:text-xl font-medium tracking-tight">Stay updated with the latest IE department news.</p>
           </div>
 
           <div className="flex gap-3 overflow-x-auto pb-4 md:pb-0 no-scrollbar scroll-smooth">

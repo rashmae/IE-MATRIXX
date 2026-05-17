@@ -20,7 +20,6 @@ import { useAuth } from '@/src/context/AuthContext';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import Sidebar from '@/src/components/layout/Sidebar';
 import BottomNav from '@/src/components/layout/BottomNav';
-import MobileHeader from '@/src/components/layout/MobileHeader';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import NotificationsList from '@/src/components/layout/NotificationsList';
@@ -60,8 +59,6 @@ export default function Notifications() {
       <Sidebar user={profile} />
       
       <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-36 lg:pb-10 overflow-x-hidden">
-        <MobileHeader />
-
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">

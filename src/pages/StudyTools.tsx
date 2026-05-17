@@ -1001,10 +1001,10 @@ export default function StudyTools() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl frosted-header font-black tracking-tighter leading-[0.9] py-2 flex items-center flex-wrap gap-2 sm:gap-4">
+              <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl frosted-header font-black tracking-tighter leading-[0.9] py-2 flex items-center flex-wrap gap-2 sm:gap-4">
                 Study Hub
               </h1>
-              <p className="text-foreground/40 mt-2 sm:mt-3 text-sm sm:text-base md:text-xl font-medium tracking-tight">
+              <p className="text-foreground/40 mt-1 sm:mt-2 text-xs sm:text-base md:text-xl font-medium tracking-tight">
                 Elevate your learning with AI guidance and community support.
               </p>
             </motion.div>
@@ -1402,7 +1402,7 @@ export default function StudyTools() {
                           <h4 className="text-[10px] sm:text-xs font-black uppercase tracking-[0.5em] text-foreground/20 mb-3">{year} Year Matrix Status</h4>
                           <div className="h-0.5 w-16 bg-ctu-gold/30 mx-auto rounded-full" />
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-8 w-full max-w-7xl">
+                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-8 w-full max-w-7xl">
                           {IE_SUBJECTS.filter(s => 
                             s.yearLevel === year && 
                             (searchQuery === '' || 
@@ -1416,48 +1416,51 @@ export default function StudyTools() {
                               <div 
                                 key={subject.id}
                                 className={cn(
-                                  "w-full p-6 sm:p-8 rounded-[2rem] transition-all border flex flex-col justify-between min-h-[180px] cursor-pointer group relative overflow-hidden",
+                                  "w-full p-3 sm:p-8 rounded-[1.2rem] sm:rounded-[2rem] transition-all border flex flex-col justify-between aspect-square sm:aspect-auto sm:min-h-[180px] cursor-pointer group relative overflow-hidden",
                                   isDone ? "bg-emerald-500/[0.03] border-emerald-500/20 shadow-lg" : 
                                   isPrep ? "bg-ctu-gold/[0.03] border-ctu-gold/20 shadow-lg" : "bg-background neumorphic-raised border-foreground/5 shadow-sm hover:shadow-xl"
                                 )}
                                 onClick={() => navigate(`/catalog/${subject.id}`)}
                               >
-                                <div className="absolute -right-4 -top-4 w-16 h-16 bg-foreground/[0.02] rounded-full group-hover:scale-150 transition-transform" />
+                                <div className="absolute -right-4 -top-4 w-12 h-12 sm:w-16 sm:h-16 bg-foreground/[0.02] rounded-full group-hover:scale-150 transition-transform" />
                                 
-                                <div className="relative z-10">
-                                  <div className="flex justify-between items-center mb-4">
-                                    <div className="flex items-center gap-2">
-                                      <div className={cn(
-                                        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                                        isDone ? "bg-emerald-500/10 text-emerald-500" : isPrep ? "bg-ctu-gold/10 text-ctu-gold" : "bg-foreground/5 text-foreground/20"
-                                      )}>
-                                        <SubjectIcon iconName={subject.icon} className="w-4 h-4" />
+                                <div className="relative z-10 h-full flex flex-col justify-between">
+                                  <div>
+                                    <div className="flex justify-between items-center mb-1 sm:mb-4">
+                                      <div className="flex items-center gap-1.5 sm:gap-2">
+                                        <div className={cn(
+                                          "w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg flex items-center justify-center shrink-0",
+                                          isDone ? "bg-emerald-500/10 text-emerald-500" : isPrep ? "bg-ctu-gold/10 text-ctu-gold" : "bg-foreground/5 text-foreground/20"
+                                        )}>
+                                          <SubjectIcon iconName={subject.icon} className="w-3 h-3 sm:w-4 sm:h-4" />
+                                        </div>
+                                        <span className={cn(
+                                          "text-[7px] sm:text-[10px] font-black uppercase tracking-widest px-1.5 sm:px-2 py-0.5 rounded sm:rounded-md bg-foreground/[0.03]",
+                                          isDone ? "text-emerald-500" : isPrep ? "text-ctu-gold" : "text-foreground/20"
+                                        )}>
+                                          {subject.code}
+                                        </span>
                                       </div>
-                                      <span className={cn(
-                                        "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-foreground/[0.03]",
-                                        isDone ? "text-emerald-500" : isPrep ? "text-ctu-gold" : "text-foreground/20"
-                                      )}>
-                                        {subject.code}
-                                      </span>
+                                      {isDone && <Award size={14} className="text-emerald-500 sm:size-[18px]" />}
                                     </div>
-                                    {isDone && <Award size={18} className="text-emerald-500" />}
+                                    <h5 className={cn(
+                                      "text-[9px] sm:text-base md:text-lg font-black leading-tight uppercase tracking-tight line-clamp-3 transition-colors",
+                                      isDone ? "text-emerald-500/80" : isPrep ? "text-ctu-gold" : "text-foreground group-hover:text-ctu-gold"
+                                    )}>
+                                      {subject.name}
+                                    </h5>
                                   </div>
-                                  <h5 className={cn(
-                                    "text-sm sm:text-base md:text-lg font-black leading-tight uppercase tracking-tight line-clamp-3 transition-colors",
-                                    isDone ? "text-emerald-500/80" : isPrep ? "text-ctu-gold" : "text-foreground group-hover:text-ctu-gold"
-                                  )}>
-                                    {subject.name}
-                                  </h5>
-                                </div>
-                                <div className="mt-8 relative z-10">
-                                  <div className="flex justify-between items-end mb-2">
-                                    <span className="text-[8px] font-black uppercase text-foreground/20 tracking-widest">Mastery</span>
-                                    <span className="text-[10px] font-black text-foreground/40">{isDone ? '100%' : isPrep ? '40%' : '0%'}</span>
+                                  
+                                  <div className="mt-2 sm:mt-8">
+                                    <div className="flex justify-between items-end mb-1 sm:mb-2">
+                                      <span className="text-[6px] sm:text-[8px] font-black uppercase text-foreground/20 tracking-widest">Mastery</span>
+                                      <span className="text-[7px] sm:text-[10px] font-black text-foreground/40">{isDone ? '100' : isPrep ? '40' : '0'}%</span>
+                                    </div>
+                                    <Progress value={isDone ? 100 : isPrep ? 40 : 0} className={cn(
+                                      "h-1 sm:h-2 rounded-full",
+                                      isDone ? "bg-emerald-500/10 [&>div]:bg-emerald-500" : isPrep ? "bg-ctu-gold/10 [&>div]:bg-ctu-gold" : "bg-foreground/5 [&>div]:bg-foreground/10"
+                                    )} />
                                   </div>
-                                  <Progress value={isDone ? 100 : isPrep ? 40 : 0} className={cn(
-                                    "h-2 rounded-full",
-                                    isDone ? "bg-emerald-500/10 [&>div]:bg-emerald-500" : isPrep ? "bg-ctu-gold/10 [&>div]:bg-ctu-gold" : "bg-foreground/5 [&>div]:bg-foreground/10"
-                                  )} />
                                 </div>
                               </div>
                             );

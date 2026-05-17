@@ -47,15 +47,13 @@ export type AIProvider = 'gemini' | 'groq' | 'openrouter' | null;
 export function getActiveProvider(): AIProvider {
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('ie_matrix_ai_provider') as AIProvider;
-    if (saved === 'gemini' && getEnvKey('VITE_GEMINI_API_KEY')) return 'gemini';
+    if (saved === 'gemini') return 'gemini';
     if (saved === 'groq' && getEnvKey('VITE_GROQ_API_KEY')) return 'groq';
     if (saved === 'openrouter' && getEnvKey('VITE_OPENROUTER_API_KEY')) return 'openrouter';
   }
 
-  if (getEnvKey('VITE_GEMINI_API_KEY')) return 'gemini';
-  if (getEnvKey('VITE_GROQ_API_KEY')) return 'groq';
-  if (getEnvKey('VITE_OPENROUTER_API_KEY')) return 'openrouter';
-  return null;
+  // Default to gemini as it is usually available via server proxy
+  return 'gemini';
 }
 
 export function setProviderPreference(provider: AIProvider) {
@@ -68,7 +66,9 @@ export function getAvailableProviders(): { id: string, name: string, active: boo
   const providers = [];
   const active = getActiveProvider();
   
-  if (getEnvKey('VITE_GEMINI_API_KEY')) providers.push({ id: 'gemini', name: 'Gemini 2.0 Flash', active: active === 'gemini' });
+  // Gemini is always listed since we have a server proxy
+  providers.push({ id: 'gemini', name: 'Gemini 2.0 Flash', active: active === 'gemini' });
+  
   if (getEnvKey('VITE_GROQ_API_KEY')) providers.push({ id: 'groq', name: 'Groq (Llama 3 8B)', active: active === 'groq' });
   if (getEnvKey('VITE_OPENROUTER_API_KEY')) providers.push({ id: 'openrouter', name: 'OpenRouter (Mistral 7B)', active: active === 'openrouter' });
   
@@ -76,7 +76,8 @@ export function getAvailableProviders(): { id: string, name: string, active: boo
 }
 
 export function isAIAvailable(): boolean {
-  return getActiveProvider() !== null;
+  // Always available via Gemini server proxy by default
+  return true;
 }
 
 async function fetchOpenAICompatible(apiUrl: string, apiKey: string, model: string, prompt: string, jsonMode: boolean, systemInstruction?: string) {
@@ -172,20 +173,32 @@ async function safeGenerateContent(prompt: string, jsonMode = false, systemInstr
 
   try {
     if (provider === 'gemini') {
-      const ai = getGeminiClient();
-      if (!ai) return jsonMode ? '[]' : '';
-      const config: any = {
-        model: DEFAULT_GEMINI_MODEL,
-        contents: prompt,
-        config: jsonMode ? { 
-          responseMimeType: "application/json",
-          systemInstruction: systemInstruction 
-        } : {
-          systemInstruction: systemInstruction
+      const response = await fetch("/api/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          prompt, 
+          systemInstruction,
+          model: DEFAULT_GEMINI_MODEL,
+          responseMimeType: jsonMode ? "application/json" : "text/plain"
+        }),
+      });
+      
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        let message = errData.error || `Server responded with ${response.status}`;
+        if (errData.retryAfter) {
+          message += ` (retry after ${errData.retryAfter}s)`;
         }
-      };
-      const response = await ai.models.generateContent(config);
-      let text = response.text || (jsonMode ? '[]' : '');
+        const error = new Error(message);
+        (error as any).status = response.status;
+        (error as any).retryAfter = errData.retryAfter;
+        throw error;
+      }
+      
+      const data = await response.json();
+      let text = data.text || (jsonMode ? '[]' : '');
+      
       if (jsonMode && text.startsWith('```json')) {
         text = text.replace(/```json\n?/, '').replace(/\n?```$/, '');
       }
@@ -201,6 +214,7 @@ async function safeGenerateContent(prompt: string, jsonMode = false, systemInstr
     }
   } catch (error: any) {
     console.error(`[AI ${provider}]`, error?.message || error);
+    throw error; // Re-throw to allow component-level handling
   }
   
   return jsonMode ? '[]' : '';
@@ -235,11 +249,9 @@ export async function generateStudyPlan(currentProgress: any, subjects: any[]): 
 
 export async function askQuestion(question: string, context: string): Promise<string> {
   return await safeGenerateContent(`
-    Context:
-    ${context}
-    
-    Student's question: ${question}
-  `, false, "You are the IE MATRIX assistant—a professional, encouraging, and highly knowledgeable AI tutor for Industrial Engineering (IE) students at Cebu Technological University. Ground your answers deeply in the provided context whenever possible. Provide clear, accurate, structured explanations with real-world IE examples (e.g., Lean Six Sigma, Operations Research, Ergonomics) if relevant. Format your response beautifully using Markdown headings, bullet points, and bold text for key terms.");
+    Ctx: ${context}
+    Q: ${question}
+  `, false, "IE Advisor for CTU. Be encouraging, professional, and knowledgeable. Use real IE examples. Markdown format.");
 }
 
 export async function generateQuiz(subjectName: string): Promise<any[]> {
@@ -264,13 +276,112 @@ export async function generateQuiz(subjectName: string): Promise<any[]> {
 }
 
 export async function getCurriculumAdvice(userProgress: any, subjects: any[]): Promise<string> {
-  const result = await safeGenerateContent(`
-    Curriculum: ${JSON.stringify(subjects.map(s => ({ code: s.code, name: s.name, year: s.yearLevel, sem: s.semester })))}
-    User Progress: ${JSON.stringify(userProgress)}
+  const completedCount = Object.values(userProgress).filter((p: any) => p.status === 'done').length;
+  const progressHash = `advice_${completedCount}_${subjects.length}_${Object.keys(userProgress).length}`;
+  
+  // Client-side cache check
+  try {
+    const cached = localStorage.getItem(progressHash);
+    if (cached) {
+      const { text, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp < 1000 * 60 * 60 * 24) { // 24 hour cache
+        return text;
+      }
+    }
+  } catch (e) { /* ignore */ }
+
+  // Drastically minimize payload for advice
+  const incompleteSubjects = subjects
+    .filter(s => userProgress[s.id]?.status !== 'done')
+    .map(s => ({ 
+      id: s.id, 
+      p: (s.prerequisiteIds || []).filter((pid: string) => userProgress[pid]?.status !== 'done'),
+      y: s.yearLevel[0], // Only first char "1", "2" etc
+      s: s.semester[0]   // Only first char "1", "2"
+    }))
+    .slice(0, 10); 
+
+  const currentStatus = {
+    pct: Math.round((completedCount / subjects.length) * 100)
+  };
+
+  try {
+    const result = await safeGenerateContent(`
+      Progress: ${currentStatus.pct}%
+      Incomplete: ${JSON.stringify(incompleteSubjects)}
+      TASK: Analyze progress. Provide advice.
+    `, false, "You are an IE Advisor. 1) Encouraging greeting. 2) 3 data-driven tips. 3) Identify bottlenecks. Use Markdown. Very concise.");
     
-    TASK: Analyze the student's progress and the curriculum, then provide strategic academic advice.
-  `, false, "You are an expert Head of Industrial Engineering Academic Advising. Analyze the student's progress to provide strategic, highly personalized advice. Your response must include: 1) A highly encouraging, personalized greeting. 2) 3 specific, data-driven pieces of actionable advice (e.g., focus on a specific prerequisite). 3) Identification of any 'bottleneck' subjects they must prioritize. Format clearly with Markdown utilizing bolding and lists. Keep it energetic, professional, and concise.");
-  return result || "Welcome to IE MATRIX! Keep up the meticulous work on your engineering journey. Check your roadmap for strategic next steps.";
+    if (result) {
+      try {
+        localStorage.setItem(progressHash, JSON.stringify({ text: result, timestamp: Date.now() }));
+      } catch (e) {}
+    }
+
+    return result || getStaticAdvice(userProgress, subjects);
+  } catch (error: any) {
+    if (error.status === 429 || error.message?.includes('429')) {
+      // Return static advice if AI is capped
+      return `🚨 **AI Quota Exhausted** (Free Tier Limit reached). \n\nI've generated this **Offline Expert Advice** for you while our AI systems synchronize: \n\n${getStaticAdvice(userProgress, subjects)}`;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Provides helpful, non-AI advice based on year level and common IE bottlenecks.
+ * This is used as a fallback when the Gemini Free Tier is exhausted.
+ */
+function getStaticAdvice(userProgress: any, subjects: any[]): string {
+  // Determine current year level based on progress
+  const completedIds = Object.keys(userProgress).filter(id => userProgress[id].status === 'done');
+  const levelWeights = { '1st Year': 1, '2nd Year': 2, '3rd Year': 3, '4th Year': 4 };
+  
+  // Find highest year level with incomplete subjects
+  const incompleteSubjects = subjects.filter(s => !completedIds.includes(s.id));
+  const currentYear = incompleteSubjects.length > 0 
+    ? incompleteSubjects[0].yearLevel 
+    : '4th Year';
+
+  const commonAdvice: Record<string, string[]> = {
+    '1st Year': [
+      "Focus intensely on your Mathematics foundations (Algebra, Calculus). These are the bedrock of Engineering.",
+      "Join the Junior Philippine Institute of Industrial Engineers (JPIIE) early to build your professional network.",
+      "Prioritize your **Computer Fundamentals**—Excel is an IE's most powerful tool for data analysis.",
+      "Establish good study habits now; IE requires strong logical thinking and process orientation."
+    ],
+    '2nd Year': [
+      "Prepare for **Operations Research**. It's logically demanding but defines the optimization core of IE.",
+      "Stay meticulous with **Industrial Processes**. Understanding 'how things are made' is vital for future optimization.",
+      "Don't neglect your **Thermodynamics**; it's a critical prerequisite for many higher-level lab subjects.",
+      "Start exploring **Lean Manufacturing** concepts—they will make your 3rd-year subjects much clearer."
+    ],
+    '3rd Year': [
+      "You are entering the 'IE Core'. Focus on **Ergonomics** and **Work Study** (Method Improvement).",
+      "Start looking into **Lean Six Sigma White/Yellow Belt** certifications. They complement your 3rd-year coursework.",
+      "Your **Statistical Quality Control** (SQC) skills will be highly marketable during your upcoming internship.",
+      "Master **Production Planning and Control** (PPC)—it's the heart of manufacturing management."
+    ],
+    '4th Year': [
+      "Prioritize your **Capital Project / Capstone**. Start data collection early to avoid graduation bottlenecks.",
+      "Focus on **Supply Chain Management** trends like Industry 4.0, Green Logistics, and Digital Twins.",
+      "Prepare for the **Certified Industrial Engineer (CIE)** exam by reviewing your 2nd and 3rd-year core notes.",
+      "Networking is key—leverage your IE skills by solving a real problem for a local industry during your OJT."
+    ]
+  };
+
+  const adviceList = commonAdvice[currentYear] || commonAdvice['1st Year'];
+  const shuffled = [...adviceList].sort(() => 0.5 - Math.random());
+  
+  return `### IE Expert Guidance (${currentYear})
+1. ${shuffled[0]}
+2. ${shuffled[1]}
+3. ${shuffled[2]}
+
+**Pro-Tips for Success:**
+- **Optimize your Schedule:** Use the **Catalog** to check prerequisites for upcoming semesters to avoid being 'blocked' by a failed subject.
+- **Data over Opinions:** Industrial Engineering is about optimization. Always look for the data in your problems.
+- **Stay Curious:** IE is broad. Whether it's ergonomics, supply chain, or operations research, find the niche that excites you!`;
 }
 
 export async function generateFlashcards(topic: string, count = 10): Promise<any[]> {
@@ -320,14 +431,24 @@ export async function generateContent(options: any) {
   
   try {
      if (provider === 'gemini') {
-         const ai = getGeminiClient();
-         if (!ai) return { text: "" };
-         const response = await ai.models.generateContent({
-           model: options.model || DEFAULT_GEMINI_MODEL,
-           contents: options.contents,
-           config: options.config
+         const response = await fetch("/api/ai/generate", {
+           method: "POST",
+           headers: { "Content-Type": "application/json" },
+           body: JSON.stringify({ 
+             prompt: options.contents && typeof options.contents === 'string' ? options.contents : undefined,
+             contents: options.contents && typeof options.contents !== 'string' ? options.contents : undefined,
+             model: options.model || DEFAULT_GEMINI_MODEL,
+             config: options.config
+           }),
          });
-         return { text: response.text || "" };
+         
+         if (!response.ok) {
+           const errData = await response.json().catch(() => ({}));
+           throw new Error(errData.error || `Server responded with ${response.status}`);
+         }
+         
+         const data = await response.json();
+         return { text: data.text || "" };
      } else {
          // Transform options.contents into a prompt string for openrouter/groq
          let prompt = "";
